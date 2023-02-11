@@ -1,0 +1,4 @@
+<?xml version="1.0"?>
+<view template="badmsc:/templates/wizard.html" type="html">
+	<label>Migrate to Splunk Cloud</label>
+</view>
