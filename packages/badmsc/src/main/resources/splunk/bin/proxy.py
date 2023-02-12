@@ -24,7 +24,7 @@ class proxy(common.RestHandler):
                 status=400,
             )
 
-        if to not in ["acs", "api"]:
+        if to not in ["acs", "api", "wan"]:
             return self.json_error(
                 "Invalid 'to' parameter",
                 status=400,
@@ -67,7 +67,13 @@ class proxy(common.RestHandler):
                     method=args["method"],
                     token=True,
                     sessionKey=password["token"],
-                    postargs=args["form"],
+                    jsonargs=args["payload"],
+                    rawResult=True,
+                )
+            elif to == "wan":
+                resp, content = simpleRequest(
+                    "https://api.ipify.org/",
+                    proxyMode=True,
                     rawResult=True,
                 )
             return {

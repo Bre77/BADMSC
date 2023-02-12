@@ -10,7 +10,8 @@ import StepBar from '@splunk/react-ui/StepBar';
 import { localLoad, localSave } from '../../shared/helpers';
 import Step0 from '../0-start';
 import Step1 from '../1-access';
-import Step2 from '../../components/2-allowlist';
+import Step2 from '../2-allowlist';
+import Step3 from '../3-indexes';
 import { Bottom } from './styles';
 
 export default () => {
@@ -18,10 +19,12 @@ export default () => {
         ['Start', Step0],
         ['Access', Step1],
         ['IP Allow List', Step2],
-        ['Indexes', Step1],
+        ['Indexes', Step3],
         ['Apps', Step1],
-        ['Data', Step1],
+        ['Global Config', Step1],
+        ['App Config', Step1],
         ['Users', Step1],
+        ['Data', Step1],
         ['Finish', Step1],
     ];
 

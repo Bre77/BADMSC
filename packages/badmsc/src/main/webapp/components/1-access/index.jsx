@@ -16,7 +16,7 @@ import Success from '@splunk/react-icons/Success';
 import Error from '@splunk/react-icons/Error';
 import Save from '@splunk/react-icons/Save';
 import Message from '@splunk/react-ui/Message';
-
+import { usePassword } from '../../shared/hooks';
 //Shared
 import { wrapSetValue, StatusCheck } from '../../shared/helpers';
 
@@ -29,6 +29,7 @@ export default ({ setStep }) => {
     const handleToken = wrapSetValue(setToken);
 
     if (stack.startsWith('https://')) setStack(stack.replace('https://', '').replace('/', ''));
+    const web = stack;
     const api = `${stack}:8089`;
     const acs = `admin.splunk.com/${stack.replace('.splunkcloud.com', '')}`;
     const hec = `http-inputs-${stack.replace(/^(es-|itsi-)/, '')}:443`;
@@ -38,8 +39,7 @@ export default ({ setStep }) => {
         queryKey: ['password'],
         queryFn: () =>
             fetch(
-                `${splunkdPath}/servicesNS/${username}/badmsc/storage/passwords/badmsc%3Aauth%3A?output_mode=json&count=1`,
-                defaultFetchInit
+                `${splunkdPath}/servicesNS/${username}/badmsc/storage/passwords/badmsc%3Aauth%3A?output_mode=json&count=1`
             ).then((res) =>
                 res.ok
                     ? res
@@ -49,10 +49,10 @@ export default ({ setStep }) => {
                     : false
             ),
         staleTime: Infinity,
+        notifyOnChangeProps: ['data'],
     });
-    2;
+
     useEffect(() => {
-        console.log(password);
         if (password?.token) setToken(password.token);
         if (password?.api) setStack(password.api.split(':')[0]);
     }, [password]);

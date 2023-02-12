@@ -1,0 +1,46 @@
+import React from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { splunkdPath } from '@splunk/splunk-utils/config';
+import { defaultFetchInit } from '@splunk/splunk-utils/fetch';
+
+const handle = (res) => (res.ok ? res.json() : Promise.reject(res.json()));
+
+export const useAcs = (endpoint, options = {}, toast = false) =>
+    useQuery({
+        queryKey: ['acs', endpoint],
+        queryFn: () =>
+            fetch(`${splunkdPath}/services/badmsc/proxy?to=acs&uri=adminconfig/v2/${endpoint}`, {
+                ...defaultFetchInit,
+                ...options,
+            }).then(handle),
+        staleTime: Infinity,
+    });
+
+export const useApi = (endpoint, options = {}, toast = false) =>
+    useQuery({
+        queryKey: ['api', endpoint],
+        queryFn: () =>
+            fetch(`${splunkdPath}/services/badmsc/proxy?to=api&uri=${endpoint}`, {
+                ...defaultFetchInit,
+                ...options,
+            }).then(handle),
+        staleTime: Infinity,
+    });
+
+/*export const usePassword = () =>
+    useQuery({
+        queryKey: ['password'],
+        queryFn: () =>
+            fetch(
+                `${splunkdPath}/servicesNS/${username}/badmsc/storage/passwords/badmsc%3Aauth%3A?output_mode=json&count=1`
+            ).then((res) =>
+                res.ok
+                    ? res
+                          .json()
+                          .then((data) => JSON.parse(data.entry[0].content.clear_password))
+                          .catch(() => ({}))
+                    : false
+            ),
+        staleTime: Infinity,
+        notifyOnChangeProps: ['data'],
+    });*/
