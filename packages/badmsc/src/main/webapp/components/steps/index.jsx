@@ -8,13 +8,15 @@ import StepBar from '@splunk/react-ui/StepBar';
 
 // Shared
 import { localLoad, localSave } from '../../shared/helpers';
-import Step1 from '../../components/1-start';
+import Step0 from '../0-start';
+import Step1 from '../1-access';
 import Step2 from '../../components/2-allowlist';
 import { Bottom } from './styles';
 
 export default () => {
     const steps = [
-        ['Start', Step1],
+        ['Start', Step0],
+        ['Access', Step1],
         ['IP Allow List', Step2],
         ['Indexes', Step1],
         ['Apps', Step1],
@@ -54,7 +56,6 @@ export default () => {
                     <StepBar.Step key={z}>{label}</StepBar.Step>
                 ))}
             </StepBar>
-            {step}
             <CurrentStep {...setStep} />
             <Bottom>
                 <Button

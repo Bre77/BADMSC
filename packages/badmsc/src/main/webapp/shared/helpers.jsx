@@ -1,11 +1,15 @@
 import React, { useReducer, useState } from 'react';
-import { splunkdPath, username } from '@splunk/splunk-utils/config';
-import { defaultFetchInit } from '@splunk/splunk-utils/fetch';
 import { useMutation, useQueries, useQuery, useQueryClient } from '@tanstack/react-query';
 import { restStatus, restPostForm } from './fetch';
+
+// Splunk UI
+import Tooltip from '@splunk/react-ui/Tooltip';
 import WaitSpinner from '@splunk/react-ui/WaitSpinner';
 import Success from '@splunk/react-icons/Success';
 import Error from '@splunk/react-icons/Error';
+import NotAllowed from '@splunk/react-icons/NotAllowed';
+import { splunkdPath } from '@splunk/splunk-utils/config';
+import { defaultFetchInit } from '@splunk/splunk-utils/fetch';
 
 // Local Storage
 export const localSave = (key, value) => window.localStorage.setItem(key, JSON.stringify(value));
@@ -33,15 +37,24 @@ export const wrapSetValue =
     (_, { value }) =>
         f(value);
 
-export const StatusCheck = ({ host }) => {
-    console.log(host);
+export const StatusCheck = ({ host, disabled }) => {
     const { data, isLoading } = useQuery({
         queryKey: ['status', host],
-        queryFn: () => restStatus('proxy', { method: 'OPTIONS', host }),
-        staleTime: 'Infinity',
+        queryFn: () =>
+            fetch(`${splunkdPath}/services/badmsc/check?host=${host}`, defaultFetchInit).then(
+                (res) => res.text()
+            ),
+        staleTime: Infinity,
+        enabled: !disabled,
     });
-    console.log(data);
-    return isLoading ? <WaitSpinner /> : data < 300 ? <Success /> : <Error />;
+    if (disabled) return <NotAllowed />;
+    if (isLoading) return <WaitSpinner />;
+    if (data == 'OK') return <Success />;
+    return (
+        <Tooltip content={data}>
+            <Error />
+        </Tooltip>
+    );
 };
 
 export const AuthCheck = (host, uri) => {

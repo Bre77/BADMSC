@@ -14,7 +14,7 @@ const makeParameters = (parameters = []) => {
         .map(([key, value]) => `${encodeURIComponent(key)}=${encodeURIComponent(value)}`)
         .join('&');
 };
-const makeBody = (data) => {
+export const makeBody = (data) => {
     return Object.entries(data).reduce((form, [key, value]) => {
         form.append(key, value);
         return form;
@@ -38,13 +38,13 @@ export async function restStatus(endpoint, parameters = {}) {
     return fetch(`${splunkdPath}/services/badmsc/${endpoint}?${makeParameters(parameters)}`, {
         ...defaultFetchInit,
         method: 'POST',
-    }).then((res) => res.status);
+    });
 }
 
 export async function restGet(endpoint, parameters = {}) {
     return fetch(`${splunkdPath}/services/badmsc/${endpoint}?${makeParameters(parameters)}`, {
         ...defaultFetchInit,
-    }).then(handleRes);
+    });
 }
 
 export async function restPostForm(endpoint, parameters = {}, body = {}) {

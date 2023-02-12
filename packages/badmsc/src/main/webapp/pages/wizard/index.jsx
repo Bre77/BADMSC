@@ -48,15 +48,15 @@ const queryClient = new QueryClient({
 getUserTheme()
     .then((theme) => {
         layout(
-            <StyledContainer>
+            <QueryClientProvider client={queryClient}>
                 <GlobalStyle />
-                <QueryClientProvider client={queryClient}>
-                    <Loading />
+                <Loading />
+                <StyledContainer>
                     <Steps />
-                    <ReactQueryDevtools />
-                </QueryClientProvider>
+                </StyledContainer>
+                <ReactQueryDevtools />
                 <ToastMessages />
-            </StyledContainer>,
+            </QueryClientProvider>,
             { theme }
         );
     })
