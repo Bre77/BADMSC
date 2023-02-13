@@ -24,14 +24,14 @@ class proxy(common.RestHandler):
                 status=400,
             )
 
-        if not re.search(
-            "^[^.]+\.splunkcloud\.com:8089$|^http-inputs-[^.]+\.splunkcloud\.com(?::443)?$|^admin\.splunk\.com(?::443)?$|^splunkbase\.splunk\.com(?::443)?$",
-            host,
-        ):
-            return self.json_error(
-                f"Host '{host}' isn't allowed",
-                status=403,
-            )
+        # if not re.search(
+        #    "^[^.]+\.splunkcloud\.com:8089$|^http-inputs-[^.]+\.splunkcloud\.com(?::443)?$|^admin\.splunk\.com(?::443)?$|^splunkbase\.splunk\.com(?::443)?$",
+        #    host,
+        # ):
+        #    return self.json_error(
+        #        f"Host '{host}' isn't allowed",
+        #        status=403,
+        #    )
 
         try:
             simpleRequest(f"https://{host}", method="OPTIONS", raiseAllErrors=True)

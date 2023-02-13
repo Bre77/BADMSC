@@ -126,16 +126,20 @@ export default ({ setStep }) => {
             </P>
             <List>
                 <List.Item>
-                    <StatusCheck host={api} disabled={!stack_valid} /> {api}
-                </List.Item>
-                <List.Item>
-                    <StatusCheck host={hec} disabled={!stack_valid} /> {hec}
-                </List.Item>
-                <List.Item>
                     <StatusCheck host="admin.splunk.com" /> admin.splunk.com:443
                 </List.Item>
                 <List.Item>
+                    <StatusCheck host={api} disabled={!stack_valid} /> {api}
+                </List.Item>
+                <List.Item>
+                    <StatusCheck host={hec} disabled={!stack_valid} /> {hec} (optional)
+                </List.Item>
+                <List.Item>
                     <StatusCheck host="splunkbase.splunk.com:443" /> splunkbase.splunk.com:443
+                    (optional)
+                </List.Item>
+                <List.Item>
+                    <StatusCheck host="api.ipify.org:443" /> api.ipify.org:443 (optional)
                 </List.Item>
             </List>
 

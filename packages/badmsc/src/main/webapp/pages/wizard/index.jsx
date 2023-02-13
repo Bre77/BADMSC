@@ -1,3 +1,5 @@
+__webpack_public_path__ = window.resourceBasePath;
+
 import React from 'react';
 import styled, { createGlobalStyle } from 'styled-components';
 import { variables, mixins } from '@splunk/themes';

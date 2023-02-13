@@ -24,36 +24,45 @@ class proxy(common.RestHandler):
                 status=400,
             )
 
-        if to not in ["acs", "api", "wan"]:
+        if to not in ["acs", "api", "src", "wan"]:
             return self.json_error(
                 "Invalid 'to' parameter",
                 status=400,
             )
 
         # Auth
-        try:
-            resp, content = simpleRequest(
-                f"{self.LOCAL_URI}/servicesNS/{self.USER}/{self.APP_NAME}/storage/passwords/badmsc%3Aauth%3A?output_mode=json&count=1",
-                sessionKey=self.AUTHTOKEN,
-            )
-            if resp.status != 200:
-                return self.json_error(
-                    f"Getting stored password returned {resp.status}",
-                    resp.status,
-                    json.loads(content)["messages"][0]["text"],
+        if to in ["acs", "api"]:
+            try:
+                resp, content = simpleRequest(
+                    f"{self.LOCAL_URI}/servicesNS/{self.USER}/{self.APP_NAME}/storage/passwords/badmsc%3Aauth%3A?output_mode=json&count=1",
+                    sessionKey=self.AUTHTOKEN,
                 )
-            password = json.loads(
-                json.loads(content)["entry"][0]["content"]["clear_password"]
-            )
-        except Exception as e:
-            return self.json_error(
-                f"GET request to {self.LOCAL_URI}/servicesNS/{self.USER}/{self.APP_NAME}/storage/passwords/badmsc:auth: failed",
-                e.__class__.__name__,
-                str(e),
-            )
+                if resp.status != 200:
+                    return self.json_error(
+                        f"Getting stored password returned {resp.status}",
+                        resp.status,
+                        json.loads(content)["messages"][0]["text"],
+                    )
+                password = json.loads(
+                    json.loads(content)["entry"][0]["content"]["clear_password"]
+                )
+            except Exception as e:
+                return self.json_error(
+                    f"GET request to {self.LOCAL_URI}/servicesNS/{self.USER}/{self.APP_NAME}/storage/passwords/badmsc:auth: failed",
+                    e.__class__.__name__,
+                    str(e),
+                )
 
         try:
-            if to == "api":
+            if to == "src":
+                resp, content = simpleRequest(
+                    f"{self.LOCAL_URI}/{uri}?output_mode=json&count=0",
+                    method=args["method"],
+                    sessionKey=self.AUTHTOKEN,
+                    postargs=args["form"],
+                    rawResult=True,
+                )
+            elif to == "api":
                 resp, content = simpleRequest(
                     f"https://{password[to]}/{uri}?output_mode=json&count=0",
                     method=args["method"],
@@ -63,11 +72,11 @@ class proxy(common.RestHandler):
                 )
             elif to == "acs":
                 resp, content = simpleRequest(
-                    f"https://{password[to]}/{uri}",
+                    f"https://{password[to]}/{uri}?count=0",
                     method=args["method"],
                     token=True,
                     sessionKey=password["token"],
-                    jsonargs=args["payload"],
+                    jsonargs=args.get("payload"),
                     rawResult=True,
                 )
             elif to == "wan":

@@ -11,6 +11,11 @@ import NotAllowed from '@splunk/react-icons/NotAllowed';
 import { splunkdPath } from '@splunk/splunk-utils/config';
 import { defaultFetchInit } from '@splunk/splunk-utils/fetch';
 
+export const isort = (a, b) => a.localeCompare(b, undefined, { sensitivity: "base" }); // Case insensitive sort
+export const isort0 = (a, b) => a[0].localeCompare(b[0], undefined, { sensitivity: "base" });
+export const isort1 = (a, b) => a[1].localeCompare(b[1], undefined, { sensitivity: "base" });
+export const dedup = (a) => Array.from(new Set(a));
+
 // Local Storage
 export const localSave = (key, value) => window.localStorage.setItem(key, JSON.stringify(value));
 

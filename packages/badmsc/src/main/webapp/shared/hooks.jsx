@@ -1,10 +1,11 @@
 import React from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation } from '@tanstack/react-query';
 import { splunkdPath } from '@splunk/splunk-utils/config';
 import { defaultFetchInit } from '@splunk/splunk-utils/fetch';
+import { makeBody } from './fetch';
 
-const handle = (res) => (res.ok ? res.json() : Promise.reject(res.json()));
-
+export const handle = (res) => (res.ok ? res.json() : Promise.reject(res.json()));
+const entry = (data) => data.entry;
 export const useAcs = (endpoint, options = {}, toast = false) =>
     useQuery({
         queryKey: ['acs', endpoint],
@@ -16,14 +17,65 @@ export const useAcs = (endpoint, options = {}, toast = false) =>
         staleTime: Infinity,
     });
 
-export const useApi = (endpoint, options = {}, toast = false) =>
+/*export const useMutationAcs = (endpoint, postprocess) =>
+    useMutation({
+        mutationFn: (body) =>
+            fetch(`${splunkdPath}/services/badmsc/proxy?to=acs&uri=${endpoint}`, {
+                ...defaultFetchInit,
+                method: 'POST',
+                body: JSON.stringify(body),
+            })
+                .then((res) => {
+                    if (!res.ok) return console.warn(res.json());
+                    queryClient.invalidateQueries({
+                        queryKey: ['acs', endpoint],
+                    });
+                    return res.json();
+                })
+                .then(postprocess),
+    });*/
+
+export const useApi = (endpoint, options = {}, toast = false, postprocess = entry) =>
     useQuery({
         queryKey: ['api', endpoint],
         queryFn: () =>
             fetch(`${splunkdPath}/services/badmsc/proxy?to=api&uri=${endpoint}`, {
                 ...defaultFetchInit,
                 ...options,
-            }).then(handle),
+            })
+                .then(handle)
+                .then(postprocess),
+        staleTime: Infinity,
+    });
+
+/*export const useMutationApi = (endpoint, postprocess) =>
+    useMutation({
+        mutationFn: (body) =>
+            fetch(`${splunkdPath}/services/badmsc/proxy?to=acs&uri=${endpoint}`, {
+                ...defaultFetchInit,
+                method: 'POST',
+                body: makeBody(body),
+            })
+                .then((res) => {
+                    if (!res.ok) return console.warn(res.json());
+                    queryClient.invalidateQueries({
+                        queryKey: ['api', endpoint],
+                    });
+                    return res.json();
+                })
+                .then(postprocess),
+    });*/
+
+export const useSrc = (endpoint, options = {}, toast = false, postprocess = entry) =>
+    useQuery({
+        queryKey: ['src', endpoint],
+        queryFn: () =>
+            fetch(`${splunkdPath}/services/badmsc/proxy?to=src&uri=${endpoint}`, {
+                ...defaultFetchInit,
+                ...options,
+            })
+                .then(handle)
+                .then(postprocess),
         staleTime: Infinity,
     });
 

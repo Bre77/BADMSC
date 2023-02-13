@@ -1,4 +1,4 @@
-import React, { useReducer, useCallback } from 'react';
+import React, { Suspense, useReducer, useCallback } from 'react';
 
 // Splunk UI
 import Button from '@splunk/react-ui/Button';
@@ -8,24 +8,25 @@ import StepBar from '@splunk/react-ui/StepBar';
 
 // Shared
 import { localLoad, localSave } from '../../shared/helpers';
-import Step0 from '../0-start';
-import Step1 from '../1-access';
-import Step2 from '../2-allowlist';
-import Step3 from '../3-indexes';
+//import Step0 from '../0-start';
+//import Step2 from '../2-allowlist';
+//import Step3 from '../3-indexes';
+//import Step4 from '../4-apps';
 import { Bottom } from './styles';
+import WaitSpinner from '@splunk/react-ui/WaitSpinner';
 
 export default () => {
     const steps = [
-        ['Start', Step0],
-        ['Access', Step1],
-        ['IP Allow List', Step2],
-        ['Indexes', Step3],
-        ['Apps', Step1],
-        ['Global Config', Step1],
-        ['App Config', Step1],
-        ['Users', Step1],
-        ['Data', Step1],
-        ['Finish', Step1],
+        ['Start', React.lazy(() => import('../0-start'))],
+        ['Authentication', React.lazy(() => import('../1-auth'))],
+        ['IP Allow Lists', React.lazy(() => import('../2-allowlist'))],
+        ['Indexes', React.lazy(() => import('../3-indexes'))],
+        ['Apps', React.lazy(() => import('../4-apps'))],
+        ['Global Config', React.lazy(() => import('../5-globalconfig'))],
+        ['App Config', React.lazy(() => import('../6-appconfig'))],
+        ['Users', React.lazy(() => import('../7-users'))],
+        ['Data', React.lazy(() => import('../8-data'))],
+        ['Finish', React.lazy(() => import('../9-finish'))],
     ];
 
     const [step, setStep] = useReducer((prev, value) => {
@@ -59,7 +60,9 @@ export default () => {
                     <StepBar.Step key={z}>{label}</StepBar.Step>
                 ))}
             </StepBar>
-            <CurrentStep {...setStep} />
+            <Suspense fallback={<WaitSpinner />}>
+                <CurrentStep {...setStep} />
+            </Suspense>
             <Bottom>
                 <Button
                     icon={<ChevronLeft />}

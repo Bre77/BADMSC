@@ -5,7 +5,7 @@
     <meta charset="utf-8">
     <meta http-equiv="x-ua-compatible" content="ie=edge">
     <title>
-        Badmsc Demo App
+        Migrate to Splunk Cloud
     </title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <link rel="apple-touch-icon" href="apple-touch-icon.png">
@@ -16,14 +16,10 @@
     <script src="${make_url('/static/js/i18n.js')}"></script>
     <script src="${make_url('/i18ncatalog?autoload=1')}"></script>
     <script>
-        __splunkd_partials__ = ${json_decode(splunkd)};
+        __splunkd_partials__ = ${ json_decode(splunkd) };
+        window.resourceBasePath = "${ make_url('/static/app/badmsc/pages') }/";
     </script>
-
-    <%
-    page_path = "/static/app/badmsc/pages/" + page + ".js"
-    %>
-
-    <script src="${make_url(page_path)}"></script>
+    <script src="${make_url('/static/app/badmsc/pages/wizard.js')}"></script>
 </body>
 
 </html>
