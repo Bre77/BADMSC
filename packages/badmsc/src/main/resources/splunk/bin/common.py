@@ -94,11 +94,13 @@ class RestHandler(PersistentServerConnectionApplication):
         for field in query:
             if field in args["query"]:
                 output.append(args["query"][field])
+                del args["query"][field]
             else:
                 issues.append(f"Missing {field} from query")
         for field in form:
             if field in args["form"]:
                 output.append(args["form"][field])
+                del args["form"][field]
             else:
                 issues.append(f"Missing {field} from form")
         if issues:

@@ -17,18 +17,27 @@ class proxy(common.RestHandler):
             return self.json_error("Method Not Allowed", 405)
 
         try:  # Check for required input
-            [to, uri] = self.getInput(args, ["to", "uri"])
+            to = args["query"]["to"]
+            del args["query"]["to"]
+            uri = args["query"]["uri"]
+            del args["query"]["uri"]
         except Exception as e:
             return self.json_error(
-                str(e),
+                "Missing to or uri parameter",
                 status=400,
             )
 
-        if to not in ["acs", "api", "src", "wan"]:
+        if to not in ["acs", "api", "src", "wan", "app"]:
             return self.json_error(
                 "Invalid 'to' parameter",
                 status=400,
             )
+
+        self.logger.info(
+            json.dumps(
+                {"method": args["method"], "to": to, "uri": uri, "query": args["query"]}
+            )
+        )
 
         # Auth
         if to in ["acs", "api"]:
@@ -56,32 +65,43 @@ class proxy(common.RestHandler):
         try:
             if to == "src":
                 resp, content = simpleRequest(
-                    f"{self.LOCAL_URI}/{uri}?output_mode=json&count=0",
+                    f"{self.LOCAL_URI}/{uri}",
                     method=args["method"],
                     sessionKey=self.AUTHTOKEN,
+                    getargs={"output_mode": "json", "count": 0, **args["query"]},
                     postargs=args["form"],
                     rawResult=True,
                 )
             elif to == "api":
                 resp, content = simpleRequest(
-                    f"https://{password[to]}/{uri}?output_mode=json&count=0",
+                    f"https://{password[to]}/{uri}",
                     method=args["method"],
                     sessionKey=password["token"],
+                    getargs={"output_mode": "json", "count": 0, **args["query"]},
                     postargs=args["form"],
                     rawResult=True,
                 )
             elif to == "acs":
                 resp, content = simpleRequest(
-                    f"https://{password[to]}/{uri}?count=0",
+                    f"https://{password[to]}/{uri}",
                     method=args["method"],
                     token=True,
                     sessionKey=password["token"],
+                    getargs={"count": 0, **args["query"]},
                     jsonargs=args.get("payload"),
                     rawResult=True,
                 )
             elif to == "wan":
                 resp, content = simpleRequest(
                     "https://api.ipify.org/",
+                    proxyMode=True,
+                    rawResult=True,
+                )
+            elif to == "app":
+                resp, content = simpleRequest(
+                    f"https://splunkbase.splunk.com/api/{uri}",
+                    method=args["method"],
+                    getargs=args["query"],
                     proxyMode=True,
                     rawResult=True,
                 )

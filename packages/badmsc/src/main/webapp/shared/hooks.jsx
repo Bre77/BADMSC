@@ -6,14 +6,22 @@ import { makeBody } from './fetch';
 
 export const handle = (res) => (res.ok ? res.json() : Promise.reject(res.json()));
 const entry = (data) => data.entry;
-export const useAcs = (endpoint, options = {}, toast = false) =>
+
+export const useAcs = (endpoint, parameters = { count: 0 }, options = {}, toast = false) =>
     useQuery({
         queryKey: ['acs', endpoint],
         queryFn: () =>
-            fetch(`${splunkdPath}/services/badmsc/proxy?to=acs&uri=adminconfig/v2/${endpoint}`, {
-                ...defaultFetchInit,
-                ...options,
-            }).then(handle),
+            fetch(
+                `${splunkdPath}/services/badmsc/proxy?${new URLSearchParams({
+                    to: 'acs',
+                    uri: `adminconfig/v2/${endpoint}`,
+                    ...parameters,
+                })}`,
+                {
+                    ...defaultFetchInit,
+                    ...options,
+                }
+            ).then(handle),
         staleTime: Infinity,
     });
 
@@ -35,14 +43,27 @@ export const useAcs = (endpoint, options = {}, toast = false) =>
                 .then(postprocess),
     });*/
 
-export const useApi = (endpoint, options = {}, toast = false, postprocess = entry) =>
+export const useApi = (
+    endpoint,
+    parameters = { count: 0, output_mode: 'json' },
+    options = {},
+    toast = false,
+    postprocess = entry
+) =>
     useQuery({
         queryKey: ['api', endpoint],
         queryFn: () =>
-            fetch(`${splunkdPath}/services/badmsc/proxy?to=api&uri=${endpoint}`, {
-                ...defaultFetchInit,
-                ...options,
-            })
+            fetch(
+                `${splunkdPath}/services/badmsc/proxy?${new URLSearchParams({
+                    to: 'api',
+                    uri: endpoint,
+                    ...parameters,
+                })}`,
+                {
+                    ...defaultFetchInit,
+                    ...options,
+                }
+            )
                 .then(handle)
                 .then(postprocess),
         staleTime: Infinity,
@@ -66,14 +87,27 @@ export const useApi = (endpoint, options = {}, toast = false, postprocess = entr
                 .then(postprocess),
     });*/
 
-export const useSrc = (endpoint, options = {}, toast = false, postprocess = entry) =>
+export const useSrc = (
+    endpoint,
+    parameters = { count: '0', output_mode: 'json' },
+    options = {},
+    toast = false,
+    postprocess = entry
+) =>
     useQuery({
         queryKey: ['src', endpoint],
         queryFn: () =>
-            fetch(`${splunkdPath}/services/badmsc/proxy?to=src&uri=${endpoint}`, {
-                ...defaultFetchInit,
-                ...options,
-            })
+            fetch(
+                `${splunkdPath}/services/badmsc/proxy?${new URLSearchParams({
+                    to: 'src',
+                    uri: endpoint,
+                    ...parameters,
+                })}`,
+                {
+                    ...defaultFetchInit,
+                    ...options,
+                }
+            )
                 .then(handle)
                 .then(postprocess),
         staleTime: Infinity,

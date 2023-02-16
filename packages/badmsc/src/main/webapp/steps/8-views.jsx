@@ -1,8 +1,8 @@
 import React, { useMemo, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useSrc, useAcs } from '../../shared/hooks';
-import { isort0, wrapSetValue } from '../../shared/helpers';
-import {} from '../../shared/fetch';
+import { useSrc, useAcs } from '../shared/hooks';
+import { isort0, wrapSetValue } from '../shared/helpers';
+import {} from '../shared/fetch';
 
 // Splunk UI
 import Heading from '@splunk/react-ui/Heading';
@@ -21,7 +21,7 @@ import WaitSpinner from '@splunk/react-ui/WaitSpinner';
 import { splunkdPath } from '@splunk/splunk-utils/config';
 import { defaultFetchInit } from '@splunk/splunk-utils/fetch';
 
-export default ({ setStep }) => {
+export default () => {
     const queryClient = useQueryClient();
 
     const [create, setCreate] = useState(100);

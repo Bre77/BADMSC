@@ -13,7 +13,7 @@ import Progress from '@splunk/react-ui/Progress';
 import ToastMessages from '@splunk/react-toast-notifications/ToastMessages';
 
 //Shared
-import Steps from '../../components/steps';
+import Steps from '../../steps';
 
 const StyledContainer = styled.div`
     ${mixins.reset('inline')};

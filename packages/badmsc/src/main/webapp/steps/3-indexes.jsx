@@ -1,8 +1,8 @@
 import React, { useMemo, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { handle, useAcs } from '../../shared/hooks';
-import { isort0, wrapSetValue } from '../../shared/helpers';
-import { makeBody } from '../../shared/fetch';
+import { handle, useAcs } from '../shared/hooks';
+import { isort0, wrapSetValue } from '../shared/helpers';
+import { makeBody } from '../shared/fetch';
 
 // Splunk UI
 import Heading from '@splunk/react-ui/Heading';
@@ -21,7 +21,7 @@ import WaitSpinner from '@splunk/react-ui/WaitSpinner';
 import { splunkdPath } from '@splunk/splunk-utils/config';
 import { defaultFetchInit } from '@splunk/splunk-utils/fetch';
 
-export default ({ setStep }) => {
+export default () => {
     const queryClient = useQueryClient();
 
     const [create, setCreate] = useState(100);
@@ -135,7 +135,6 @@ export default ({ setStep }) => {
 
     return (
         <div>
-            <Heading level={1}>Step 3 - Indexes</Heading>
             <P>All indexes that are in use locally should be created in Splunk Cloud.</P>
             <Heading level={2}>Step 3.1 - Review Indexes</Heading>
             <ControlGroup label="Historical Search Days" labelWidth={150}>

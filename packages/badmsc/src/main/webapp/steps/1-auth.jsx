@@ -16,13 +16,13 @@ import Success from '@splunk/react-icons/Success';
 import Error from '@splunk/react-icons/Error';
 import Save from '@splunk/react-icons/Save';
 import Message from '@splunk/react-ui/Message';
-import { usePassword } from '../../shared/hooks';
+import { usePassword } from '../shared/hooks';
 //Shared
-import { wrapSetValue, StatusCheck } from '../../shared/helpers';
+import { wrapSetValue, StatusCheck } from '../shared/helpers';
 
-import { makeBody } from '../../shared/fetch';
+import { makeBody } from '../shared/fetch';
 
-export default ({ setStep }) => {
+export default () => {
     const [stack, setStack] = useState('customer.splunkcloud.com');
     const handleStack = wrapSetValue(setStack);
     const [token, setToken] = useState('');
@@ -102,7 +102,6 @@ export default ({ setStep }) => {
 
     return (
         <div>
-            <Heading level={1}>Step 1 - Access</Heading>
             <P>Setup access from this search head to your Splunk Cloud stack.</P>
 
             <Heading level={2}>Step 1.1 - Hostname</Heading>

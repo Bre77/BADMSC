@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useAcs, useApi, handle } from '../../shared/hooks';
+import { useAcs, useApi, handle } from '../shared/hooks';
 
 // Splunk UI
 import Heading from '@splunk/react-ui/Heading';
@@ -13,12 +13,17 @@ import Button from '@splunk/react-ui/Button';
 import List from '@splunk/react-ui/List';
 import WaitSpinner from '@splunk/react-ui/WaitSpinner';
 import ControlGroup from '@splunk/react-ui/ControlGroup';
-import { wrapSetValue } from '../../shared/helpers';
+import { wrapSetValue } from '../shared/helpers';
 
 const Allowlist = ({ feature }) => {
-    const query = useAcs(`access/${feature}/ipallowlists`, {
-        notifyOnChangeProps: ['data', 'isLoading'],
-    });
+    const query = useAcs(
+        `access/${feature}/ipallowlists`,
+        { count: 0 },
+        {
+            notifyOnChangeProps: ['data', 'isLoading'],
+        },
+        true
+    );
     return query.isLoading ? (
         <WaitSpinner />
     ) : (
@@ -75,7 +80,7 @@ const AddAllow = ({ suggestion, feature }) => {
     );
 };
 
-export default ({ setStep }) => {
+export default () => {
     const test = useApi('services/admin/server-info');
 
     const sh_ip = useQuery({
@@ -97,7 +102,6 @@ export default ({ setStep }) => {
 
     return (
         <div>
-            <Heading level={1}>Step 2 - IP Allow Lists</Heading>
             <P>
                 To enable access to the Splunk Rest API in Splunk Cloud, the internet facing IP
                 address of this search head, or of the network path it uses, must be added to the

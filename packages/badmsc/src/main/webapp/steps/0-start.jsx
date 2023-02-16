@@ -4,10 +4,9 @@ import React from 'react';
 import Heading from '@splunk/react-ui/Heading';
 import P from '@splunk/react-ui/Paragraph';
 
-export default ({ setStep }) => {
+export default () => {
     return (
         <div>
-            <Heading level={1}>Migrate to Splunk Cloud</Heading>
             <P>
                 This app will help guide you through a DIY Splunk Cloud Migration. This app needs to
                 be installed on the search head/cluster you wish to migrate. If your environment has
@@ -16,7 +15,7 @@ export default ({ setStep }) => {
                 heads.
             </P>
             <P>
-                Use the buttons at the bottom of the page to move between each step, however its
+                Use the buttons in the top right of the page to move between each step, however its
                 recommended you perform each step in order.
             </P>
         </div>
