@@ -80,7 +80,7 @@ const AddAllow = ({ suggestion, feature }) => {
     );
 };
 
-export default () => {
+export default ({ step }) => {
     const test = useApi('services/admin/server-info');
 
     const sh_ip = useQuery({
@@ -109,7 +109,7 @@ export default () => {
                 <b> Settings > Server Settings > IP allow list</b>.
             </P>
 
-            <Heading level={2}>Step 2.1 - Review Search Head API Allowlist</Heading>
+            <Heading level={2}>Step {step}.1 - Review Search Head API Allowlist</Heading>
             <P>This is the list of IP subnets currently allowed to access the Search Head API</P>
             <Allowlist feature="search-api" />
             <P>
@@ -117,7 +117,7 @@ export default () => {
                 <b>{(sh_ip.isSuccess && sh_ip.data) || 'unknown'}</b>.
             </P>
             <AddAllow suggestion={sh_ip.data} feature="search-api" />
-            <Heading level={2}>Step 2.2 - Review Search Head UI Allowlist</Heading>
+            <Heading level={2}>Step {step}.2 - Review Search Head UI Allowlist</Heading>
             <P>This is the list of IP subnets currently allowed to access the Search Head Web UI</P>
             <Allowlist feature="search-ui" />
             <P>
@@ -126,7 +126,7 @@ export default () => {
             </P>
             <AddAllow suggestion={user_ip.data} feature="search-ui" />
             <Heading level={2}>
-                Step 2.3 - Review Splunk to Splunk (data forwarding) Allowlist
+                Step {step}.3 - Review Splunk to Splunk (data forwarding) Allowlist
             </Heading>
             <P>This is the full list of IP subnets allowed to send data to Splunk Cloud</P>
 
@@ -136,7 +136,7 @@ export default () => {
                 you can add them below.
             </P>
             <AddAllow feature="s2s" />
-            <Heading level={2}>Step 2.4 - Required Access</Heading>
+            <Heading level={2}>Step {step}.4 - Required Access</Heading>
             <P>
                 This App will need access to the Splunk Cloud Search Head API. If this following
                 test fails you will need to modify the Search Head API allow list and wait a few

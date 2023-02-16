@@ -101,7 +101,7 @@ export default () => {
             </Top>
 
             <Suspense fallback={<WaitSpinner />}>
-                <Step />
+                <Step step={step} />
             </Suspense>
             <Bottom></Bottom>
         </div>

@@ -21,7 +21,7 @@ import WaitSpinner from '@splunk/react-ui/WaitSpinner';
 import { splunkdPath } from '@splunk/splunk-utils/config';
 import { defaultFetchInit } from '@splunk/splunk-utils/fetch';
 
-export default () => {
+export default ({ step }) => {
     const queryClient = useQueryClient();
 
     const src = useSrc('services/data/lookup-table-files');
@@ -30,7 +30,7 @@ export default () => {
     return (
         <div>
             <P>Copy Lookups</P>
-            <Heading level={2}>Step 3.1 - Splunkbase Apps</Heading>
+            <Heading level={2}>Step {step}.1 - Splunkbase Apps</Heading>
 
             {src.isLoading || dst.isLoading ? (
                 <WaitSpinner size="large" />
@@ -49,7 +49,7 @@ export default () => {
                     <Table.Body></Table.Body>
                 </Table>
             )}
-            <Heading level={2}>Step 3.2 - Private Apps</Heading>
+            <Heading level={2}>Step {step}.2 - Private Apps</Heading>
             <P>Somthing</P>
         </div>
     );

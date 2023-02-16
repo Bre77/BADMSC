@@ -4,7 +4,7 @@ import React from 'react';
 import Heading from '@splunk/react-ui/Heading';
 import P from '@splunk/react-ui/Paragraph';
 
-export default () => {
+export default ({ step }) => {
     return (
         <div>
             <P>

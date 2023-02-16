@@ -101,18 +101,18 @@ const App = ({ app, cloud, local }) => {
     );
 };
 
-export default () => {
+export default ({ step }) => {
     const queryClient = useQueryClient();
 
-    const cloud_apps = useAcs('apps/victoria');
-    const local_apps = useSrc('services/apps/local');
+    const src = useSrc('services/apps/local');
+    const dst = useAcs('apps/victoria');
 
     const apps = useMemo(() => {
-        if (!cloud_apps.data || !local_apps.data) return [];
+        if (!dst.data || !src.data) return [];
 
         let output = {};
 
-        output = (local_apps.data || []).reduce((output, a) => {
+        output = (src.data || []).reduce((output, a) => {
             output[a.name] = {
                 local: a.content,
                 cloud: false,
@@ -120,7 +120,7 @@ export default () => {
             return output;
         }, output);
 
-        output = (cloud_apps.data?.apps || []).reduce((output, a) => {
+        output = (dst.data?.apps || []).reduce((output, a) => {
             if (!output[a.name]) output[a.name] = { local: false, cloud: a };
             else output[a.name].cloud = a;
             return output;
@@ -128,12 +128,23 @@ export default () => {
         return Object.entries(output)
             .filter(([name, _]) => !DEFAULT_APPS.includes(name))
             .sort(isort0);
-    }, [cloud_apps.data, local_apps.data]);
+    }, [dst.data, src.data]);
+
+    const count = useMemo(() => {
+        return apps.reduce(
+            (count, [name, app]) => {
+                count[0] += app.cloud && app.local;
+                count[1] += !!app.local;
+                return count;
+            },
+            [0, 0]
+        );
+    }, [apps]);
 
     return (
         <div>
             <P>Install Splunkbase Apps or migrate .</P>
-            <Heading level={2}>Step 4.1 - Splunkbase Login</Heading>
+            <Heading level={2}>Step {step}.1 - Splunkbase Login</Heading>
             <P>
                 To automatically install Splunkbase apps, a Splunk.com login is required. This will
                 not be stored and only used during this session.
@@ -144,9 +155,13 @@ export default () => {
             <ControlGroup label="Password">
                 <Text></Text>
             </ControlGroup>
-            <Heading level={2}>Step 4.2 - Splunkbase Apps</Heading>
-
-            {cloud_apps.isLoading || local_apps.isLoading ? (
+            <Heading level={2}>Step {step}.2 - Splunkbase Apps</Heading>
+            <P>
+                Review each app in the list below and install each one as required. Any Splunkbase
+                or Private apps that are not installed will not be displayed in the subsequent
+                steps. <b>{count.join('/')}</b> local apps installed.
+            </P>
+            {dst.isLoading || src.isLoading ? (
                 <WaitSpinner size="large" />
             ) : (
                 <Table stripeRows>

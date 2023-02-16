@@ -21,7 +21,7 @@ import WaitSpinner from '@splunk/react-ui/WaitSpinner';
 import { splunkdPath } from '@splunk/splunk-utils/config';
 import { defaultFetchInit } from '@splunk/splunk-utils/fetch';
 
-export default () => {
+export default ({ step }) => {
     const queryClient = useQueryClient();
 
     const [create, setCreate] = useState(100);
@@ -136,7 +136,7 @@ export default () => {
     return (
         <div>
             <P>All indexes that are in use locally should be created in Splunk Cloud.</P>
-            <Heading level={2}>Step 3.1 - Review Indexes</Heading>
+            <Heading level={2}>Step {step}.1 - Review Indexes</Heading>
             <ControlGroup label="Historical Search Days" labelWidth={150}>
                 <Number value={history} onChange={handleHistory} min={1} max={3650} />
             </ControlGroup>
@@ -182,7 +182,7 @@ export default () => {
                     </Table.Body>
                 </Table>
             )}
-            <Heading level={2}>Step 3.2 - Create Indexes</Heading>
+            <Heading level={2}>Step {step}.2 - Create Indexes</Heading>
             <P>
                 By default, Splunk Cloud comes with 90 days of searchable storage. If you have
                 purchased additional storage you can adjust the searchable and archive retention

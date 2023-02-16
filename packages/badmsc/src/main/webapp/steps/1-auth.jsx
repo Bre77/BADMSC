@@ -22,7 +22,7 @@ import { wrapSetValue, StatusCheck } from '../shared/helpers';
 
 import { makeBody } from '../shared/fetch';
 
-export default () => {
+export default ({ step }) => {
     const [stack, setStack] = useState('customer.splunkcloud.com');
     const handleStack = wrapSetValue(setStack);
     const [token, setToken] = useState('');
@@ -104,7 +104,7 @@ export default () => {
         <div>
             <P>Setup access from this search head to your Splunk Cloud stack.</P>
 
-            <Heading level={2}>Step 1.1 - Hostname</Heading>
+            <Heading level={2}>Step {step}.1 - Hostname</Heading>
             <P>
                 Please enter the domain name of the Splunk Cloud search head you want to migrate
                 configuration to.
@@ -117,7 +117,7 @@ export default () => {
                     error={!stack_valid}
                 />
             </ControlGroup>
-            <Heading level={2}>Step 1.2 - External Access Check</Heading>
+            <Heading level={2}>Step {step}.2 - External Access Check</Heading>
             <P>
                 To perform the migration, this Search Head will need access to the following domains
                 using HTTPS. If these checks fail, either the stack name is incorrect or your
@@ -142,7 +142,7 @@ export default () => {
                 </List.Item>
             </List>
 
-            <Heading level={2}>Step 1.3 - Access Token</Heading>
+            <Heading level={2}>Step {step}.3 - Access Token</Heading>
             <P>
                 <Link to={`https://${stack}`}>Login to your Splunk Cloud</Link> and change your
                 password if you have not already. Navigate to{' '}

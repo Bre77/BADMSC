@@ -21,16 +21,40 @@ import WaitSpinner from '@splunk/react-ui/WaitSpinner';
 import { splunkdPath } from '@splunk/splunk-utils/config';
 import { defaultFetchInit } from '@splunk/splunk-utils/fetch';
 
-export default () => {
+const useConfig = (to, file) =>
+    useQuery({
+        queryKey: ['src', endpoint],
+        queryFn: () =>
+            fetch(
+                `${splunkdPath}/services/badmsc/proxy?${new URLSearchParams({
+                    to,
+                    uri: `servicesNS/nobody/system/configs/conf-${file}`,
+                    count: '0',
+                    output_mode: 'json',
+                })}`,
+                defaultFetchInit
+            )
+                .then(handle)
+                .then(postprocess),
+        staleTime: Infinity,
+    });
+
+export default ({ step }) => {
     const queryClient = useQueryClient();
 
-    const cloud_apps = useAcs('apps/victoria');
-    const local_apps = useSrc('services/apps/local');
+    const src_props = useConfig('src', 'props');
+    const src_transforms = useConfig('src', 'transforms');
+    const dst_props = useConfig('api', 'props');
+    const dst_transforms = useConfig('api', 'transforms');
 
     return (
         <div>
-            <P>Install Splunkbase Apps or migrate .</P>
-            <Heading level={2}>Step 3.1 - Splunkbase Apps</Heading>
+            <P>
+                Global configuration is avaliable to all users and all app contexts during search.
+                Its important to copy Global configuration before app level context to ensure
+                attributes are shared at the appropriate scope.
+            </P>
+            <Heading level={2}>Step {step}.1 - Splunkbase Apps</Heading>
 
             {cloud_apps.isLoading || local_apps.isLoading ? (
                 <WaitSpinner size="large" />
@@ -49,7 +73,7 @@ export default () => {
                     <Table.Body></Table.Body>
                 </Table>
             )}
-            <Heading level={2}>Step 3.2 - Private Apps</Heading>
+            <Heading level={2}>Step {step}.2 - Private Apps</Heading>
             <P>Somthing</P>
         </div>
     );
