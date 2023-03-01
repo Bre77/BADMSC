@@ -29,7 +29,7 @@ export default ({ step }) => {
         const output = {};
         Object.entries(src.data).forEach(([app, files]) => {
             if (apps.includes(app)) {
-                Object.entries(files).forEach(([file, { perms, sharing, data }]) => {
+                Object.entries(files).forEach(([file, { perms, sharing, path }]) => {
                     Object.keys(perms).forEach((rw) =>
                         perms[rw].map((group) => (group === 'admin' ? 'sc_admin' : group))
                     );
@@ -37,8 +37,8 @@ export default ({ step }) => {
                     output[app][file] = {
                         perms,
                         sharing,
-                        src: data,
-                        dst: dst.data?.[app]?.[file]?.data,
+                        src: path,
+                        dst: dst.data?.[app]?.[file]?.path,
                     };
                 });
             }
@@ -51,26 +51,46 @@ export default ({ step }) => {
     return (
         <div>
             <P>Copy Lookups</P>
-            <Heading level={2}>Step {step}.1 - Splunkbase Apps</Heading>
+            <Heading level={2}>Step {step}.1 - Copy CSV Lookup Files</Heading>
 
             {src.isLoading || dst.isLoading ? (
                 <WaitSpinner size="large" />
             ) : (
                 <Table stripeRows>
                     <Table.Head>
-                        <Table.HeadCell>App Name</Table.HeadCell>
+                        <Table.HeadCell>Name</Table.HeadCell>
 
                         <Table.HeadCell>Local</Table.HeadCell>
                         <Table.HeadCell>Cloud</Table.HeadCell>
                         <Table.HeadCell>Action</Table.HeadCell>
-                        <Table.HeadCell>Local Event/Metric Count</Table.HeadCell>
-                        <Table.HeadCell>Cloud Searchable Days</Table.HeadCell>
-                        <Table.HeadCell>Cloud Archive Days</Table.HeadCell>
                     </Table.Head>
-                    <Table.Body></Table.Body>
+                    <Table.Body>
+                        {lookups.flatMap(([app, files]) =>
+                            files.map(([file, { perms, sharing, src, dst }]) => (
+                                <Table.Row key={app + '/' + file}>
+                                    <Table.Cell>
+                                        <b>{app}</b> / {file}.xml
+                                    </Table.Cell>
+                                    <Table.Cell>{src}</Table.Cell>
+                                    <Table.Cell>{dst}</Table.Cell>
+                                    <Table.Cell>
+                                        <Button>Copy</Button>
+                                    </Table.Cell>
+                                </Table.Row>
+                            ))
+                        )}
+                        <Table.Row>
+                            <Table.Cell></Table.Cell>
+                            <Table.Cell></Table.Cell>
+                            <Table.Cell></Table.Cell>
+                            <Table.Cell>
+                                <Button>Copy All</Button>
+                            </Table.Cell>
+                        </Table.Row>
+                    </Table.Body>
                 </Table>
             )}
-            <Heading level={2}>Step {step}.2 - Private Apps</Heading>
+            <Heading level={2}>Step {step}.2 - Copy KVStore Data</Heading>
             <P>Somthing</P>
         </div>
     );

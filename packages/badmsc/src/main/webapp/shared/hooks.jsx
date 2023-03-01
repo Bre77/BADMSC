@@ -130,7 +130,7 @@ export const useLookups = (to) =>
                         x[acl.app][name] = {
                             perms: acl.perms,
                             sharing: acl.sharing,
-                            file: content['eai:data'],
+                            path: content['eai:data'],
                         };
                         return x;
                     }, {})
