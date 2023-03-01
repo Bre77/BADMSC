@@ -122,11 +122,11 @@ export default ({ step }) => {
             return output;
         }, output);
 
-        output = (cloud_indexes.data || []).reduce((output, i) => {
+        /*output = (cloud_indexes.data || []).reduce((output, i) => {
             if (!output[i.name]) output[i.name] = { local: false, cloud: i };
             else output[i.name].cloud = i;
             return output;
-        }, output);
+        }, output);*/
 
         return Object.entries(output).sort(isort0);
     }, [cloud_indexes.data, local_event_indexes.data, local_metric_indexes.data]);

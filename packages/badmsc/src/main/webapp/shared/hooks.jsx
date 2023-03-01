@@ -1,11 +1,67 @@
 import React from 'react';
-import { useQuery, useMutation } from '@tanstack/react-query';
+import { useQuery, useQueries } from '@tanstack/react-query';
 import { splunkdPath } from '@splunk/splunk-utils/config';
 import { defaultFetchInit } from '@splunk/splunk-utils/fetch';
 import { makeBody } from './fetch';
+import { CONF_FILES } from './const';
 
 export const handle = (res) => (res.ok ? res.json() : Promise.reject(res.json()));
 const entry = (data) => data.entry;
+
+export const useConfigs = (to, files = CONF_FILES) =>
+    useQueries({
+        queries: files.map((file) => ({
+            queryKey: [to, 'config', file],
+            queryFn: () =>
+                fetch(
+                    `${splunkdPath}/services/badmsc/proxy?${new URLSearchParams({
+                        to,
+                        uri: `servicesNS/nobody/-/configs/conf-${file}`,
+                        count: '0',
+                        output_mode: 'json',
+                    })}`,
+                    defaultFetchInit
+                )
+                    .then(handle)
+                    .then((data) =>
+                        data.entry.reduce(
+                            (x, { name, acl, content }) => {
+                                x[acl.sharing][acl.app] ||= {};
+                                x[acl.sharing][acl.app][name] = { perms: acl.perms, content };
+                                return x;
+                            },
+                            { system: {}, global: {}, app: {} }
+                        )
+                    ),
+            staleTime: Infinity,
+        })),
+    });
+
+export const useDefaults = (to, files = CONF_FILES) =>
+    useQueries({
+        queries: files.map((file) => ({
+            queryKey: [to, 'default', file],
+            queryFn: () =>
+                fetch(
+                    `${splunkdPath}/services/badmsc/proxy?${new URLSearchParams({
+                        to,
+                        uri: `services/properties/${file}/default`,
+                        count: '0',
+                        output_mode: 'json',
+                    })}`,
+                    defaultFetchInit
+                )
+                    .then(handle)
+                    .then((data) =>
+                        data.entry.reduce((x, { name, content }) => {
+                            x[name] = content;
+                            return x;
+                        }, {})
+                    )
+                    .catch(() => ({})),
+            staleTime: Infinity,
+        })),
+    });
 
 export const useAcs = (endpoint, parameters = { count: 0 }, options = {}, toast = false) =>
     useQuery({
@@ -22,6 +78,63 @@ export const useAcs = (endpoint, parameters = { count: 0 }, options = {}, toast 
                     ...options,
                 }
             ).then(handle),
+        staleTime: Infinity,
+    });
+
+export const useUI = (to, folder) =>
+    useQuery({
+        queryKey: [to, 'ui', folder],
+        queryFn: () =>
+            fetch(
+                `${splunkdPath}/services/badmsc/proxy?${new URLSearchParams({
+                    to,
+                    uri: `servicesNS/nobody/-/data/ui/${folder}`,
+                    count: '0',
+                    output_mode: 'json',
+                })}`,
+                defaultFetchInit
+            )
+                .then(handle)
+                .then((data) =>
+                    data.entry.reduce((x, { name, acl, content }) => {
+                        x[acl.app] ||= {};
+                        x[acl.app][name] = {
+                            perms: acl.perms,
+                            sharing: acl.sharing,
+                            data: content['eai:data'],
+                            digest: content['eai:digest'],
+                        };
+                        return x;
+                    }, {})
+                ),
+        staleTime: Infinity,
+    });
+
+export const useLookups = (to) =>
+    useQuery({
+        queryKey: [to, 'lookups'],
+        queryFn: () =>
+            fetch(
+                `${splunkdPath}/services/badmsc/proxy?${new URLSearchParams({
+                    to,
+                    uri: 'services/data/lookup-table-files',
+                    count: '0',
+                    output_mode: 'json',
+                })}`,
+                defaultFetchInit
+            )
+                .then(handle)
+                .then((data) =>
+                    data.entry.reduce((x, { name, acl, content }) => {
+                        x[acl.app] ||= {};
+                        x[acl.app][name] = {
+                            perms: acl.perms,
+                            sharing: acl.sharing,
+                            file: content['eai:data'],
+                        };
+                        return x;
+                    }, {})
+                ),
         staleTime: Infinity,
     });
 
@@ -43,20 +156,21 @@ export const useAcs = (endpoint, parameters = { count: 0 }, options = {}, toast 
                 .then(postprocess),
     });*/
 
-export const useApi = (
-    endpoint,
+export const useProxy = (
+    to,
+    uri,
     parameters = { count: 0, output_mode: 'json' },
     options = {},
     toast = false,
     postprocess = entry
 ) =>
     useQuery({
-        queryKey: ['api', endpoint],
+        queryKey: [to, uri],
         queryFn: () =>
             fetch(
                 `${splunkdPath}/services/badmsc/proxy?${new URLSearchParams({
-                    to: 'api',
-                    uri: endpoint,
+                    to,
+                    uri,
                     ...parameters,
                 })}`,
                 {
@@ -69,49 +183,9 @@ export const useApi = (
         staleTime: Infinity,
     });
 
-/*export const useMutationApi = (endpoint, postprocess) =>
-    useMutation({
-        mutationFn: (body) =>
-            fetch(`${splunkdPath}/services/badmsc/proxy?to=acs&uri=${endpoint}`, {
-                ...defaultFetchInit,
-                method: 'POST',
-                body: makeBody(body),
-            })
-                .then((res) => {
-                    if (!res.ok) return console.warn(res.json());
-                    queryClient.invalidateQueries({
-                        queryKey: ['api', endpoint],
-                    });
-                    return res.json();
-                })
-                .then(postprocess),
-    });*/
+export const useApi = (...args) => useProxy('api', ...args);
 
-export const useSrc = (
-    endpoint,
-    parameters = { count: '0', output_mode: 'json' },
-    options = {},
-    toast = false,
-    postprocess = entry
-) =>
-    useQuery({
-        queryKey: ['src', endpoint],
-        queryFn: () =>
-            fetch(
-                `${splunkdPath}/services/badmsc/proxy?${new URLSearchParams({
-                    to: 'src',
-                    uri: endpoint,
-                    ...parameters,
-                })}`,
-                {
-                    ...defaultFetchInit,
-                    ...options,
-                }
-            )
-                .then(handle)
-                .then(postprocess),
-        staleTime: Infinity,
-    });
+export const useSrc = (...args) => useProxy('src', ...args);
 
 /*export const usePassword = () =>
     useQuery({
@@ -130,5 +204,3 @@ export const useSrc = (
         staleTime: Infinity,
         notifyOnChangeProps: ['data'],
     });*/
-
-    

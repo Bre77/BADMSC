@@ -16,11 +16,33 @@ import Success from '@splunk/react-icons/Success';
 import Error from '@splunk/react-icons/Error';
 import Save from '@splunk/react-icons/Save';
 import Message from '@splunk/react-ui/Message';
-import { usePassword } from '../shared/hooks';
+import WaitSpinner from '@splunk/react-ui/WaitSpinner';
+import Tooltip from '@splunk/react-ui/Tooltip';
+
 //Shared
-import { wrapSetValue, StatusCheck } from '../shared/helpers';
+import { wrapSetValue } from '../shared/helpers';
 
 import { makeBody } from '../shared/fetch';
+
+const StatusCheck = ({ host, disabled }) => {
+    const { data, isLoading } = useQuery({
+        queryKey: ['status', host],
+        queryFn: () =>
+            fetch(`${splunkdPath}/services/badmsc/check?host=${host}`, defaultFetchInit).then(
+                (res) => res.text()
+            ),
+        staleTime: Infinity,
+        enabled: !disabled,
+    });
+    if (disabled) return <NotAllowed />;
+    if (isLoading) return <WaitSpinner />;
+    if (data == 'OK') return <Success />;
+    return (
+        <Tooltip content={data}>
+            <Error />
+        </Tooltip>
+    );
+};
 
 export default ({ step }) => {
     const [stack, setStack] = useState('customer.splunkcloud.com');

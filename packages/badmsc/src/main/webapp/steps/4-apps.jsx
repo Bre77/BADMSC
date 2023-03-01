@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useSrc, useAcs } from '../shared/hooks';
+import { useSrc, useApi } from '../shared/hooks';
 import { isort0, wrapSetValue } from '../shared/helpers';
 import {} from '../shared/fetch';
 
@@ -105,7 +105,7 @@ export default ({ step }) => {
     const queryClient = useQueryClient();
 
     const src = useSrc('services/apps/local');
-    const dst = useAcs('apps/victoria');
+    const dst = useApi('services/apps/local');
 
     const apps = useMemo(() => {
         if (!dst.data || !src.data) return [];

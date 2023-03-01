@@ -1,4 +1,4 @@
-import React, { Suspense, useReducer, useCallback } from 'react';
+import React, { useReducer, useCallback } from 'react';
 
 // Splunk UI
 import Button from '@splunk/react-ui/Button';
@@ -14,7 +14,8 @@ import Step1 from './1-auth';
 import Step2 from './2-allowlist';
 import Step3 from './3-indexes';
 import Step4 from './4-apps';
-import Step5 from './5-globalconfig';
+import Step55 from './5-1-systemconfig';
+import Step5 from './5-2-globalconfig';
 import Step6 from './6-appconfig';
 import Step7 from './7-navigation';
 import Step8 from './8-views';
@@ -23,7 +24,6 @@ import Step10 from './10-users';
 import Step11 from './11-data';
 import Step12 from './12-finish';
 import { Top, Bottom, Nav } from './styles';
-import WaitSpinner from '@splunk/react-ui/WaitSpinner';
 
 export default () => {
     const steps = [
@@ -32,6 +32,7 @@ export default () => {
         ['IP Allow Lists', Step2], //React.lazy(() => import('../2-allowlist'))
         ['Indexes', Step3],
         ['Apps', Step4],
+        ['System Config', Step55],
         ['Global Config', Step5],
         ['App Config', Step6],
         ['Navigation', Step7],
@@ -99,11 +100,7 @@ export default () => {
                     </Button>
                 </Nav>
             </Top>
-
-            <Suspense fallback={<WaitSpinner />}>
-                <Step step={step} />
-            </Suspense>
-            <Bottom></Bottom>
+            <Step step={step} />
         </div>
     );
 };
