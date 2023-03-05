@@ -47,10 +47,23 @@ export default ({ folder }) => {
             .map(([app, files]) => [app, Object.entries(files).sort(isort0)]);
     }, [dst.data, src.data, dst_apps.data]);
 
+    const detailRow = (src, dst) => (
+        <Table.Row>
+            <Table.Cell></Table.Cell>
+            <Table.Cell>
+                <Code language="xml" value={src} />
+            </Table.Cell>
+            <Table.Cell>
+                <Code language="xml" value={dst} />
+            </Table.Cell>
+            <Table.Cell></Table.Cell>
+        </Table.Row>
+    );
+
     return isLoading ? (
         <WaitSpinner size="large" />
     ) : (
-        <Table stripeRows>
+        <Table stripeRows rowExpansion="single">
             <Table.Head>
                 <Table.HeadCell>Name</Table.HeadCell>
                 <Table.HeadCell>Local</Table.HeadCell>
@@ -60,16 +73,12 @@ export default ({ folder }) => {
             <Table.Body>
                 {ui.flatMap(([app, files]) =>
                     files.map(([file, { perms, sharing, src, dst }]) => (
-                        <Table.Row key={app + '/' + file}>
+                        <Table.Row key={app + '/' + file} expansionRow={detailRow(src, dst)}>
                             <Table.Cell>
                                 <b>{app}</b> / {file}.xml
                             </Table.Cell>
-                            <Table.Cell>
-                                <Code language="xml" value={src} />
-                            </Table.Cell>
-                            <Table.Cell>
-                                <Code language="xml" value={dst} />
-                            </Table.Cell>
+                            <Table.Cell>{src && `${src?.split('\n').length} Lines`}</Table.Cell>
+                            <Table.Cell>{dst && `${dst?.split('\n').length} Lines`}</Table.Cell>
                             <Table.Cell>
                                 <Button>Copy</Button>
                             </Table.Cell>

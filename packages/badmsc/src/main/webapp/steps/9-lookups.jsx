@@ -50,9 +50,11 @@ export default ({ step }) => {
 
     return (
         <div>
-            <P>Copy Lookups</P>
+            <P>
+                Lookups are either CSV files or KV Store collections. Unfortuantely its difficult to
+                know if a lookup is different, so you will need to use some disgression.
+            </P>
             <Heading level={2}>Step {step}.1 - Copy CSV Lookup Files</Heading>
-
             {src.isLoading || dst.isLoading ? (
                 <WaitSpinner size="large" />
             ) : (

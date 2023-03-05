@@ -2,12 +2,13 @@ import React, { useMemo, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useSrc, useApi } from '../shared/hooks';
 import { isort0, wrapSetValue } from '../shared/helpers';
-import {} from '../shared/fetch';
+import { makeBody } from '../shared/fetch';
 
 // Splunk UI
 import Heading from '@splunk/react-ui/Heading';
 import P from '@splunk/react-ui/Paragraph';
 import Text from '@splunk/react-ui/Text';
+import List from '@splunk/react-ui/List';
 import ControlGroup from '@splunk/react-ui/ControlGroup';
 import Button from '@splunk/react-ui/Button';
 import Table from '@splunk/react-ui/Table';
@@ -18,7 +19,7 @@ import WaitSpinner from '@splunk/react-ui/WaitSpinner';
 import { splunkdPath } from '@splunk/splunk-utils/config';
 import { defaultFetchInit } from '@splunk/splunk-utils/fetch';
 
-const DEFAULT_APPS = [
+const IGNORED_APPS = [
     '000-self-service',
     '075-cloudworks',
     '100-cloudworks-wlm',
@@ -53,93 +54,109 @@ const DEFAULT_APPS = [
     'splunk_product_guidance',
     'splunk_rapid_diag',
     'splunk_secure_gateway',
+    'search_artifacts_helper',
+    'splunk_ingest_actions',
     'splunkclouduf',
     'tos',
 ];
 
-const App = ({ app, cloud, local }) => {
-    const splunkbase = useQuery({
-        queryKey: ['app', app],
-        queryFn: () =>
+const splunkbaseToken = /<id>([^<]+)/;
+
+export default ({ step }) => {
+    const [username, setUsername] = useState('');
+    const handleUsername = wrapSetValue(setUsername);
+    const [password, setPassword] = useState('');
+    const handlePassword = wrapSetValue(setPassword);
+    const [token, setToken] = useState('');
+
+    const login = useMutation({
+        mutationFn: () =>
             fetch(
                 `${splunkdPath}/services/badmsc/proxy?${new URLSearchParams({
                     to: 'app',
-                    uri: `v1/app/?include=release&appid=${app}`,
+                    uri: `account:login`,
                 })}`,
-                defaultFetchInit
+                {
+                    ...defaultFetchInit,
+                    method: 'POST',
+                    body: makeBody({ username, password }),
+                }
             )
-                .then((res) => (res.ok ? res.json() : Promise.reject(res.json())))
-                .then((data) => (data.total ? data.results[0] : false)),
-        staleTime: Infinity,
-        disabled: !local.details,
+                .then((res) => (res.ok ? res.text() : Promise.reject()))
+                .then((text) => {
+                    console.log(text);
+                    return splunkbaseToken.exec(text)[1];
+                })
+                .then((data) => setToken(data.token)),
     });
-    return (
-        <Table.Row key={app}>
-            <Table.Cell>{app}</Table.Cell>
-            <Table.Cell>
-                {local ? <Check /> : <Clear />} {local?.version && `(${local?.version})`}
-            </Table.Cell>
-            <Table.Cell>
-                {cloud ? <Check /> : <Clear />} {cloud?.version && `(${cloud?.version})`}
-            </Table.Cell>
-            <Table.Cell>{splunkbase.data?.release?.title}</Table.Cell>
-            <Table.Cell>
-                {local && !cloud ? (
-                    splunkbase.data ? (
-                        <b>Splunkbase</b>
-                    ) : (
-                        <b>Private App</b>
-                    )
-                ) : !local && cloud ? (
-                    <i>Ignore</i>
-                ) : (
-                    <i>Skip</i>
-                )}
-            </Table.Cell>
-            <Table.Cell>{local && !cloud && <Button>Install</Button>}</Table.Cell>
-        </Table.Row>
-    );
-};
-
-export default ({ step }) => {
-    const queryClient = useQueryClient();
 
     const src = useSrc('services/apps/local');
     const dst = useApi('services/apps/local');
+    const splunkbase = useQuery({
+        queryKey: ['splunkbase'],
+        queryFn: () =>
+            Promise.all(
+                src.data
+                    ? src.data.map((app) =>
+                          fetch(
+                              `${splunkdPath}/services/badmsc/proxy?${new URLSearchParams({
+                                  to: 'app',
+                                  uri: `v1/app/?include=release&appid=${app.name}`,
+                              })}`,
+                              defaultFetchInit
+                          )
+                              .then((res) => (res.ok ? res.json() : Promise.reject(res.json())))
+                              .then((data) => (data.total ? data.results[0] : false))
+                      )
+                    : []
+            ).then((apps) =>
+                apps.reduce((x, app) => {
+                    if (app) x[app.appid] = app;
+                    return x;
+                }, {})
+            ),
+        staleTime: Infinity,
+        enabled: !!src.data,
+    });
 
     const apps = useMemo(() => {
-        if (!dst.data || !src.data) return [];
+        const output = { done: [], splunkbase: [], private: [], unsupported: [] };
+        if (!dst.data || !src.data || !splunkbase.data) return output;
 
-        let output = {};
-
-        output = (src.data || []).reduce((output, a) => {
-            output[a.name] = {
-                local: a.content,
-                cloud: false,
-            };
-            return output;
-        }, output);
-
-        output = (dst.data?.apps || []).reduce((output, a) => {
-            if (!output[a.name]) output[a.name] = { local: false, cloud: a };
-            else output[a.name].cloud = a;
-            return output;
-        }, output);
-        return Object.entries(output)
-            .filter(([name, _]) => !DEFAULT_APPS.includes(name))
-            .sort(isort0);
-    }, [dst.data, src.data]);
-
-    const count = useMemo(() => {
-        return apps.reduce(
-            (count, [name, app]) => {
-                count[0] += app.cloud && app.local;
-                count[1] += !!app.local;
-                return count;
-            },
-            [0, 0]
-        );
-    }, [apps]);
+        (src.data || []).forEach((a) => {
+            if (dst.data?.apps?.[a.name]) {
+                // App already exist in cloud
+                console.log(`Skipping existing app '${a.name}'`);
+                output.done.push({ name: a.name });
+            } else if (!a.content.details || !splunkbase.data[a.name]) {
+                // Non-splunkbase apps
+                if (a.content.core) {
+                    console.log(`Skipping core app '${a.name}'`);
+                } else if (IGNORED_APPS.includes(a.name)) {
+                    console.log(`Skipping ignored app '${a.name}'`);
+                } else {
+                    output.private.push({ name: a.name, local: a.content });
+                }
+            } else if (
+                splunkbase.data[a.name]?.release?.product_compatibility.includes('Splunk Cloud')
+            ) {
+                // Splunkbase apps that support Splunk Cloud
+                output.splunkbase.push({
+                    name: a.name,
+                    local: a.content,
+                    splunkbase: splunkbase.data[a.name],
+                });
+            } else {
+                // Unsupported Splunkbase apps
+                output.unsupported.push({
+                    name: a.name,
+                    local: a.content,
+                    splunkbase: splunkbase.data[a.name],
+                });
+            }
+        });
+        return output;
+    }, [dst.data, src.data, splunkbase.data]);
 
     return (
         <div>
@@ -150,16 +167,37 @@ export default ({ step }) => {
                 not be stored and only used during this session.
             </P>
             <ControlGroup label="Username">
-                <Text></Text>
+                <Text
+                    type="username"
+                    autocomplete="username"
+                    onChange={handleUsername}
+                    value={username}
+                    required
+                ></Text>
             </ControlGroup>
             <ControlGroup label="Password">
-                <Text></Text>
+                <Text
+                    type="password"
+                    autocomplete="current-password"
+                    onChange={handlePassword}
+                    value={password}
+                    required
+                ></Text>
+            </ControlGroup>
+            <ControlGroup label="" error={login.isError} help={login.error}>
+                <Button
+                    disabled={!username || !password}
+                    onClick={login.mutate}
+                    appearance={token ? 'primary' : 'default'}
+                    error={login.isError}
+                    label={login.isLoading ? <WaitSpinner /> : 'Login'}
+                />
             </ControlGroup>
             <Heading level={2}>Step {step}.2 - Splunkbase Apps</Heading>
             <P>
                 Review each app in the list below and install each one as required. Any Splunkbase
                 or Private apps that are not installed will not be displayed in the subsequent
-                steps. <b>{count.join('/')}</b> local apps installed.
+                steps.
             </P>
             {dst.isLoading || src.isLoading ? (
                 <WaitSpinner size="large" />
@@ -167,21 +205,55 @@ export default ({ step }) => {
                 <Table stripeRows>
                     <Table.Head>
                         <Table.HeadCell>App Name</Table.HeadCell>
-
-                        <Table.HeadCell>Local (Version)</Table.HeadCell>
-                        <Table.HeadCell>Cloud (Version)</Table.HeadCell>
-                        <Table.HeadCell>Latest Version</Table.HeadCell>
-                        <Table.HeadCell>Action</Table.HeadCell>
-
+                        <Table.HeadCell>Local Version</Table.HeadCell>
+                        <Table.HeadCell>Compatible Version</Table.HeadCell>
                         <Table.HeadCell>Action</Table.HeadCell>
                     </Table.Head>
                     <Table.Body>
-                        {apps.map(([app, { local, cloud }]) => (
-                            <App key={app} app={app} local={local} cloud={cloud} />
+                        {apps.splunkbase.map(({ name, local, splunkbase }) => (
+                            <Table.Row key={name}>
+                                <Table.Cell>{name}</Table.Cell>
+                                <Table.Cell>{local.version}</Table.Cell>
+                                <Table.Cell>{splunkbase.release.title}</Table.Cell>
+                                <Table.Cell>Action</Table.Cell>
+                            </Table.Row>
                         ))}
                     </Table.Body>
                 </Table>
             )}
+            <Heading level={2}>Step {step}.2 - Private Apps</Heading>
+            {dst.isLoading || src.isLoading ? (
+                <WaitSpinner size="large" />
+            ) : (
+                <Table stripeRows>
+                    <Table.Head>
+                        <Table.HeadCell>App Name</Table.HeadCell>
+                        <Table.HeadCell>Results</Table.HeadCell>
+                        <Table.HeadCell>Action</Table.HeadCell>
+                    </Table.Head>
+                    <Table.Body>
+                        {apps.private.map(({ name, local }) => (
+                            <Table.Row key={name}>
+                                <Table.Cell>{name}</Table.Cell>
+                                <Table.Cell>Results</Table.Cell>
+                                <Table.Cell>Action</Table.Cell>
+                            </Table.Row>
+                        ))}
+                    </Table.Body>
+                </Table>
+            )}
+            <Heading level={2}>Step {step}.3 - Unsupported Splunkbase Apps</Heading>
+            <List>
+                {apps.unsupported.map(({ name, local, splunkbase }) => (
+                    <List.Item key={name}>{name}</List.Item>
+                ))}
+            </List>
+            <Heading level={2}>Step {step}.4 - Matching Apps</Heading>
+            <List>
+                {apps.done.map(({ name }) => (
+                    <List.Item key={name}>{name}</List.Item>
+                ))}
+            </List>
         </div>
     );
 };
