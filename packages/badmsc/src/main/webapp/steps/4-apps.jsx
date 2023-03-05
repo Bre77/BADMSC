@@ -12,8 +12,7 @@ import List from '@splunk/react-ui/List';
 import ControlGroup from '@splunk/react-ui/ControlGroup';
 import Button from '@splunk/react-ui/Button';
 import Table from '@splunk/react-ui/Table';
-import Check from '@splunk/react-icons/Check';
-import Clear from '@splunk/react-icons/Clear';
+import Link from '@splunk/react-ui/Link';
 
 import WaitSpinner from '@splunk/react-ui/WaitSpinner';
 import { splunkdPath } from '@splunk/splunk-utils/config';
@@ -83,11 +82,7 @@ export default ({ step }) => {
                 }
             )
                 .then((res) => (res.ok ? res.text() : Promise.reject()))
-                .then((text) => {
-                    console.log(text);
-                    return splunkbaseToken.exec(text)[1];
-                })
-                .then((data) => setToken(data.token)),
+                .then((text) => setToken(splunkbaseToken.exec(text)[1])),
     });
 
     const src = useSrc('services/apps/local');
@@ -101,12 +96,25 @@ export default ({ step }) => {
                           fetch(
                               `${splunkdPath}/services/badmsc/proxy?${new URLSearchParams({
                                   to: 'app',
-                                  uri: `v1/app/?include=release&appid=${app.name}`,
+                                  uri: `v1/app/?include=releases&appid=${app.name}`,
                               })}`,
                               defaultFetchInit
                           )
                               .then((res) => (res.ok ? res.json() : Promise.reject(res.json())))
-                              .then((data) => (data.total ? data.results[0] : false))
+                              .then((data) =>
+                                  data.total
+                                      ? {
+                                            uid: data.results[0].uid,
+                                            appid: data.results[0].appid,
+                                            title: data.results[0].title,
+                                            version: data.results[0].releases.find((release) =>
+                                                release.product_compatibility.includes(
+                                                    'Splunk Cloud'
+                                                )
+                                            )?.title,
+                                        }
+                                      : false
+                              )
                       )
                     : []
             ).then((apps) =>
@@ -128,7 +136,9 @@ export default ({ step }) => {
                 // App already exist in cloud
                 console.log(`Skipping existing app '${a.name}'`);
                 output.done.push({ name: a.name });
-            } else if (!a.content.details || !splunkbase.data[a.name]) {
+                return;
+            }
+            if (!a.content.details || !splunkbase.data[a.name]) {
                 // Non-splunkbase apps
                 if (a.content.core) {
                     console.log(`Skipping core app '${a.name}'`);
@@ -137,9 +147,9 @@ export default ({ step }) => {
                 } else {
                     output.private.push({ name: a.name, local: a.content });
                 }
-            } else if (
-                splunkbase.data[a.name]?.release?.product_compatibility.includes('Splunk Cloud')
-            ) {
+                return;
+            }
+            if (splunkbase.data[a.name].version) {
                 // Splunkbase apps that support Splunk Cloud
                 output.splunkbase.push({
                     name: a.name,
@@ -214,14 +224,14 @@ export default ({ step }) => {
                             <Table.Row key={name}>
                                 <Table.Cell>{name}</Table.Cell>
                                 <Table.Cell>{local.version}</Table.Cell>
-                                <Table.Cell>{splunkbase.release.title}</Table.Cell>
+                                <Table.Cell>{splunkbase.version}</Table.Cell>
                                 <Table.Cell>Action</Table.Cell>
                             </Table.Row>
                         ))}
                     </Table.Body>
                 </Table>
             )}
-            <Heading level={2}>Step {step}.2 - Private Apps</Heading>
+            <Heading level={2}>Step {step}.3 - Private Apps</Heading>
             {dst.isLoading || src.isLoading ? (
                 <WaitSpinner size="large" />
             ) : (
@@ -242,17 +252,27 @@ export default ({ step }) => {
                     </Table.Body>
                 </Table>
             )}
-            <Heading level={2}>Step {step}.3 - Unsupported Splunkbase Apps</Heading>
+            <Heading level={2}>Step {step}.4 - Unsupported Splunkbase Apps</Heading>
+            <P>These apps do not have a version avaliable which has been vetted for Splunk Cloud</P>
             <List>
                 {apps.unsupported.map(({ name, local, splunkbase }) => (
-                    <List.Item key={name}>{name}</List.Item>
+                    <List.Item key={name}>
+                        <Link
+                            to={`https://splunkbase.splunk.com/app/${splunkbase.uid}`}
+                            openInNewContext
+                        >
+                            {name}
+                        </Link>
+                    </List.Item>
                 ))}
             </List>
-            <Heading level={2}>Step {step}.4 - Matching Apps</Heading>
+            <Heading level={2}>Step {step}.5 - Matching Apps</Heading>
             <List>
-                {apps.done.map(({ name }) => (
-                    <List.Item key={name}>{name}</List.Item>
-                ))}
+                {apps.done.length ? (
+                    apps.done.map(({ name }) => <List.Item key={name}>{name}</List.Item>)
+                ) : (
+                    <List.Item>There are no matching apps</List.Item>
+                )}
             </List>
         </div>
     );

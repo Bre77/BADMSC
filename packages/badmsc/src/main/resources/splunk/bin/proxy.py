@@ -27,6 +27,9 @@ class proxy(common.RestHandler):
                 status=400,
             )
 
+        if to is "crash":
+            raise ("Crash requested by user")
+
         if to not in ["acs", "api", "src", "wan", "app"]:
             return self.json_error(
                 "Invalid 'to' parameter",
@@ -35,7 +38,13 @@ class proxy(common.RestHandler):
 
         self.logger.info(
             json.dumps(
-                {"method": args["method"], "to": to, "uri": uri, "query": args["query"]}
+                {
+                    "method": args["method"],
+                    "to": to,
+                    "uri": uri,
+                    "query": args["query"],
+                    # "form": args["form"],
+                }
             )
         )
 
@@ -102,7 +111,7 @@ class proxy(common.RestHandler):
                     f"https://splunkbase.splunk.com/api/{uri}",
                     method=args["method"],
                     getargs=args["query"],
-                    proxyMode=True,
+                    postargs=args["form"],
                     rawResult=True,
                 )
             return {
