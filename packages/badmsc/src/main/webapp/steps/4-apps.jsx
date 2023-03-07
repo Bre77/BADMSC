@@ -104,6 +104,7 @@ export default ({ step }) => {
                               .then((data) =>
                                   data.total
                                       ? {
+                                            
                                             uid: data.results[0].uid,
                                             appid: data.results[0].appid,
                                             title: data.results[0].title,
@@ -112,6 +113,8 @@ export default ({ step }) => {
                                                     'Splunk Cloud'
                                                 )
                                             )?.title,
+                                            license: data.results[0].license_name,
+                                            license_url: data.results[0].license_url,
                                         }
                                       : false
                               )
@@ -127,12 +130,17 @@ export default ({ step }) => {
         enabled: !!src.data,
     });
 
+    const dstApps = useMemo(() => dst.data ? dst.data.reduce((x,app)=>{
+        x[app.name] = app
+        return x
+    },{}) : {},[dst.data])
+
     const apps = useMemo(() => {
         const output = { done: [], splunkbase: [], private: [], unsupported: [] };
         if (!dst.data || !src.data || !splunkbase.data) return output;
 
         (src.data || []).forEach((a) => {
-            if (dst.data?.apps?.[a.name]) {
+            if (dstApps[a.name]) {
                 // App already exist in cloud
                 console.log(`Skipping existing app '${a.name}'`);
                 output.done.push({ name: a.name });
@@ -203,20 +211,19 @@ export default ({ step }) => {
                     label={login.isLoading ? <WaitSpinner /> : 'Login'}
                 />
             </ControlGroup>
+            {token}
             <Heading level={2}>Step {step}.2 - Splunkbase Apps</Heading>
             <P>
-                Review each app in the list below and install each one as required. Any Splunkbase
-                or Private apps that are not installed will not be displayed in the subsequent
-                steps.
+                These apps can be installed into Splunk Cloud from Splunkbase. The Splunk Cloud
+                compatible version is shown.
             </P>
-            {dst.isLoading || src.isLoading ? (
-                <WaitSpinner size="large" />
-            ) : (
+            {apps ? (
                 <Table stripeRows>
                     <Table.Head>
                         <Table.HeadCell>App Name</Table.HeadCell>
                         <Table.HeadCell>Local Version</Table.HeadCell>
                         <Table.HeadCell>Compatible Version</Table.HeadCell>
+                        <Table.HeadCell>License</Table.HeadCell>
                         <Table.HeadCell>Action</Table.HeadCell>
                     </Table.Head>
                     <Table.Body>
@@ -225,16 +232,21 @@ export default ({ step }) => {
                                 <Table.Cell>{name}</Table.Cell>
                                 <Table.Cell>{local.version}</Table.Cell>
                                 <Table.Cell>{splunkbase.version}</Table.Cell>
-                                <Table.Cell>Action</Table.Cell>
+                                <Table.Cell><Link to={splunkbase.license_url} openInNewContext>{splunkbase.license}</Link></Table.Cell>
+                                <Table.Cell><InstallSplunkbase id={splunkbase.uid} token={token} license={splunkbase.license_url} /></Table.Cell>
                             </Table.Row>
                         ))}
                     </Table.Body>
                 </Table>
+            ) : (
+                <WaitSpinner size="large" />
             )}
             <Heading level={2}>Step {step}.3 - Private Apps</Heading>
-            {dst.isLoading || src.isLoading ? (
-                <WaitSpinner size="large" />
-            ) : (
+            <P>
+                These apps do not exist in Splunkbase so will need to be installed as private apps.
+                Any configuration in their local directory will not be included in this step.
+            </P>
+            {apps ? (
                 <Table stripeRows>
                     <Table.Head>
                         <Table.HeadCell>App Name</Table.HeadCell>
@@ -251,9 +263,14 @@ export default ({ step }) => {
                         ))}
                     </Table.Body>
                 </Table>
+            ) : (
+                <WaitSpinner size="large" />
             )}
             <Heading level={2}>Step {step}.4 - Unsupported Splunkbase Apps</Heading>
-            <P>These apps do not have a version avaliable which has been vetted for Splunk Cloud</P>
+            <P>
+                These apps do not have a version avaliable on Splunkbase which has been vetted for
+                Splunk Cloud.
+            </P>
             <List>
                 {apps.unsupported.map(({ name, local, splunkbase }) => (
                     <List.Item key={name}>
@@ -267,6 +284,7 @@ export default ({ step }) => {
                 ))}
             </List>
             <Heading level={2}>Step {step}.5 - Matching Apps</Heading>
+            <P>These apps already exist in the Splunk Cloud instance.</P>
             <List>
                 {apps.done.length ? (
                     apps.done.map(({ name }) => <List.Item key={name}>{name}</List.Item>)
@@ -277,3 +295,27 @@ export default ({ step }) => {
         </div>
     );
 };
+
+const InstallSplunkbase = ({id, token, license}) => {
+    const install = useMutation({mutationFn: () =>
+        fetch(
+            `${splunkdPath}/services/badmsc/proxy?${new URLSearchParams({
+                to: 'acs',
+                uri: 'adminconfig/v2/apps/victoria',
+                splunkbase: 'true'
+            })}`,
+            {
+                credentials: defaultFetchInit.credentials,
+                headers:{
+                    ...defaultFetchInit.headers,
+                    'X-Splunkbase-Authorization': token,
+                    'ACS-Licensing-Ack': license
+                },
+                method: 'POST',
+                body: `splunkbaseID=${id}`,
+            }
+        )
+            .then((res) => (res.ok ? res.json() : Promise.reject()))
+        })
+    return (<Button onClick={install.mutate} disabled={!token || install.isLoading}>Install</Button>)
+}

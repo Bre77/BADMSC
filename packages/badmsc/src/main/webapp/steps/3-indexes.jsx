@@ -87,14 +87,14 @@ export default ({ step }) => {
 
         list.forEach((body) =>
             chain.then(() =>
-                fetch(`${splunkdPath}/services/badmsc/proxy?to=acs&uri=adminconfig/v2/indexes`, {
+                fetch(`${splunkdPath}/services/badmsc/proxy?to=acs-json&uri=adminconfig/v2/indexes`, {
                     ...defaultFetchInit,
                     method: 'POST',
                     body: JSON.stringify(body),
                 }).then((res) => {
                     count++;
-                    setCreate(Math.round((count / list.length) * 100));
-                    if (!res.ok) return console.warn(res.json());
+                    if (!res.ok) console.warn(res.json());
+                    return setCreate(Math.round((count / list.length) * 100));
                 })
             )
         );

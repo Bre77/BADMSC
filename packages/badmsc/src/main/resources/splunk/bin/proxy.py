@@ -30,7 +30,7 @@ class proxy(common.RestHandler):
         if to is "crash":
             raise ("Crash requested by user")
 
-        if to not in ["acs", "api", "src", "wan", "app"]:
+        if to not in ["acs", "acs-json", "api", "src", "wan", "app"]:
             return self.json_error(
                 "Invalid 'to' parameter",
                 status=400,
@@ -49,7 +49,7 @@ class proxy(common.RestHandler):
         )
 
         # Auth
-        if to in ["acs", "api"]:
+        if to in ["acs", "acs-json", "api"]:
             try:
                 resp, content = simpleRequest(
                     f"{self.LOCAL_URI}/servicesNS/{self.USER}/{self.APP_NAME}/storage/passwords/badmsc%3Aauth%3A?output_mode=json&count=1",
@@ -91,6 +91,16 @@ class proxy(common.RestHandler):
                     rawResult=True,
                 )
             elif to == "acs":
+                resp, content = simpleRequest(
+                    f"https://{password[to]}/{uri}",
+                    method=args["method"],
+                    token=True,
+                    sessionKey=password["token"],
+                    getargs={"count": 0, **args["query"]},
+                    postargs=args["form"],
+                    rawResult=True,
+                )
+            elif to == "acs-json":
                 resp, content = simpleRequest(
                     f"https://{password[to]}/{uri}",
                     method=args["method"],
