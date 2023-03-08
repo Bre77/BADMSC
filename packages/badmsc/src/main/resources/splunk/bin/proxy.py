@@ -107,7 +107,7 @@ class proxy(common.RestHandler):
                     token=True,
                     sessionKey=password["token"],
                     getargs={"count": 0, **args["query"]},
-                    jsonargs=args.get("payload"),
+                    jsonargs=json.loads(args.get("payload")),
                     rawResult=True,
                 )
             elif to == "wan":

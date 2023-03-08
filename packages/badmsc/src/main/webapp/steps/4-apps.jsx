@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useSrc, useApi } from '../shared/hooks';
+import { useSrc, useApi, useAuth, REQUEST_URL, FETCH_INIT } from '../shared/hooks';
 import { isort0, wrapSetValue } from '../shared/helpers';
 import { makeBody } from '../shared/fetch';
 
@@ -68,6 +68,8 @@ export default ({ step }) => {
     const handlePassword = wrapSetValue(setPassword);
     const [token, setToken] = useState('');
 
+    const auth = useAuth();
+
     const login = useMutation({
         mutationFn: () =>
             fetch(
@@ -104,7 +106,6 @@ export default ({ step }) => {
                               .then((data) =>
                                   data.total
                                       ? {
-                                            
                                             uid: data.results[0].uid,
                                             appid: data.results[0].appid,
                                             title: data.results[0].title,
@@ -130,10 +131,16 @@ export default ({ step }) => {
         enabled: !!src.data,
     });
 
-    const dstApps = useMemo(() => dst.data ? dst.data.reduce((x,app)=>{
-        x[app.name] = app
-        return x
-    },{}) : {},[dst.data])
+    const dstApps = useMemo(
+        () =>
+            dst.data
+                ? dst.data.reduce((x, app) => {
+                      x[app.name] = app;
+                      return x;
+                  }, {})
+                : {},
+        [dst.data]
+    );
 
     const apps = useMemo(() => {
         const output = { done: [], splunkbase: [], private: [], unsupported: [] };
@@ -232,8 +239,18 @@ export default ({ step }) => {
                                 <Table.Cell>{name}</Table.Cell>
                                 <Table.Cell>{local.version}</Table.Cell>
                                 <Table.Cell>{splunkbase.version}</Table.Cell>
-                                <Table.Cell><Link to={splunkbase.license_url} openInNewContext>{splunkbase.license}</Link></Table.Cell>
-                                <Table.Cell><InstallSplunkbase id={splunkbase.uid} token={token} license={splunkbase.license_url} /></Table.Cell>
+                                <Table.Cell>
+                                    <Link to={splunkbase.license_url} openInNewContext>
+                                        {splunkbase.license}
+                                    </Link>
+                                </Table.Cell>
+                                <Table.Cell>
+                                    <InstallSplunkbase
+                                        id={splunkbase.uid}
+                                        token={token}
+                                        license={splunkbase.license_url}
+                                    />
+                                </Table.Cell>
                             </Table.Row>
                         ))}
                     </Table.Body>
@@ -296,26 +313,45 @@ export default ({ step }) => {
     );
 };
 
-const InstallSplunkbase = ({id, token, license}) => {
-    const install = useMutation({mutationFn: () =>
-        fetch(
-            `${splunkdPath}/services/badmsc/proxy?${new URLSearchParams({
-                to: 'acs',
-                uri: 'adminconfig/v2/apps/victoria',
-                splunkbase: 'true'
-            })}`,
-            {
-                credentials: defaultFetchInit.credentials,
-                headers:{
-                    ...defaultFetchInit.headers,
-                    'X-Splunkbase-Authorization': token,
-                    'ACS-Licensing-Ack': license
-                },
-                method: 'POST',
-                body: `splunkbaseID=${id}`,
+const InstallSplunkbase = ({ id, token, license }) => {
+    const queryClient = useQueryClient();
+    const auth = useAuth();
+    const install = useMutation({
+        mutationFn: () =>
+            fetch(REQUEST_URL, {
+                ...FETCH_INIT,
+                body: JSON.stringify({
+                    url: `https://${auth.data.acs}/adminconfig/v2/apps/victoria`,
+                    method: 'POST',
+                    params: { splunkbase: 'true' },
+                    headers: {
+                        Authorization: `Bearer ${auth.data.token}`,
+                        'X-Splunkbase-Authorization': token,
+                        'ACS-Licensing-Ack': license,
+                    },
+                    data: { splunkbaseID: id },
+                }),
+            }).then((res) =>
+                res.status === 202
+                    ? queryClient.setQueryData(['api', 'services/apps/local'],
+                      (prev)=>{
+                        return {
+                          ...prev,
+                          apps: [...prev.apps, {name: id, installed: true}]
+                        }
+                      })
+                    : Promise.reject()
+            ),
+    });
+    return (
+        <Button
+            appearance={
+                (install.isSuccess && 'primary') || install.isLoading && "pill" || (install.isError && 'destructive') || 'default'
             }
-        )
-            .then((res) => (res.ok ? res.json() : Promise.reject()))
-        })
-    return (<Button onClick={install.mutate} disabled={!token || install.isLoading}>Install</Button>)
-}
+            onClick={install.mutate}
+            disabled={!token || install.isLoading || install.isSuccess || !auth.data}
+        >
+            {(install.isSuccess && 'Installed') || install.isLoading && <WaitSpinner/> || (install.isError && 'Error') || 'Install'}
+        </Button>
+    );
+};

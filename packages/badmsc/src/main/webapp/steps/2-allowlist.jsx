@@ -49,7 +49,7 @@ const AddAllow = ({ suggestion, feature }) => {
     const addIp = useMutation({
         mutationFn: () =>
             fetch(
-                `${splunkdPath}/services/badmsc/proxy?to=acs&uri=adminconfig/v2/access/${feature}/ipallowlists`,
+                `${splunkdPath}/services/badmsc/proxy?to=acs-json&uri=adminconfig/v2/access/${feature}/ipallowlists`,
                 {
                     ...defaultFetchInit,
                     method: 'POST',

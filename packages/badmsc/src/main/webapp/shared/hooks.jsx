@@ -1,12 +1,73 @@
 import React from 'react';
 import { useQuery, useQueries } from '@tanstack/react-query';
-import { splunkdPath } from '@splunk/splunk-utils/config';
+import { splunkdPath, username } from '@splunk/splunk-utils/config';
 import { defaultFetchInit } from '@splunk/splunk-utils/fetch';
 import { makeBody } from './fetch';
 import { CONF_FILES } from './const';
 
-export const handle = (res) => (res.ok ? res.json() : Promise.reject(res.json()));
+export const REQUEST_URL = `${splunkdPath}/services/badmsc/request?output_mode=json`;
+export const LOCAL_URL = `${splunkdPath}/servicesNS/${username}/badmsc`;
+export const FETCH_INIT = {
+    method: 'POST',
+    credentials: defaultFetchInit.credentials,
+    headers: {
+        ...defaultFetchInit.headers,
+        'Content-Type': 'application/json',
+    },
+};
+
+export const handle = (res) => (res.ok ? res.json() : Promise.reject(res.text()));
 const entry = (data) => data.entry;
+
+export const useAuth = () =>
+    useQuery({
+        queryKey: ['auth'],
+        queryFn: () =>
+            fetch(
+                `${LOCAL_URL}/storage/passwords/badmsc%3Aauth%3A?output_mode=json&count=1`,
+                defaultFetchInit
+            ).then((res) => {
+                if (res.status === 404) {
+                    return false;
+                }
+                if (res.status === 200) {
+                    return res
+                        .json()
+                        .then((data) => JSON.parse(data.entry[0].content.clear_password))
+                        .catch(() => Promise.reject());
+                }
+                return Promise.reject();
+            }),
+        staleTime: Infinity,
+        notifyOnChangeProps: ['data', 'isSuccess', 'isLoading'],
+    });
+
+export const useRequest = (auth, key, body, postprocess) =>
+    useQuery({
+        queryKey: key,
+        queryFn: () =>
+            fetch(`${splunkdPath}/services/badmsc/proxy`, {
+                ...FETCH_INIT,
+                body: JSON.stringify(body),
+            }).then(postprocess),
+        enabled: auth,
+        staleTime: Infinity,
+    });
+
+export const useApps = (auth, key) =>
+    useRequest(
+        auth,
+        ['src', 'apps'],
+        {
+            url: `https://${auth[key]}/services/apps/local`,
+            method: 'GET',
+            headers: {
+                Authorization: `Bearer ${auth.data.token}`,
+            },
+        },
+        (res) =>
+            res.json().then((data) => data.entry)
+    );
 
 export const useConfigs = (to, files = CONF_FILES) =>
     useQueries({
