@@ -100,7 +100,7 @@ export default ({ step }) => {
                           ...defaultFetchInit,
                           method: 'POST',
                           body: makeBody({
-                              password: JSON.stringify({ token, api, acs, hec }),
+                              password: JSON.stringify({ token, api, acs, hec, src:{api: '', token: ''}, dst:{api, token, acs, hec} }),
                           }),
                       }
                   )

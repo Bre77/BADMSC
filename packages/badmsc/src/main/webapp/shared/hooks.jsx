@@ -42,7 +42,7 @@ export const useAuth = () =>
         notifyOnChangeProps: ['data', 'isSuccess', 'isLoading'],
     });
 
-export const useRequest = (auth, key, body, postprocess) =>
+export const useRequest = (key, body, postprocess, enabled=true) =>
     useQuery({
         queryKey: key,
         queryFn: () =>
@@ -50,13 +50,12 @@ export const useRequest = (auth, key, body, postprocess) =>
                 ...FETCH_INIT,
                 body: JSON.stringify(body),
             }).then(postprocess),
-        enabled: auth,
+        enabled,
         staleTime: Infinity,
     });
 
 export const useApps = (auth, key) =>
     useRequest(
-        auth,
         ['src', 'apps'],
         {
             url: `https://${auth[key]}/services/apps/local`,
@@ -66,7 +65,8 @@ export const useApps = (auth, key) =>
             },
         },
         (res) =>
-            res.json().then((data) => data.entry)
+            res.json().then((data) => data.entry),
+        auth
     );
 
 export const useConfigs = (to, files = CONF_FILES) =>

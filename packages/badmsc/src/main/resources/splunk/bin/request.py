@@ -35,11 +35,16 @@ class request(PersistentServerConnectionApplication):
 
         self.logger.info(args["payload"])
 
+        # Handle local requests by adding FQDN and auth token
+        if options["url"].startswith("/"):
+            options["url"] = f"{args['server']['rest_uri']}{options['url']}"
+            options["headers"] := {}
+            options["headers"]["Authorization"] = f"Splunk {args['session']['authtoken']}"
+
         try:
             r = requests.request(**options)
             self.logger.info(f"{r.status_code} {r.text}")
             return {'payload': r.text, 'status': r.status_code}
-            #return {'payload': {'text': r.text, 'status': r.status_code, 'headers': r.headers}, 'status': 200}
         except Exception as e:
             self.logger.info(f"Request failed. {e}")
             return {
