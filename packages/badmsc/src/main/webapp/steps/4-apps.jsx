@@ -1,8 +1,8 @@
 import React, { useMemo, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useSrc, useApi, useAuth, REQUEST_URL, FETCH_INIT } from '../shared/hooks';
+import { useSrc, useApi, useConfig, useApps } from '../shared/hooks';
 import { isort0, wrapSetValue } from '../shared/helpers';
-import { makeBody } from '../shared/fetch';
+import { REQUEST_URL, FETCH_INIT, request } from '../shared/fetch';
 
 // Splunk UI
 import Heading from '@splunk/react-ui/Heading';
@@ -61,47 +61,36 @@ const IGNORED_APPS = [
 
 const splunkbaseToken = /<id>([^<]+)/;
 
-export default ({ step }) => {
+export default ({ step, config }) => {
     const [username, setUsername] = useState('');
     const handleUsername = wrapSetValue(setUsername);
     const [password, setPassword] = useState('');
     const handlePassword = wrapSetValue(setPassword);
     const [token, setToken] = useState('');
 
-    const auth = useAuth();
-
     const login = useMutation({
         mutationFn: () =>
-            fetch(
-                `${splunkdPath}/services/badmsc/proxy?${new URLSearchParams({
-                    to: 'app',
-                    uri: `account:login`,
-                })}`,
-                {
-                    ...defaultFetchInit,
-                    method: 'POST',
-                    body: makeBody({ username, password }),
-                }
-            )
+            request({
+                url: 'https://splunkbase.splunk.com/api/account:login',
+                method: 'POST',
+                data: { username, password },
+            })
                 .then((res) => (res.ok ? res.text() : Promise.reject()))
                 .then((text) => setToken(splunkbaseToken.exec(text)[1])),
     });
 
-    const src = useSrc('services/apps/local');
-    const dst = useApi('services/apps/local');
+    const src = useApps('src', config?.src);
+    const dst = useApps('dst', config?.dst);
     const splunkbase = useQuery({
         queryKey: ['splunkbase'],
         queryFn: () =>
             Promise.all(
                 src.data
-                    ? src.data.map((app) =>
-                          fetch(
-                              `${splunkdPath}/services/badmsc/proxy?${new URLSearchParams({
-                                  to: 'app',
-                                  uri: `v1/app/?include=releases&appid=${app.name}`,
-                              })}`,
-                              defaultFetchInit
-                          )
+                    ? Object.values(src.data).map((app) =>
+                          request({
+                              url: `https://splunkbase.splunk.com/api/v1/app/?include=releases&appid=${app.name}`,
+                              method: 'GET',
+                          })
                               .then((res) => (res.ok ? res.json() : Promise.reject(res.json())))
                               .then((data) =>
                                   data.total
@@ -131,23 +120,12 @@ export default ({ step }) => {
         enabled: !!src.data,
     });
 
-    const dstApps = useMemo(
-        () =>
-            dst.data
-                ? dst.data.reduce((x, app) => {
-                      x[app.name] = app;
-                      return x;
-                  }, {})
-                : {},
-        [dst.data]
-    );
-
     const apps = useMemo(() => {
         const output = { done: [], splunkbase: [], private: [], unsupported: [] };
         if (!dst.data || !src.data || !splunkbase.data) return output;
 
-        (src.data || []).forEach((a) => {
-            if (dstApps[a.name]) {
+        Object.values(src.data).forEach((a) => {
+            if (dst.data[a.name]) {
                 // App already exist in cloud
                 console.log(`Skipping existing app '${a.name}'`);
                 output.done.push({ name: a.name });
@@ -246,9 +224,9 @@ export default ({ step }) => {
                                 </Table.Cell>
                                 <Table.Cell>
                                     <InstallSplunkbase
-                                        id={splunkbase.uid}
+                                        config={config}
+                                        splunkbase={splunkbase}
                                         token={token}
-                                        license={splunkbase.license_url}
                                     />
                                 </Table.Cell>
                             </Table.Row>
@@ -313,32 +291,28 @@ export default ({ step }) => {
     );
 };
 
-const InstallSplunkbase = ({ id, token, license }) => {
+const InstallSplunkbase = ({ config, token, splunkbase }) => {
     const queryClient = useQueryClient();
-    const auth = useAuth();
     const install = useMutation({
         mutationFn: () =>
             fetch(REQUEST_URL, {
                 ...FETCH_INIT,
                 body: JSON.stringify({
-                    url: `https://${auth.data.acs}/adminconfig/v2/apps/victoria`,
+                    url: `https://${config.dst.acs}/adminconfig/v2/apps/victoria`,
                     method: 'POST',
                     params: { splunkbase: 'true' },
                     headers: {
-                        Authorization: `Bearer ${auth.data.token}`,
+                        Authorization: `Bearer ${config.dst.token}`,
                         'X-Splunkbase-Authorization': token,
-                        'ACS-Licensing-Ack': license,
+                        'ACS-Licensing-Ack': splunkbase.license_url,
                     },
-                    data: { splunkbaseID: id },
+                    data: { splunkbaseID: splunkbase.uid },
                 }),
             }).then((res) =>
                 res.status === 202
-                    ? queryClient.setQueryData(['api', 'services/apps/local'],
-                      (prev)=>{
-                        return {
-                          ...prev,
-                          apps: [...prev.apps, {name: id, installed: true}]
-                        }
+                    ? queryClient.setQueryData(['dst', 'apps'], (prev) => {
+                          prev[splunkbase.title] = { name: splunkbase.title };
+                          return prev;
                       })
                     : Promise.reject()
             ),
@@ -346,12 +320,18 @@ const InstallSplunkbase = ({ id, token, license }) => {
     return (
         <Button
             appearance={
-                (install.isSuccess && 'primary') || install.isLoading && "pill" || (install.isError && 'destructive') || 'default'
+                (install.isSuccess && 'primary') ||
+                (install.isLoading && 'pill') ||
+                (install.isError && 'destructive') ||
+                'default'
             }
             onClick={install.mutate}
-            disabled={!token || install.isLoading || install.isSuccess || !auth.data}
+            disabled={!token || install.isLoading || install.isSuccess || !config}
         >
-            {(install.isSuccess && 'Installed') || install.isLoading && <WaitSpinner/> || (install.isError && 'Error') || 'Install'}
+            {(install.isSuccess && 'Installed') ||
+                (install.isLoading && <WaitSpinner />) ||
+                (install.isError && 'Error') ||
+                'Install'}
         </Button>
     );
 };

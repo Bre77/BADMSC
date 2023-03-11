@@ -2,26 +2,17 @@ import React from 'react';
 import { useQuery, useQueries } from '@tanstack/react-query';
 import { splunkdPath, username } from '@splunk/splunk-utils/config';
 import { defaultFetchInit } from '@splunk/splunk-utils/fetch';
-import { makeBody } from './fetch';
+import { makeBody, request } from './fetch';
 import { CONF_FILES } from './const';
 
-export const REQUEST_URL = `${splunkdPath}/services/badmsc/request?output_mode=json`;
 export const LOCAL_URL = `${splunkdPath}/servicesNS/${username}/badmsc`;
-export const FETCH_INIT = {
-    method: 'POST',
-    credentials: defaultFetchInit.credentials,
-    headers: {
-        ...defaultFetchInit.headers,
-        'Content-Type': 'application/json',
-    },
-};
 
 export const handle = (res) => (res.ok ? res.json() : Promise.reject(res.text()));
 const entry = (data) => data.entry;
 
-export const useAuth = () =>
+export const useConfig = () =>
     useQuery({
-        queryKey: ['auth'],
+        queryKey: ['config'],
         queryFn: () =>
             fetch(
                 `${LOCAL_URL}/storage/passwords/badmsc%3Aauth%3A?output_mode=json&count=1`,
@@ -39,35 +30,36 @@ export const useAuth = () =>
                 return Promise.reject();
             }),
         staleTime: Infinity,
-        notifyOnChangeProps: ['data', 'isSuccess', 'isLoading'],
+        notifyOnChangeProps: ['data'],
     });
 
-export const useRequest = (key, body, postprocess, enabled=true) =>
+export const useRequest = (key, body, postprocess, enabled = true) =>
     useQuery({
         queryKey: key,
-        queryFn: () =>
-            fetch(`${splunkdPath}/services/badmsc/proxy`, {
-                ...FETCH_INIT,
-                body: JSON.stringify(body),
-            }).then(postprocess),
+        queryFn: () => request(body).then(postprocess),
         enabled,
         staleTime: Infinity,
     });
 
-export const useApps = (auth, key) =>
-    useRequest(
-        ['src', 'apps'],
-        {
-            url: `https://${auth[key]}/services/apps/local`,
-            method: 'GET',
-            headers: {
-                Authorization: `Bearer ${auth.data.token}`,
-            },
-        },
-        (res) =>
-            res.json().then((data) => data.entry),
-        auth
-    );
+export const useApps = (key, target) =>
+    useQuery({
+        queryKey: [key, 'apps'],
+        queryFn: () =>
+            request({
+                url: `${target.api}/services/apps/local`,
+                method: 'GET',
+                params: { output_mode: 'json' },
+                headers: {
+                    Authorization: `Bearer ${target.token}`,
+                },
+            }).then((res) =>
+                res
+                    .json()
+                    .then((data) => Object.fromEntries(data.entry.map((app) => [app.name, app])))
+            ),
+        enabled: !!target,
+        staleTime: Infinity,
+    });
 
 export const useConfigs = (to, files = CONF_FILES) =>
     useQueries({

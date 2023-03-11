@@ -24,7 +24,7 @@ import Step10 from './10-users';
 import Step11 from './11-data';
 import Step12 from './12-finish';
 import { Top, Bottom, Nav } from './styles';
-import { useAuth } from '../shared/hooks';
+import { useConfig } from '../shared/hooks';
 import WaitSpinner from '@splunk/react-ui/WaitSpinner';
 
 export default () => {
@@ -68,7 +68,7 @@ export default () => {
     }
     const [_, Step] = steps[step];
 
-    const auth = useAuth()
+    const config = useConfig();
 
     return (
         <div>
@@ -104,7 +104,7 @@ export default () => {
                     </Button>
                 </Nav>
             </Top>
-            {auth.data ? <Step step={step} auth={auth.data} /> : <WaitSpinner />}
+            {config.data ? <Step step={step} config={config.data} /> : <WaitSpinner />}
         </div>
     );
 };
