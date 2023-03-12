@@ -1,11 +1,11 @@
 import React from 'react';
-import Config from '../components/config';
+import Conf from '../components/conf';
 
 // Splunk UI
 import Heading from '@splunk/react-ui/Heading';
 import P from '@splunk/react-ui/Paragraph';
 
-export default ({ step }) => {
+export default ({ step, config }) => {
     return (
         <div>
             <P>
@@ -14,7 +14,7 @@ export default ({ step }) => {
                 be able to migrate their configuration.
             </P>
             <Heading level={2}>Step {step}.1 - Copy App Config</Heading>
-            <Config scope="app" />
+            <Conf scope="app" config={config} />
         </div>
     );
 };

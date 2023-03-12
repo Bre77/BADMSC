@@ -1,5 +1,5 @@
 import React from 'react';
-import Config from '../components/config';
+import Conf from '../components/conf';
 
 // Splunk UI
 import Heading from '@splunk/react-ui/Heading';

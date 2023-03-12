@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useAcs, useApi, handle } from '../shared/hooks';
+import { useAcs, useGetApi } from '../shared/hooks';
 
 // Splunk UI
 import Heading from '@splunk/react-ui/Heading';
@@ -80,8 +80,8 @@ const AddAllow = ({ suggestion, feature }) => {
     );
 };
 
-export default ({ step }) => {
-    const test = useApi('services/admin/server-info');
+export default ({ step, config }) => {
+    const test = useGetApi(config.dst, 'services/admin/server-info');
 
     const sh_ip = useQuery({
         queryKey: ['wanip', 'sh'],

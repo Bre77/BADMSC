@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useUI, useProxy } from '../shared/hooks';
+import { useGetApi, useApps } from '../shared/hooks';
 import { isort0 } from '../shared/helpers';
 
 // Splunk UI
@@ -9,23 +9,31 @@ import Table from '@splunk/react-ui/Table';
 import WaitSpinner from '@splunk/react-ui/WaitSpinner';
 import Code from '@splunk/react-ui/Code';
 
-export default ({ folder }) => {
-    const queryClient = useQueryClient();
+const handleUi = (data) =>
+    data.entry.reduce((x, { name, acl, content }) => {
+        x[acl.app] ||= {};
+        x[acl.app][name] = {
+            perms: acl.perms,
+            sharing: acl.sharing,
+            data: content['eai:data'],
+            digest: content['eai:digest'],
+        };
+        return x;
+    }, {});
 
-    const dst = useUI('api', folder);
-    const src = useUI('src', folder);
-    const dst_apps = useProxy('src', 'services/apps/local');
+export default ({ config, folder }) => {
+    const src = useGetApi(config.src, `servicesNS/nobody/-/data/ui/${folder}`, handleUi);
+    const dst = useGetApi(config.dst, `servicesNS/nobody/-/data/ui/${folder}`, handleUi);
+    const dst_apps = useApps(config.dst);
 
     const isLoading = dst.isLoading || src.isLoading || dst_apps.isLoading;
 
     const ui = useMemo(() => {
         if (isLoading) return [];
 
-        const apps = dst_apps.data.map((a) => a.name);
-
         const output = {};
         Object.entries(src.data).forEach(([app, files]) => {
-            if (apps.includes(app)) {
+            if (app in dst_apps.data) {
                 Object.entries(files).forEach(([file, { perms, sharing, data, digest }]) => {
                     if (digest !== dst.data?.[app]?.[file]?.digest) {
                         Object.keys(perms).forEach((rw) =>
@@ -40,7 +48,7 @@ export default ({ folder }) => {
                         };
                     }
                 });
-            }
+            } else console.log(`Skipping ${app} because its not in cloud`);
         });
         return Object.entries(output)
             .sort(isort0)

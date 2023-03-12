@@ -21,7 +21,7 @@ import WaitSpinner from '@splunk/react-ui/WaitSpinner';
 import { splunkdPath } from '@splunk/splunk-utils/config';
 import { defaultFetchInit } from '@splunk/splunk-utils/fetch';
 
-export default ({ step }) => {
+export default ({ step, config }) => {
     const queryClient = useQueryClient();
 
     const [create, setCreate] = useState(100);
@@ -33,20 +33,23 @@ export default ({ step }) => {
     const [archive, setArchive] = useState(365);
     const handleArchive = wrapSetValue(setArchive);
 
-    const cloud_indexes = useAcs('indexes');
+    const cloud_indexes = useAcs(config.dst, 'indexes');
     const local_event_indexes = useQuery({
         queryKey: ['src', 'search', 'tstats', history],
         queryFn: () =>
-            fetch(`${splunkdPath}/services/badmsc/proxy?to=src&uri=services/search/jobs`, {
-                ...defaultFetchInit,
+            request({
+                url: `${config.src}/services/search/jobs`,
                 method: 'POST',
-                body: makeBody({
+                data: {
                     search: '| tstats count where index=* by index',
                     earliest_time: `-${history}d`,
                     latest_time: 'now',
                     output_mode: 'json',
                     exec_mode: 'oneshot',
-                }),
+                },
+                headers: {
+                    Authorization: `Bearer ${target.token}`,
+                },
             })
                 .then(handle)
                 .then((data) => data.results),
@@ -56,16 +59,19 @@ export default ({ step }) => {
     const local_metric_indexes = useQuery({
         queryKey: ['src', 'search', 'mstats', history],
         queryFn: () =>
-            fetch(`${splunkdPath}/services/badmsc/proxy?to=src&uri=services/search/jobs`, {
-                ...defaultFetchInit,
+            request({
+                url: `${config.src}/services/search/jobs`,
                 method: 'POST',
-                body: makeBody({
+                data: {
                     search: '| mstats count(*) where index=* by index | untable index metric count | stats sum(count) as count by index',
                     earliest_time: `-${history}d`,
                     latest_time: 'now',
                     output_mode: 'json',
                     exec_mode: 'oneshot',
-                }),
+                },
+                headers: {
+                    Authorization: `Bearer ${target.token}`,
+                },
             })
                 .then(handle)
                 .then((data) => data.results),
@@ -85,12 +91,15 @@ export default ({ step }) => {
         let chain = Promise.resolve();
         let count = 0;
 
-        list.forEach((body) =>
+        list.forEach((json) =>
             chain.then(() =>
-                fetch(`${splunkdPath}/services/badmsc/proxy?to=acs-json&uri=adminconfig/v2/indexes`, {
-                    ...defaultFetchInit,
+                request({
+                    url: `${config.dst.acs}/adminconfig/v2/indexes`,
                     method: 'POST',
-                    body: JSON.stringify(body),
+                    headers: {
+                        Authorization: `Bearer ${config.dst.token}`,
+                    },
+                    json,
                 }).then((res) => {
                     count++;
                     if (!res.ok) console.warn(res.json());

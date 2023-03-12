@@ -1,12 +1,12 @@
 import React from 'react';
-import Config from '../components/config';
+import Conf from '../components/conf';
 
 // Splunk UI
 import Heading from '@splunk/react-ui/Heading';
 import P from '@splunk/react-ui/Paragraph';
 import Message from '@splunk/react-ui/Message';
 
-export default ({ step }) => {
+export default ({ step, config }) => {
     return (
         <div>
             <Message type="warning">This section is dangerous, please take care.</Message>
@@ -19,7 +19,7 @@ export default ({ step }) => {
             </P>
 
             <Heading level={2}>Step {step}.1 - Copy System Config</Heading>
-            <Config scope="system" />
+            <Conf scope="system" config={config} />
         </div>
     );
 };

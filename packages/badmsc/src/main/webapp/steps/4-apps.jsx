@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useSrc, useApi, useConfig, useApps } from '../shared/hooks';
+import { useGetApi, useApps } from '../shared/hooks';
 import { isort0, wrapSetValue } from '../shared/helpers';
 import { REQUEST_URL, FETCH_INIT, request } from '../shared/fetch';
 
@@ -13,10 +13,9 @@ import ControlGroup from '@splunk/react-ui/ControlGroup';
 import Button from '@splunk/react-ui/Button';
 import Table from '@splunk/react-ui/Table';
 import Link from '@splunk/react-ui/Link';
+import Message from '@splunk/react-ui/Message';
 
 import WaitSpinner from '@splunk/react-ui/WaitSpinner';
-import { splunkdPath } from '@splunk/splunk-utils/config';
-import { defaultFetchInit } from '@splunk/splunk-utils/fetch';
 
 const IGNORED_APPS = [
     '000-self-service',
@@ -79,8 +78,8 @@ export default ({ step, config }) => {
                 .then((text) => setToken(splunkbaseToken.exec(text)[1])),
     });
 
-    const src = useApps('src', config?.src);
-    const dst = useApps('dst', config?.dst);
+    const src = useApps(config.src);
+    const dst = useApps(config.dst);
     const splunkbase = useQuery({
         queryKey: ['splunkbase'],
         queryFn: () =>
@@ -169,34 +168,42 @@ export default ({ step, config }) => {
                 To automatically install Splunkbase apps, a Splunk.com login is required. This will
                 not be stored and only used during this session.
             </P>
-            <ControlGroup label="Username">
-                <Text
-                    type="username"
-                    autocomplete="username"
-                    onChange={handleUsername}
-                    value={username}
-                    required
-                ></Text>
-            </ControlGroup>
-            <ControlGroup label="Password">
-                <Text
-                    type="password"
-                    autocomplete="current-password"
-                    onChange={handlePassword}
-                    value={password}
-                    required
-                ></Text>
-            </ControlGroup>
-            <ControlGroup label="" error={login.isError} help={login.error}>
-                <Button
-                    disabled={!username || !password}
-                    onClick={login.mutate}
-                    appearance={token ? 'primary' : 'default'}
-                    error={login.isError}
-                    label={login.isLoading ? <WaitSpinner /> : 'Login'}
-                />
-            </ControlGroup>
-            {token}
+            {token ? (
+                <Message appearance="fill" type="success">
+                    Authenticated to Splunkbase as '{username}' successfully
+                </Message>
+            ) : (
+                <>
+                    <ControlGroup label="Username">
+                        <Text
+                            type="username"
+                            autocomplete="username"
+                            onChange={handleUsername}
+                            value={username}
+                            required
+                        ></Text>
+                    </ControlGroup>
+                    <ControlGroup label="Password">
+                        <Text
+                            type="password"
+                            autocomplete="current-password"
+                            onChange={handlePassword}
+                            value={password}
+                            required
+                        ></Text>
+                    </ControlGroup>
+                    <ControlGroup label="" error={login.isError} help={login.error}>
+                        <Button
+                            disabled={!username || !password}
+                            onClick={login.mutate}
+                            //appearance={token ? 'primary' : 'default'}
+                            error={login.isError}
+                            label={login.isLoading ? <WaitSpinner /> : 'Login'}
+                        />
+                    </ControlGroup>
+                </>
+            )}
+
             <Heading level={2}>Step {step}.2 - Splunkbase Apps</Heading>
             <P>
                 These apps can be installed into Splunk Cloud from Splunkbase. The Splunk Cloud
@@ -295,23 +302,20 @@ const InstallSplunkbase = ({ config, token, splunkbase }) => {
     const queryClient = useQueryClient();
     const install = useMutation({
         mutationFn: () =>
-            fetch(REQUEST_URL, {
-                ...FETCH_INIT,
-                body: JSON.stringify({
-                    url: `https://${config.dst.acs}/adminconfig/v2/apps/victoria`,
-                    method: 'POST',
-                    params: { splunkbase: 'true' },
-                    headers: {
-                        Authorization: `Bearer ${config.dst.token}`,
-                        'X-Splunkbase-Authorization': token,
-                        'ACS-Licensing-Ack': splunkbase.license_url,
-                    },
-                    data: { splunkbaseID: splunkbase.uid },
-                }),
+            request({
+                url: `${config.dst.acs}/adminconfig/v2/apps/victoria`,
+                method: 'POST',
+                params: { splunkbase: 'true' },
+                headers: {
+                    Authorization: `Bearer ${config.dst.token}`,
+                    'X-Splunkbase-Authorization': token,
+                    'ACS-Licensing-Ack': splunkbase.license_url,
+                },
+                data: { splunkbaseID: splunkbase.uid },
             }).then((res) =>
                 res.status === 202
                     ? queryClient.setQueryData(['dst', 'apps'], (prev) => {
-                          prev[splunkbase.title] = { name: splunkbase.title };
+                          prev[splunkbase.appid] = { name: splunkbase.title };
                           return prev;
                       })
                     : Promise.reject()
