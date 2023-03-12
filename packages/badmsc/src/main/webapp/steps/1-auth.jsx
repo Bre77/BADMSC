@@ -29,17 +29,18 @@ import { useAcs, useGetApi } from '../shared/hooks';
 
 const StatusCheck = ({ host, disabled }) => {
     const { data, isLoading } = useQuery({
-        queryKey: ['status', host],
+        queryKey: ['check', host],
         queryFn: () =>
-            fetch(`${splunkdPath}/services/badmsc/check?host=${host}`, defaultFetchInit).then(
-                (res) => res.text()
-            ),
+            request({
+                url: `https://${host}`,
+                method: 'OPTIONS',
+            }).then((res) => res.ok),
         staleTime: Infinity,
         enabled: !disabled,
     });
     if (disabled) return <NotAllowed />;
     if (isLoading) return <WaitSpinner />;
-    if (data == 'OK') return <Success />;
+    if (data === true) return <Success />;
     return (
         <Tooltip content={data}>
             <Error />

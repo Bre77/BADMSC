@@ -31,24 +31,3 @@ class request(PersistentServerConnectionApplication):
             return {"payload": "Invalid JSON payload", "status": 400}
 
         self.logger.info(args["payload"])
-
-        # Handle local requests by adding FQDN and auth token
-        if options["url"].startswith("/services"):
-            options["verify"] = False
-            options["url"] = f"{args['server']['rest_uri']}{options['url']}"
-            options["headers"][
-                "Authorization"
-            ] = f"Splunk {args['session']['authtoken']}"
-        elif not (
-            options["url"].startswith("https://")
-            or options["url"].startswith("http://")
-        ):
-            options["url"] = f"https://{options['url']}"
-
-        try:
-            r = requests.request(**options)
-            self.logger.info(f"{r.status_code} {r.text}")
-            return {"payload": r.text, "status": r.status_code}
-        except Exception as e:
-            self.logger.info(f"Request failed. {e}")
-            return {"payload": str(e), "status": 500}
