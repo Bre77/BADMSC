@@ -1,8 +1,8 @@
 import React, { useMemo, useState } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { handle, useAcs } from '../shared/hooks';
 import { isort0, wrapSetValue } from '../shared/helpers';
-import { makeBody } from '../shared/fetch';
+import { request } from '../shared/fetch';
 
 // Splunk UI
 import Heading from '@splunk/react-ui/Heading';
@@ -24,6 +24,13 @@ import { defaultFetchInit } from '@splunk/splunk-utils/fetch';
 export default ({ step, config }) => {
     const queryClient = useQueryClient();
 
+    // Refresh critical data for this step
+    useMemo(() => {
+        queryClient.invalidateQueries({
+            queryKey: ['acs', 'indexes'],
+        });
+    }, []);
+
     const [create, setCreate] = useState(100);
     const [history, setHistory] = useState(90);
     const handleHistory = wrapSetValue(setHistory);
@@ -38,7 +45,7 @@ export default ({ step, config }) => {
         queryKey: ['src', 'search', 'tstats', history],
         queryFn: () =>
             request({
-                url: `${config.src}/services/search/jobs`,
+                url: `${config.src.api}/services/search/jobs`,
                 method: 'POST',
                 data: {
                     search: '| tstats count where index=* by index',
@@ -48,7 +55,7 @@ export default ({ step, config }) => {
                     exec_mode: 'oneshot',
                 },
                 headers: {
-                    Authorization: `Bearer ${target.token}`,
+                    Authorization: `Bearer ${config.src.token}`,
                 },
             })
                 .then(handle)
@@ -60,7 +67,7 @@ export default ({ step, config }) => {
         queryKey: ['src', 'search', 'mstats', history],
         queryFn: () =>
             request({
-                url: `${config.src}/services/search/jobs`,
+                url: `${config.src.api}/services/search/jobs`,
                 method: 'POST',
                 data: {
                     search: '| mstats count(*) where index=* by index | untable index metric count | stats sum(count) as count by index',
@@ -70,7 +77,7 @@ export default ({ step, config }) => {
                     exec_mode: 'oneshot',
                 },
                 headers: {
-                    Authorization: `Bearer ${target.token}`,
+                    Authorization: `Bearer ${config.src.token}`,
                 },
             })
                 .then(handle)
@@ -88,26 +95,26 @@ export default ({ step, config }) => {
             .map((i) => ({ name: i[0], Datatype: i[1].local.datatype, ...base }));
         console.log(list);
 
-        let chain = Promise.resolve();
         let count = 0;
 
-        list.forEach((json) =>
-            chain.then(() =>
-                request({
-                    url: `${config.dst.acs}/adminconfig/v2/indexes`,
-                    method: 'POST',
-                    headers: {
-                        Authorization: `Bearer ${config.dst.token}`,
-                    },
-                    json,
-                }).then((res) => {
-                    count++;
-                    if (!res.ok) console.warn(res.json());
-                    return setCreate(Math.round((count / list.length) * 100));
-                })
-            )
-        );
-        chain.then(() => {
+        list.reduce(
+            (chain, json) =>
+                chain.then(() =>
+                    request({
+                        url: `${config.dst.acs}/adminconfig/v2/indexes`,
+                        method: 'POST',
+                        headers: {
+                            Authorization: `Bearer ${config.dst.token}`,
+                        },
+                        json,
+                    }).then((res) => {
+                        count++;
+                        if (!res.ok) console.warn(res.json());
+                        setCreate(Math.round((count / list.length) * 100));
+                    })
+                ),
+            Promise.resolve()
+        ).then(() => {
             queryClient.invalidateQueries({
                 queryKey: ['acs', 'indexes'],
             });
@@ -131,11 +138,11 @@ export default ({ step, config }) => {
             return output;
         }, output);
 
-        /*output = (cloud_indexes.data || []).reduce((output, i) => {
+        output = (cloud_indexes.data || []).reduce((output, i) => {
             if (!output[i.name]) output[i.name] = { local: false, cloud: i };
             else output[i.name].cloud = i;
             return output;
-        }, output);*/
+        }, output);
 
         return Object.entries(output).sort(isort0);
     }, [cloud_indexes.data, local_event_indexes.data, local_metric_indexes.data]);
@@ -161,7 +168,6 @@ export default ({ step, config }) => {
                         <Table.HeadCell>Local</Table.HeadCell>
                         <Table.HeadCell>Cloud</Table.HeadCell>
                         <Table.HeadCell>Action</Table.HeadCell>
-                        <Table.HeadCell>Local Event/Metric Count</Table.HeadCell>
                         <Table.HeadCell>Cloud Searchable Days</Table.HeadCell>
                         <Table.HeadCell>Cloud Archive Days</Table.HeadCell>
                     </Table.Head>
@@ -183,7 +189,6 @@ export default ({ step, config }) => {
                                         <i>Skip</i>
                                     )}
                                 </Table.Cell>
-                                <Table.Cell>{local?.count}</Table.Cell>
                                 <Table.Cell>{cloud?.searchableDays}</Table.Cell>
                                 <Table.Cell>{cloud?.SplunkArchivalRetentionDays}</Table.Cell>
                             </Table.Row>

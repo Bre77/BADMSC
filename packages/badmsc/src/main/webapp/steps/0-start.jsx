@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React from 'react';
 
 // Splunk UI
 import Heading from '@splunk/react-ui/Heading';

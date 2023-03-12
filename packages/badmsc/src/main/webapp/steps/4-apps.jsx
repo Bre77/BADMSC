@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useGetApi, useApps } from '../shared/hooks';
 import { isort0, wrapSetValue } from '../shared/helpers';
@@ -61,6 +61,19 @@ const IGNORED_APPS = [
 const splunkbaseToken = /<id>([^<]+)/;
 
 export default ({ step, config }) => {
+    const queryClient = useQueryClient();
+
+    // Refresh critical data for this step on mount and unmount
+    useEffect(() => {
+        queryClient.invalidateQueries({
+            queryKey: ['dst', 'services/apps/local'],
+        });
+        return () =>
+            queryClient.invalidateQueries({
+                queryKey: ['dst', 'services/apps/local'],
+            });
+    }, []);
+
     const [username, setUsername] = useState('');
     const handleUsername = wrapSetValue(setUsername);
     const [password, setPassword] = useState('');
@@ -299,7 +312,6 @@ export default ({ step, config }) => {
 };
 
 const InstallSplunkbase = ({ config, token, splunkbase }) => {
-    const queryClient = useQueryClient();
     const install = useMutation({
         mutationFn: () =>
             request({
@@ -312,14 +324,7 @@ const InstallSplunkbase = ({ config, token, splunkbase }) => {
                     'ACS-Licensing-Ack': splunkbase.license_url,
                 },
                 data: { splunkbaseID: splunkbase.uid },
-            }).then((res) =>
-                res.status === 202
-                    ? queryClient.setQueryData(['dst', 'apps'], (prev) => {
-                          prev[splunkbase.appid] = { name: splunkbase.title };
-                          return prev;
-                      })
-                    : Promise.reject()
-            ),
+            }).then((res) => (res.status === 202 ? Promise.resolve() : Promise.reject())),
     });
     return (
         <Button
@@ -332,7 +337,7 @@ const InstallSplunkbase = ({ config, token, splunkbase }) => {
             onClick={install.mutate}
             disabled={!token || install.isLoading || install.isSuccess || !config}
         >
-            {(install.isSuccess && 'Installed') ||
+            {(install.isSuccess && 'Installing') ||
                 (install.isLoading && <WaitSpinner />) ||
                 (install.isError && 'Error') ||
                 'Install'}

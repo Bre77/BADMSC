@@ -1,4 +1,4 @@
-import React, { useReducer, useCallback } from 'react';
+import React, { useReducer, useCallback, useEffect } from 'react';
 
 // Splunk UI
 import Button from '@splunk/react-ui/Button';
@@ -69,6 +69,13 @@ export default () => {
     const [_, Step] = steps[step];
 
     const config = useConfig();
+
+    useEffect(() => {
+        config.data &&
+            ('src' in config.data === false || 'dst' in config.data === false) &&
+            step > 1 &&
+            setStep(1);
+    }, [config.data]);
 
     return (
         <div>

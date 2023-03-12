@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useAcs, useGetApi } from '../shared/hooks';
+import { useAcs, useConfig, useGetApi } from '../shared/hooks';
 
 // Splunk UI
 import Heading from '@splunk/react-ui/Heading';
@@ -14,16 +14,10 @@ import List from '@splunk/react-ui/List';
 import WaitSpinner from '@splunk/react-ui/WaitSpinner';
 import ControlGroup from '@splunk/react-ui/ControlGroup';
 import { wrapSetValue } from '../shared/helpers';
+import { request } from '../shared/fetch';
 
-const Allowlist = ({ feature }) => {
-    const query = useAcs(
-        `access/${feature}/ipallowlists`,
-        { count: 0 },
-        {
-            notifyOnChangeProps: ['data', 'isLoading'],
-        },
-        true
-    );
+const Allowlist = ({ feature, config }) => {
+    const query = useAcs(config.dst, `access/${feature}/ipallowlists`);
     return query.isLoading ? (
         <WaitSpinner />
     ) : (
@@ -39,23 +33,25 @@ const Allowlist = ({ feature }) => {
     );
 };
 
-const AddAllow = ({ suggestion, feature }) => {
+const AddAllow = ({ suggestion, feature, config }) => {
+    const queryClient = useQueryClient();
+
     const [subnet, setSubnet] = useState('');
     const handleSubnet = wrapSetValue(setSubnet);
     useEffect(() => {
         if (!subnet && suggestion) setSubnet(`${suggestion}/32`);
     }, [suggestion]);
-    const queryClient = useQueryClient();
+
     const addIp = useMutation({
         mutationFn: () =>
-            fetch(
-                `${splunkdPath}/services/badmsc/proxy?to=acs-json&uri=adminconfig/v2/access/${feature}/ipallowlists`,
-                {
-                    ...defaultFetchInit,
-                    method: 'POST',
-                    body: JSON.stringify({ subnets: [subnet] }),
-                }
-            ).then((res) => {
+            request({
+                url: `${config.dst.acs}/adminconfig/v2/access/${feature}/ipallowlists`,
+                method: 'POST',
+                headers: {
+                    Authorization: `Bearer ${config.dst.token}`,
+                },
+                json: { subnets: [subnet] },
+            }).then((res) => {
                 if (!res.ok) return console.warn(res.json());
                 queryClient.invalidateQueries({
                     queryKey: ['acs', `access/${feature}/ipallowlists`],
@@ -86,8 +82,8 @@ export default ({ step, config }) => {
     const sh_ip = useQuery({
         queryKey: ['wanip', 'sh'],
         queryFn: () =>
-            fetch(`${splunkdPath}/services/badmsc/proxy?to=wan&uri=`, defaultFetchInit).then(
-                (res) => (res.ok ? res.text() : Promise.reject(res.text()))
+            request({ url: 'https://api.ipify.org/', method: 'GET' }).then((res) =>
+                res.ok ? res.text() : Promise.reject(res.text())
             ),
         staleTime: Infinity,
     });
@@ -111,31 +107,31 @@ export default ({ step, config }) => {
 
             <Heading level={2}>Step {step}.1 - Review Search Head API Allowlist</Heading>
             <P>This is the list of IP subnets currently allowed to access the Search Head API</P>
-            <Allowlist feature="search-api" />
+            <Allowlist feature="search-api" config={config} />
             <P>
                 The internet facing IP address of this Search Head is{' '}
                 <b>{(sh_ip.isSuccess && sh_ip.data) || 'unknown'}</b>.
             </P>
-            <AddAllow suggestion={sh_ip.data} feature="search-api" />
+            <AddAllow suggestion={sh_ip.data} feature="search-api" config={config} />
             <Heading level={2}>Step {step}.2 - Review Search Head UI Allowlist</Heading>
             <P>This is the list of IP subnets currently allowed to access the Search Head Web UI</P>
-            <Allowlist feature="search-ui" />
+            <Allowlist feature="search-ui" config={config} />
             <P>
                 The internet facing IP address of your computer is{' '}
                 <b>{(user_ip.isSuccess && user_ip.data) || 'unknown'}</b>.
             </P>
-            <AddAllow suggestion={user_ip.data} feature="search-ui" />
+            <AddAllow suggestion={user_ip.data} feature="search-ui" config={config} />
             <Heading level={2}>
                 Step {step}.3 - Review Splunk to Splunk (data forwarding) Allowlist
             </Heading>
             <P>This is the full list of IP subnets allowed to send data to Splunk Cloud</P>
 
-            <Allowlist feature="s2s" />
+            <Allowlist feature="s2s" config={config} />
             <P>
                 If you know the internet facing IP addresses required for Splunk data forwarding,
                 you can add them below.
             </P>
-            <AddAllow feature="s2s" />
+            <AddAllow feature="s2s" config={config} />
             <Heading level={2}>Step {step}.4 - Required Access</Heading>
             <P>
                 This App will need access to the Splunk Cloud Search Head API. If this following

@@ -38,7 +38,7 @@ export const useConfig = () =>
         notifyOnChangeProps: ['data'],
     });
 
-export const useGetApi = (target, path, postprocess = entry) =>
+export const useGetApi = (target, path, postprocess = entry, staleTime = Infinity) =>
     useQuery({
         queryKey: [target.key, path],
         queryFn: () =>
@@ -53,7 +53,7 @@ export const useGetApi = (target, path, postprocess = entry) =>
                 .then(handle)
                 .then(postprocess),
         enabled: !!target,
-        staleTime: Infinity,
+        staleTime,
     });
 
 /*export const usePostApi = (target, path, postprocess = entry) =>
@@ -87,10 +87,11 @@ export const useAcs = (target, endpoint) =>
             request({
                 url: `${target.acs}/adminconfig/v2/${endpoint}`,
                 method: 'GET',
-                params: { count: -1 },
+                params: { count: 0 },
                 headers: {
                     Authorization: `Bearer ${target.token}`,
                 },
             }).then(handle),
+        enabled: !!target,
         staleTime: Infinity,
     });

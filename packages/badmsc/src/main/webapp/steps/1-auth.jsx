@@ -15,14 +15,17 @@ import { splunkdPath, username } from '@splunk/splunk-utils/config';
 import Success from '@splunk/react-icons/Success';
 import Error from '@splunk/react-icons/Error';
 import Save from '@splunk/react-icons/Save';
+import NotAllowed from '@splunk/react-icons/NotAllowed';
 import Message from '@splunk/react-ui/Message';
 import WaitSpinner from '@splunk/react-ui/WaitSpinner';
 import Tooltip from '@splunk/react-ui/Tooltip';
+import DL from '@splunk/react-ui/DefinitionList';
 
 //Shared
 import { wrapSetValue } from '../shared/helpers';
 
-import { makeBody } from '../shared/fetch';
+import { makeBody, request } from '../shared/fetch';
+import { useAcs, useGetApi } from '../shared/hooks';
 
 const StatusCheck = ({ host, disabled }) => {
     const { data, isLoading } = useQuery({
@@ -44,8 +47,10 @@ const StatusCheck = ({ host, disabled }) => {
     );
 };
 
-export default ({ step }) => {
-    const [stack, setStack] = useState('customer.splunkcloud.com');
+const PLACEHOLDER = 'customer.splunkcloud.com';
+
+export default ({ step, config }) => {
+    const [stack, setStack] = useState(PLACEHOLDER);
     const handleStack = wrapSetValue(setStack);
     const [token, setToken] = useState('');
     const handleToken = wrapSetValue(setToken);
@@ -55,7 +60,7 @@ export default ({ step }) => {
     const api = `${stack}:8089`;
     const acs = `admin.splunk.com/${stack.replace('.splunkcloud.com', '')}`;
     const hec = `http-inputs-${stack.replace(/^(es-|itsi-)/, '')}:443`;
-    const stack_valid = stack.endsWith('.splunkcloud.com');
+    const stack_valid = stack.endsWith('.splunkcloud.com') && stack !== PLACEHOLDER;
 
     const { data: password } = useQuery({
         queryKey: ['password'],
@@ -75,20 +80,13 @@ export default ({ step }) => {
     });
 
     useEffect(() => {
-        if (password?.token) setToken(password.token);
-        if (password?.api) setStack(password.api.split(':')[0]);
-    }, [password]);
+        if (config?.dst?.token) setToken(config?.dst?.token);
+        if (config?.dst?.api) setStack(config?.dst?.api.split(':')[0]);
+    }, [config]);
 
-    const test = useQuery({
-        queryKey: ['test'],
-        queryFn: () =>
-            fetch(
-                `${splunkdPath}/services/badmsc/proxy?to=acs&uri=adminconfig/v1/status`,
-                defaultFetchInit
-            ).then((res) => res.ok),
-        staleTime: Infinity,
-        enabled: !!password,
-    });
+    const test = useAcs(stack_valid && { acs, token }, 'status');
+
+    //const apiTest = useGetApi({ api, token }, 'services/admin/server-info');
 
     const queryClient = useQueryClient();
     const mutatePassword = useMutation({
@@ -100,7 +98,14 @@ export default ({ step }) => {
                           ...defaultFetchInit,
                           method: 'POST',
                           body: makeBody({
-                              password: JSON.stringify({ token, api, acs, hec, src:{api: '', token: ''}, dst:{api, token, acs, hec} }),
+                              password: JSON.stringify({
+                                  token,
+                                  api,
+                                  acs,
+                                  hec,
+                                  src: { api: '', token: '' },
+                                  dst: { api, token, acs, hec },
+                              }),
                           }),
                       }
                   )
@@ -205,6 +210,16 @@ export default ({ step }) => {
                     Authentication failed
                 </Message>
             ) : null}
+            <Heading level={2}>Step {step}.4 - Compatibility</Heading>
+            <P>This tool is only tested against Splunk Cloud Victoria</P>
+            <DL>
+                {Object.entries(test.data?.infrastructure || {}).map(([key, value]) => (
+                    <React.Fragment key={key}>
+                        <DL.Term>{key}</DL.Term>
+                        <DL.Description>{value}</DL.Description>
+                    </React.Fragment>
+                ))}
+            </DL>
         </div>
     );
 };
