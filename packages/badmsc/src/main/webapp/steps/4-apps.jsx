@@ -225,7 +225,7 @@ export default ({ step, config }) => {
             {apps ? (
                 <Table stripeRows>
                     <Table.Head>
-                        <Table.HeadCell>App Name</Table.HeadCell>
+                        <Table.HeadCell>App ID</Table.HeadCell>
                         <Table.HeadCell>Local Version</Table.HeadCell>
                         <Table.HeadCell>Compatible Version</Table.HeadCell>
                         <Table.HeadCell>License</Table.HeadCell>
@@ -264,7 +264,7 @@ export default ({ step, config }) => {
             {apps ? (
                 <Table stripeRows>
                     <Table.Head>
-                        <Table.HeadCell>App Name</Table.HeadCell>
+                        <Table.HeadCell>App ID</Table.HeadCell>
                         <Table.HeadCell>Results</Table.HeadCell>
                         <Table.HeadCell>Action</Table.HeadCell>
                     </Table.Head>
@@ -273,7 +273,9 @@ export default ({ step, config }) => {
                             <Table.Row key={name}>
                                 <Table.Cell>{name}</Table.Cell>
                                 <Table.Cell>Results</Table.Cell>
-                                <Table.Cell>Action</Table.Cell>
+                                <Table.Cell>
+                                    <InstallPrivate config={config} token={token} app={name} />
+                                </Table.Cell>
                             </Table.Row>
                         ))}
                     </Table.Body>
@@ -324,6 +326,38 @@ const InstallSplunkbase = ({ config, token, splunkbase }) => {
                     'ACS-Licensing-Ack': splunkbase.license_url,
                 },
                 data: { splunkbaseID: splunkbase.uid },
+            }).then((res) => (res.status === 202 ? Promise.resolve() : Promise.reject())),
+    });
+    return (
+        <Button
+            appearance={
+                (install.isSuccess && 'primary') ||
+                (install.isLoading && 'pill') ||
+                (install.isError && 'destructive') ||
+                'default'
+            }
+            onClick={install.mutate}
+            disabled={!token || install.isLoading || install.isSuccess || !config}
+        >
+            {(install.isSuccess && 'Installing') ||
+                (install.isLoading && <WaitSpinner />) ||
+                (install.isError && 'Error') ||
+                'Install'}
+        </Button>
+    );
+};
+
+const InstallPrivate = ({ config, token, app }) => {
+    const install = useMutation({
+        mutationFn: () =>
+            request({
+                url: `${config.src.api}/services/badmsc/privateapp`,
+                method: 'POST',
+                params: { output_mode: 'json' },
+                headers: {
+                    Authorization: `Bearer ${config.src.token}`,
+                },
+                json: { app, token, dstacs: config.dst.acs, dsttoken: config.dst.token },
             }).then((res) => (res.status === 202 ? Promise.resolve() : Promise.reject())),
     });
     return (

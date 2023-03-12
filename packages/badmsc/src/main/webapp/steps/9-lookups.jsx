@@ -2,14 +2,13 @@ import React, { useMemo, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useApps, useGetApi } from '../shared/hooks';
 import { isort0, wrapSetValue } from '../shared/helpers';
-import {} from '../shared/fetch';
 
 // Splunk UI
 import Heading from '@splunk/react-ui/Heading';
 import P from '@splunk/react-ui/Paragraph';
 import Button from '@splunk/react-ui/Button';
 import Table from '@splunk/react-ui/Table';
-
+import Message from '@splunk/react-ui/Message';
 import WaitSpinner from '@splunk/react-ui/WaitSpinner';
 import Link from '@splunk/react-ui/Link';
 
@@ -29,10 +28,6 @@ export default ({ step, config }) => {
     const dst = useGetApi(config.dst, 'services/data/lookup-table-files', lookupHandle);
     const src_apps = useApps(config.src);
     const dst_apps = useApps(config.dst);
-
-    const lookup_editor = useMemo(() => {
-        return src_apps?.data?.find((app) => app.name === 'lookup_editor');
-    }, [src_apps.data]);
 
     const isLoading = dst.isLoading || src.isLoading || dst_apps.isLoading;
 
@@ -68,7 +63,7 @@ export default ({ step, config }) => {
                 Lookups are either CSV files or KV Store collections. Unfortuantely its difficult to
                 know if a lookup is different, so you will need to use some disgression.
             </P>
-            {!lookup_editor && (
+            {src_apps.data && 'lookup_editor' in src_apps.data === false && (
                 <Message appearance="fill" type="error">
                     Splunk App for Lookup File Editing is missing from this Search Head.{' '}
                     <Link to="/manager/badmsc/appsremote?offset=0&count=20&order=relevance&query=Lookup%20File%20Editing&support=splunk">

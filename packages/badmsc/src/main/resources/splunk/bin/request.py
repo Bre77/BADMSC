@@ -11,8 +11,6 @@ class request(PersistentServerConnectionApplication):
         if self.logger == None:
             self.logger = logging.getLogger(f"splunk.appserver.badmsc")
 
-        PersistentServerConnectionApplication.__init__(self)
-
     def handle(self, in_string):
         args = json.loads(in_string)
 
