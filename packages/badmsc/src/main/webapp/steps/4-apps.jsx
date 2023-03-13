@@ -58,7 +58,7 @@ const IGNORED_APPS = [
     'tos',
 ];
 
-const splunkbaseToken = /<id>([^<]+)/;
+const extractSplunkbaseToken = /<id>([^<]+)/;
 
 export default ({ step, config }) => {
     const queryClient = useQueryClient();
@@ -82,13 +82,22 @@ export default ({ step, config }) => {
 
     const login = useMutation({
         mutationFn: () =>
-            request({
-                url: 'https://splunkbase.splunk.com/api/account:login',
-                method: 'POST',
-                data: { username, password },
-            })
-                .then((res) => (res.ok ? res.text() : Promise.reject()))
-                .then((text) => setToken(splunkbaseToken.exec(text)[1])),
+            Promise.all([
+                request({
+                    url: 'https://splunkbase.splunk.com/api/account:login',
+                    method: 'POST',
+                    data: { username, password },
+                })
+                    .then((res) => (res.ok ? res.text() : Promise.reject()))
+                    .then((text) => extractSplunkbaseToken.exec(text)[1]),
+                request({
+                    url: 'https://api.splunk.com/2.0/rest/login/splunk',
+                    method: 'GET',
+                    headers: { Authorization: `Basic ${btoa(`${username}:${password}`)}` },
+                })
+                    .then((res) => (res.ok ? res.json() : Promise.reject()))
+                    .then((json) => json.data.token),
+            ]).then(([splunkbaseToken, splunkToken]) => setToken({ splunkbaseToken, splunkToken })),
     });
 
     const src = useApps(config.src);
@@ -120,14 +129,10 @@ export default ({ step, config }) => {
                                         }
                                       : false
                               )
+                              .catch((e) => console.warn(e))
                       )
                     : []
-            ).then((apps) =>
-                apps.reduce((x, app) => {
-                    if (app) x[app.appid] = app;
-                    return x;
-                }, {})
-            ),
+            ).then((apps) => Object.fromEntries(apps.map((app) => [app.appid, app]))),
         staleTime: Infinity,
         enabled: !!src.data,
     });
@@ -143,7 +148,7 @@ export default ({ step, config }) => {
                 output.done.push({ name: a.name });
                 return;
             }
-            if (!a.content.details || !splunkbase.data[a.name]) {
+            if (!a.content.details || !(a.name in splunkbase.data)) {
                 // Non-splunkbase apps
                 if (a.content.core) {
                     console.log(`Skipping core app '${a.name}'`);
@@ -183,7 +188,7 @@ export default ({ step, config }) => {
             </P>
             {token ? (
                 <Message appearance="fill" type="success">
-                    Authenticated to Splunkbase as '{username}' successfully
+                    Authenticated to Splunk and Splunkbase as '{username}' successfully
                 </Message>
             ) : (
                 <>
@@ -229,7 +234,7 @@ export default ({ step, config }) => {
                         <Table.HeadCell>Local Version</Table.HeadCell>
                         <Table.HeadCell>Compatible Version</Table.HeadCell>
                         <Table.HeadCell>License</Table.HeadCell>
-                        <Table.HeadCell>Action</Table.HeadCell>
+                        <Table.HeadCell>Install</Table.HeadCell>
                     </Table.Head>
                     <Table.Body>
                         {apps.splunkbase.map(({ name, local, splunkbase }) => (
@@ -246,7 +251,7 @@ export default ({ step, config }) => {
                                     <InstallSplunkbase
                                         config={config}
                                         splunkbase={splunkbase}
-                                        token={token}
+                                        token={token.splunkbaseToken}
                                     />
                                 </Table.Cell>
                             </Table.Row>
@@ -265,16 +270,20 @@ export default ({ step, config }) => {
                 <Table stripeRows>
                     <Table.Head>
                         <Table.HeadCell>App ID</Table.HeadCell>
-                        <Table.HeadCell>Results</Table.HeadCell>
-                        <Table.HeadCell>Action</Table.HeadCell>
+                        <Table.HeadCell>Local Version</Table.HeadCell>
+                        <Table.HeadCell>Install</Table.HeadCell>
                     </Table.Head>
                     <Table.Body>
                         {apps.private.map(({ name, local }) => (
                             <Table.Row key={name}>
                                 <Table.Cell>{name}</Table.Cell>
-                                <Table.Cell>Results</Table.Cell>
+                                <Table.Cell>{local.version || 'N/A'}</Table.Cell>
                                 <Table.Cell>
-                                    <InstallPrivate config={config} token={token} app={name} />
+                                    <InstallPrivate
+                                        config={config}
+                                        token={token.splunkToken}
+                                        app={name}
+                                    />
                                 </Table.Cell>
                             </Table.Row>
                         ))}
@@ -348,20 +357,117 @@ const InstallSplunkbase = ({ config, token, splunkbase }) => {
 };
 
 const InstallPrivate = ({ config, token, app }) => {
+    const [status, setStatus] = useState('Install');
     const install = useMutation({
-        mutationFn: () =>
-            request({
+        mutationFn: () => {
+            setStatus('Packaging');
+            return request({
                 url: `${config.src.api}/services/badmsc/privateapp`,
                 method: 'POST',
-                params: { output_mode: 'json' },
                 headers: {
                     Authorization: `Bearer ${config.src.token}`,
                 },
-                json: { app, token, dstacs: config.dst.acs, dsttoken: config.dst.token },
-            }).then((res) => (res.status === 202 ? Promise.resolve() : Promise.reject())),
+                json: {
+                    step: 1,
+                    app,
+                    token,
+                    //dstacs: config.dst.acs,
+                    //dsttoken: config.dst.token,
+                },
+            })
+                .then((res) => (res.status === 200 ? res.json() : Promise.reject(res.text)))
+                .then((data) =>
+                    'request_id' in data ? Promise.resolve(data.request_id) : Promise.reject(data)
+                )
+                .then((rid) => {
+                    setStatus('Inspecting');
+                    // poll for status
+                    return new Promise((resolve, reject) => {
+                        const i = setInterval(
+                            () =>
+                                request({
+                                    url: `appinspect.splunk.com/v1/app/validate/status/${rid}`,
+                                    method: 'GET',
+                                    headers: {
+                                        Authorization: `Bearer ${token}`,
+                                    },
+                                })
+                                    .then((res) =>
+                                        res.status === 200 ? res.json() : Promise.reject()
+                                    )
+                                    .then((data) => {
+                                        if (data.status === 'SUCCESS') {
+                                            setStatus('Retrieving');
+                                            clearInterval(i);
+                                            resolve();
+                                        } else if (data.status === 'ERROR') {
+                                            setStatus('Error');
+                                            clearInterval(i);
+                                            reject();
+                                        }
+                                    }),
+                            2500
+                        );
+                    })
+                        .then(() =>
+                            request({
+                                url: `appinspect.splunk.com/v1/app/report/${rid}`,
+                                method: 'GET',
+                                headers: {
+                                    Authorization: `Bearer ${token}`,
+                                },
+                            })
+                        )
+                        .then((res) => (res.status === 200 ? res.json() : Promise.reject()))
+                        .then((data) => {
+                            console.info(data)
+                            if (
+                                data.summary.error > 0 ||
+                                data.summary.failure > 0 ||
+                                data.summary.manual_check > 0
+                            ) {
+                                setStatus('AppInspect Failed - See Console');
+                                console.warn(`${app} failed AppInspect`,data.reports.flatMap(a=>a.groups.flatMap(b=>b.checks.filter(c=>['failure','error','manual_check'].includes(c.result)).flatMap(c=>c.messages))))
+                                return Promise.reject();
+                            }
+                            setStatus('Installing');
+                            return Promise.resolve();
+                        });
+                })
+                .then(() =>
+                    request({
+                        url: `${config.src.api}/services/badmsc/privateapp`,
+                        method: 'POST',
+                        headers: {
+                            Authorization: `Bearer ${config.src.token}`,
+                        },
+                        json: {
+                            step: 2,
+                            app,
+                            token,
+                            dstacs: config.dst.acs,
+                            dsttoken: config.dst.token,
+                        },
+                    })
+                )
+                .then((res) => (res.status === 200 ? res.json() : Promise.reject(setStatus('Failed'))))
+                .then((data) => {
+                    console.log(data)
+                    setStatus('Success')
+                    return Promise.resolve()
+                })
+                .catch((err) => {
+                    if(err){
+                        setStatus(err)
+                    }
+                    console.error(err)
+                    return Promise.reject()
+                })
+        },
     });
     return (
         <Button
+            inline
             appearance={
                 (install.isSuccess && 'primary') ||
                 (install.isLoading && 'pill') ||
@@ -371,10 +477,7 @@ const InstallPrivate = ({ config, token, app }) => {
             onClick={install.mutate}
             disabled={!token || install.isLoading || install.isSuccess || !config}
         >
-            {(install.isSuccess && 'Installing') ||
-                (install.isLoading && <WaitSpinner />) ||
-                (install.isError && 'Error') ||
-                'Install'}
+            {status}
         </Button>
     );
 };

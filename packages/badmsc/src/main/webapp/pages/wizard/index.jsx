@@ -49,6 +49,7 @@ const queryClient = new QueryClient({
 
 getUserTheme()
     .then((theme) => {
+        theme = 'dark';
         layout(
             <QueryClientProvider client={queryClient}>
                 <GlobalStyle />
