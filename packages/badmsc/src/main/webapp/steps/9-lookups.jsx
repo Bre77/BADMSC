@@ -13,39 +13,69 @@ import WaitSpinner from '@splunk/react-ui/WaitSpinner';
 import Link from '@splunk/react-ui/Link';
 import { request } from '../shared/fetch';
 
-const LookupCopy = ({app,file,config})=>{
-    const queryClient = useQueryClient()
-    const copy = useMutation(
-        () => request({
-            url: `${config.src.api}/servicesNS/nobody/lookup_editor/data/lookup_edit/lookup_contents`,
-            method: 'GET',
-            headers: {
-                Authorization: `Bearer ${config.src.token}`,
-            },
-            params: {
-                lookup_file: file,
-                namespace: app,
-                header_only: false,
-                lookup_type: 'csv',
+const getLookup = (target, app, file) =>
+    request({
+        url: `${target.api}/servicesNS/nobody/lookup_editor/data/lookup_edit/lookup_contents`,
+        method: 'GET',
+        headers: {
+            Authorization: `Bearer ${target.token}`,
+        },
+        params: {
+            lookup_file: file,
+            namespace: app,
+            lookup_type: 'csv',
+        },
+    });
+
+const LookupCopy = ({ app, file, config }) => {
+    const queryClient = useQueryClient();
+    const copy = useMutation(() =>
+        getLookup(config.src, app, file)
+            .then((res) => res.text()) // Comes in as JSON, goes out as JSON, no need to parse
+            .then((contents) =>
+                request({
+                    url: `${config.dst.api}/servicesNS/nobody/lookup_editor/data/lookup_edit/lookup_contents`,
+                    method: 'POST',
+                    headers: {
+                        Authorization: `Bearer ${config.dst.token}`,
+                    },
+                    data: {
+                        lookup_file: file,
+                        namespace: app,
+                        contents,
+                    },
+                }).then(() => {
+                    queryClient.invalidateQueries(['dst', 'services/data/lookup-table-files']);
+                })
+            )
+    );
+    return (
+        <Button onClick={copy.mutate} disabled={copy.isLoading}>
+            Copy
+        </Button>
+    );
+};
+
+const LookupCompare = ({ app, file, config }) => {
+    const [same, setSame] = useState();
+    const compare = useMutation(() =>
+        Promise.all([
+            getLookup(config.src, app, file).then((res) => res.text()),
+            getLookup(config.dst, app, file).then((res) => res.text()),
+        ]).then(([src, dst]) => setSame(src === dst))
+    );
+    return (
+        <Button
+            onClick={compare.mutate}
+            disabled={compare.isLoading}
+            appearance={
+                (same === true && 'primary') || (same === false && 'destructive') || 'default'
             }
-        }).then((res) => res.text()) // Comes in as JSON, goes out as JSON, no need to parse
-        .then((contents) => request({
-            url: `${config.dst.api}/servicesNS/nobody/lookup_editor/data/lookup_edit/lookup_contents`,
-            method: 'POST',
-            headers: {
-                Authorization: `Bearer ${config.dst.token}`,
-            },
-            data: {
-                lookup_file: file,
-                namespace: app,
-                contents
-            }
-        }).then(()=>{
-            queryClient.invalidateQueries(['dst','services/data/lookup-table-files'])
-        })
-    ))
-    return <Button onClick={copy.mutate} disabled={copy.isLoading}>Copy</Button>
-}
+        >
+            {(same === true && 'Same') || (same === false && 'Different') || 'Compare'}
+        </Button>
+    );
+};
 
 const lookupHandle = (data) =>
     data.entry.reduce((x, { name, acl, content }) => {
@@ -128,9 +158,11 @@ export default ({ step, config }) => {
                                     </Table.Cell>
                                     <Table.Cell>{src && <Button disabled>Open</Button>}</Table.Cell>
                                     <Table.Cell>{dst && <Button disabled>Open</Button>}</Table.Cell>
-                                    <Table.Cell>{dst && <Button disabled>Compare</Button>}</Table.Cell>
                                     <Table.Cell>
-                                        <LookupCopy {...{app,file,config}} />
+                                        {dst && <LookupCompare {...{ app, file, config }} />}
+                                    </Table.Cell>
+                                    <Table.Cell>
+                                        <LookupCopy {...{ app, file, config }} />
                                     </Table.Cell>
                                 </Table.Row>
                             ))
