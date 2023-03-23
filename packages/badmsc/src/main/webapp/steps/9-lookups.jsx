@@ -11,6 +11,41 @@ import Table from '@splunk/react-ui/Table';
 import Message from '@splunk/react-ui/Message';
 import WaitSpinner from '@splunk/react-ui/WaitSpinner';
 import Link from '@splunk/react-ui/Link';
+import { request } from '../shared/fetch';
+
+const LookupCopy = ({app,file,config})=>{
+    const queryClient = useQueryClient()
+    const copy = useMutation(
+        () => request({
+            url: `${config.src.api}/servicesNS/nobody/lookup_editor/data/lookup_edit/lookup_contents`,
+            method: 'GET',
+            headers: {
+                Authorization: `Bearer ${config.src.token}`,
+            },
+            params: {
+                lookup_file: file,
+                namespace: app,
+                header_only: false,
+                lookup_type: 'csv',
+            }
+        }).then((res) => res.text()) // Comes in as JSON, goes out as JSON, no need to parse
+        .then((contents) => request({
+            url: `${config.dst.api}/servicesNS/nobody/lookup_editor/data/lookup_edit/lookup_contents`,
+            method: 'POST',
+            headers: {
+                Authorization: `Bearer ${config.dst.token}`,
+            },
+            data: {
+                lookup_file: file,
+                namespace: app,
+                contents
+            }
+        }).then(()=>{
+            queryClient.invalidateQueries(['dst','services/data/lookup-table-files'])
+        })
+    ))
+    return <Button onClick={copy.mutate} disabled={copy.isLoading}>Copy</Button>
+}
 
 const lookupHandle = (data) =>
     data.entry.reduce((x, { name, acl, content }) => {
@@ -89,13 +124,13 @@ export default ({ step, config }) => {
                             files.map(([file, { perms, sharing, src, dst }]) => (
                                 <Table.Row key={app + '/' + file}>
                                     <Table.Cell>
-                                        <b>{app}</b> / {file}
+                                        <b>{app}</b> / {file} {sharing}
                                     </Table.Cell>
-                                    <Table.Cell>{src && <Button>Open</Button>}</Table.Cell>
-                                    <Table.Cell>{dst && <Button>Open</Button>}</Table.Cell>
-                                    <Table.Cell>{dst && <Button>Compare</Button>}</Table.Cell>
+                                    <Table.Cell>{src && <Button disabled>Open</Button>}</Table.Cell>
+                                    <Table.Cell>{dst && <Button disabled>Open</Button>}</Table.Cell>
+                                    <Table.Cell>{dst && <Button disabled>Compare</Button>}</Table.Cell>
                                     <Table.Cell>
-                                        <Button>Copy</Button>
+                                        <LookupCopy {...{app,file,config}} />
                                     </Table.Cell>
                                 </Table.Row>
                             ))

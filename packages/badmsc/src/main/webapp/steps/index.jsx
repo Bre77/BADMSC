@@ -71,8 +71,7 @@ export default () => {
     const config = useConfig();
 
     useEffect(() => {
-        config.data &&
-            ('src' in config.data === false || 'dst' in config.data === false) &&
+        (config.data && ('src' in config.data === false || 'dst' in config.data === false) || config.data === false) &&
             step > 1 &&
             setStep(1);
     }, [config.data]);
@@ -105,13 +104,13 @@ export default () => {
                         label="Next "
                         appearance="primary"
                         onClick={handleNext}
-                        disabled={step >= steps.length - 1}
+                        disabled={step >= steps.length - 1 || (!config.data && step > 0) }
                     >
                         <ChevronRight />
                     </Button>
                 </Nav>
             </Top>
-            {config.data ? <Step step={step} config={config.data} /> : <WaitSpinner />}
+            {config.data === undefined ? <WaitSpinner /> : <Step step={step} config={config.data} />}
         </div>
     );
 };

@@ -59,7 +59,7 @@ export default ({ step, config }) => {
     if (stack.startsWith('https://')) setStack(stack.replace('https://', '').replace('/', ''));
     const web = stack;
     const api = `${stack}:8089`;
-    const acs = `admin.splunk.com/${stack.replace('.splunkcloud.com', '')}`;
+    const acs = `admin.splunk.com/${stack.replace('.splunkcloud.com', '').replace(/^es-/, '').replace(/^itsi-/, '')}`;
     const hec = `http-inputs-${stack.replace(/^(es-|itsi-)/, '')}:443`;
     const stack_valid = stack.endsWith('.splunkcloud.com') && stack !== PLACEHOLDER;
 
@@ -92,21 +92,23 @@ export default ({ step, config }) => {
     const queryClient = useQueryClient();
     const mutatePassword = useMutation({
         mutationFn: () =>
-            (password
+            {
+                const payload = JSON.stringify({
+                    token,
+                    api,
+                    acs,
+                    hec,
+                    src: { api: '', token: '' },
+                    dst: { api, token, acs, hec },
+                })
+                return (password
                 ? fetch(
                       `${splunkdPath}/servicesNS/${username}/badmsc/storage/passwords/badmsc%3Aauth%3A?output_mode=json`,
                       {
                           ...defaultFetchInit,
                           method: 'POST',
                           body: makeBody({
-                              password: JSON.stringify({
-                                  token,
-                                  api,
-                                  acs,
-                                  hec,
-                                  src: { api: '', token: '' },
-                                  dst: { api, token, acs, hec },
-                              }),
+                              password: payload,
                           }),
                       }
                   )
@@ -118,14 +120,14 @@ export default ({ step, config }) => {
                           body: makeBody({
                               realm: 'badmsc',
                               name: 'auth',
-                              password: JSON.stringify({ token, api, acs, hec }),
+                              password: payload,
                           }),
                       }
                   )
             ).then((res) => {
                 if (!res.ok) return console.warn(res.text());
                 queryClient.invalidateQueries();
-            }),
+            })},
     });
 
     return (

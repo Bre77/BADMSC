@@ -12,6 +12,20 @@ import Typography from '@splunk/react-ui/Typography';
 import { normalizeBoolean } from '@splunk/splunk-utils/boolean';
 import { request } from '../shared/fetch';
 
+const processConf = (data) =>
+    data.entry.reduce(
+        (x, { name, acl, content }) => {
+            x[acl.sharing][acl.app] ||= {};
+            x[acl.sharing][acl.app][name] = {
+                perms: acl.perms,
+                owner: acl.owner,
+                content,
+            };
+            return x;
+        },
+        { system: {}, global: {}, app: {} }
+    );
+
 const useConfigs = (target, files = CONF_FILES) =>
     useQueries({
         queries: files.map((file) => ({
@@ -26,16 +40,7 @@ const useConfigs = (target, files = CONF_FILES) =>
                     },
                 })
                     .then(handle)
-                    .then((data) =>
-                        data.entry.reduce(
-                            (x, { name, acl, content }) => {
-                                x[acl.sharing][acl.app] ||= {};
-                                x[acl.sharing][acl.app][name] = { perms: acl.perms, content };
-                                return x;
-                            },
-                            { system: {}, global: {}, app: {} }
-                        )
-                    ),
+                    .then(processConf),
             staleTime: Infinity,
         })),
     });
@@ -72,9 +77,9 @@ export default ({ config, scope }) => {
     const dst_apps = useApps(config.dst);
 
     const isLoading =
-        def.reduce((loading, query) => loading || query.isLoading, false) ||
-        src.reduce((loading, query) => loading || query.isLoading, false) ||
-        dst.reduce((loading, query) => loading || query.isLoading, false) ||
+        def.some((query) => query.isLoading) ||
+        src.some((query) => query.isLoading) ||
+        dst.some((query) => query.isLoading) ||
         dst_apps.isLoading;
 
     const conf = useMemo(() => {
@@ -166,9 +171,9 @@ export default ({ config, scope }) => {
                                 <Table.Cell>
                                     <Typography as="code" variant="monoBody">
                                         [{stanza}]<br />
-                                        {attr.map(([attr, { src }], i) => (
+                                        {attr.map(([a, { src }], i) => (
                                             <span key={i}>
-                                                {src !== undefined && `${attr} = ${src}`}
+                                                {src !== undefined && `${a} = ${src}`}
                                                 <br />
                                             </span>
                                         ))}
@@ -178,9 +183,9 @@ export default ({ config, scope }) => {
                                     {exists && (
                                         <Typography as="code" variant="monoBody">
                                             [{stanza}]<br />
-                                            {attr.map(([attr, { dst }], i) => (
+                                            {attr.map(([a, { dst }], i) => (
                                                 <span key={i}>
-                                                    {dst !== undefined && `${attr} = ${dst}`}
+                                                    {dst !== undefined && `${a} = ${dst}`}
                                                     <br />
                                                 </span>
                                             ))}
@@ -188,7 +193,18 @@ export default ({ config, scope }) => {
                                     )}
                                 </Table.Cell>
                                 <Table.Cell>
-                                    <Button>Copy</Button>
+                                    <CopyConfig
+                                        {...{
+                                            config,
+                                            scope,
+                                            file,
+                                            app,
+                                            stanza,
+                                            attr,
+                                            perms,
+                                            exists,
+                                        }}
+                                    />
                                 </Table.Cell>
                             </Table.Row>
                         ))
@@ -196,5 +212,40 @@ export default ({ config, scope }) => {
                 ])}
             </Table.Body>
         </Table>
+    );
+};
+
+const CopyConfig = ({ config, scope, file, app, stanza, attr, perms, exists }) => {
+    const copy = useMutation(() => {
+        const data = Object.fromEntries(attr.map((a) => [a.attr, a.src]));
+        return (
+            exists
+                ? request({
+                      url: `${config.dst.api}/servicesNS/nobody/${app}/configs/conf-${file}/stanza`,
+                      method: 'POST',
+                      data,
+                      params: { output_mode: 'json', count: -1 },
+                      headers: {
+                          Authorization: `Bearer ${config.dst.token}`,
+                      },
+                  })
+                : request({
+                      url: `${config.dst.api}/servicesNS/nobody/${app}/configs/conf-${file}`,
+                      method: 'POST',
+                      data: { ...data, name: stanza },
+                      params: { output_mode: 'json', count: -1 },
+                      headers: {
+                          Authorization: `Bearer ${config.dst.token}`,
+                      },
+                  })
+        )
+            .then(handle)
+            //.then((data) => if(data.entry[0].acl.));
+    });
+
+    return (
+        <Button onClick={copy.mutate} disabled={copy.isLoading}>
+            {exists ? 'Update' : 'Create'}
+        </Button>
     );
 };
