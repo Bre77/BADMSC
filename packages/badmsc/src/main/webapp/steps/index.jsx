@@ -1,4 +1,4 @@
-import React, { useReducer, useCallback, useEffect } from 'react';
+import React, { Suspense, useReducer, useCallback, useEffect } from 'react';
 
 // Splunk UI
 import Button from '@splunk/react-ui/Button';
@@ -9,42 +9,47 @@ import Heading from '@splunk/react-ui/Heading';
 
 // Shared
 import { localLoad, localSave } from '../shared/helpers';
-import Step0 from './0-start';
-import Step1 from './1-auth';
-import Step2 from './2-allowlist';
-import Step3 from './3-indexes';
-import Step4 from './4-apps';
-import Step55 from './5-1-systemconfig';
-import Step5 from './5-2-globalconfig';
-import Step6 from './6-appconfig';
-import Step7 from './7-navigation';
-import Step8 from './8-views';
-import Step9 from './9-lookups';
-import Step10 from './10-users';
-import Step11 from './11-data';
-import Step12 from './12-finish';
-import { Top, Bottom, Nav } from './styles';
+import { Top, Steper } from './styles';
 import { useConfig } from '../shared/hooks';
 import WaitSpinner from '@splunk/react-ui/WaitSpinner';
 
-export default () => {
-    const steps = [
-        ['Start', Step0], //React.lazy(() => import('../0-start'))
-        ['Authentication', Step1], //React.lazy(() => import('../1-auth'))
-        ['IP Allow Lists', Step2], //React.lazy(() => import('../2-allowlist'))
-        ['Indexes', Step3],
-        ['Apps', Step4],
-        ['System Config', Step55],
-        ['Global Config', Step5],
-        ['App Config', Step6],
-        ['Navigation', Step7],
-        ['Views', Step8],
-        ['Lookups', Step9],
-        ['Users', Step10],
-        ['Data', Step11],
-        ['Finish', Step12],
-    ];
+import Start from './start';
+import Auth from './auth';
+import Allowlist from './allowlist';
+import Indexes from './indexes';
+import Apps from './apps';
+import Lookups from './lookups';
+import Sourcetypes from './sourcetypes';
+import ConfigSystem from './config_system';
+import ConfigGlobal from './config_global';
+import ConfigApp from './config_app';
+import Nav from './nav';
+import Views from './views';
+import KVStore from './kvstore';
+import Users from './users';
+import Data from './data';
+import Finish from './finish';
 
+const steps = [
+    ['Start', Start],
+    ['Authentication', Auth],
+    ['IP Allow Lists', Allowlist],
+    ['Indexes', Indexes],
+    ['Apps', Apps],
+    ['Lookups', Lookups],
+    ['Sourcetypes', Sourcetypes],
+    ['System Config', ConfigSystem],
+    ['Global Config', ConfigGlobal],
+    ['App Config', ConfigApp],
+    ['Navigation', Nav],
+    ['Views', Views],
+    ['KV Store', KVStore],
+    ['Users', Users],
+    ['Data', Data],
+    ['Finish', Finish],
+];
+
+export default () => {
     const [step, setStep] = useReducer((prev, value) => {
         if (value < 0) value = 0;
         else if (value > steps.length - 1) value = steps.length - 1;
@@ -62,16 +67,16 @@ export default () => {
 
     if (step > steps.length - 1) {
         return setStep(steps.length - 1);
-    }
-    if (step < 0) {
+    } else if (step < 0) {
         return setStep(0);
     }
-    const [_, Step] = steps[step];
+    const Step = steps[step][1];
 
     const config = useConfig();
 
     useEffect(() => {
-        (config.data && ('src' in config.data === false || 'dst' in config.data === false) || config.data === false) &&
+        ((config.data && ('src' in config.data === false || 'dst' in config.data === false)) ||
+            config.data === false) &&
             step > 1 &&
             setStep(1);
     }, [config.data]);
@@ -92,7 +97,7 @@ export default () => {
                 ) : (
                     <Heading level={1}>Migrate to Splunk Cloud</Heading>
                 )}
-                <Nav>
+                <Steper>
                     <Button
                         icon={<ChevronLeft />}
                         label=" Previous"
@@ -104,13 +109,17 @@ export default () => {
                         label="Next "
                         appearance="primary"
                         onClick={handleNext}
-                        disabled={step >= steps.length - 1 || (!config.data && step > 0) }
+                        disabled={step >= steps.length - 1 || (!config.data && step > 0)}
                     >
                         <ChevronRight />
                     </Button>
-                </Nav>
+                </Steper>
             </Top>
-            {config.data === undefined ? <WaitSpinner /> : <Step step={step} config={config.data} />}
+            {config.data === undefined ? (
+                <WaitSpinner />
+            ) : (
+                <Step step={step} config={config.data} />
+            )}
         </div>
     );
 };

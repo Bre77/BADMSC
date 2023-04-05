@@ -36,16 +36,5 @@ module.exports = webpackMerge(baseConfig, {
     optimization: {
         minimize: PROD,
         minimizer: [new TerserPlugin()],
-        splitChunks: {
-            cacheGroups: {
-                commons: {
-                    name: 'shared',
-                    filename: '[name].bundle.js',
-                    chunks: 'initial',
-                    minChunks: 2
-                }
-            }
-        }
     },
-
 });

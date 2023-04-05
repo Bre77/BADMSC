@@ -39,10 +39,10 @@ const Loading = () => {
 const queryClient = new QueryClient({
     defaultOptions: {
         queries: {
-            cacheTime: 1000 * 60 * 60, // 1 hour
+            cacheTime: 60000, // 1 minute
             retry: process.env.NODE_ENV === 'production',
             refetchOnMount: true,
-            staleTime: 60000,
+            staleTime: 600000, // 10 minutes,
         },
     },
 });

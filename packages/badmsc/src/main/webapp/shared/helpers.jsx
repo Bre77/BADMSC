@@ -1,6 +1,5 @@
 import React, { useReducer, useState } from 'react';
 import { useMutation, useQueries, useQuery, useQueryClient } from '@tanstack/react-query';
-import { restStatus, restPostForm } from './fetch';
 
 // Splunk UI
 import Tooltip from '@splunk/react-ui/Tooltip';

@@ -18,8 +18,6 @@ import Metrics from '@splunk/react-icons/Metrics';
 import Number from '@splunk/react-ui/Number';
 import Switch from '@splunk/react-ui/Switch';
 import WaitSpinner from '@splunk/react-ui/WaitSpinner';
-import { splunkdPath } from '@splunk/splunk-utils/config';
-import { defaultFetchInit } from '@splunk/splunk-utils/fetch';
 
 export default ({ step, config }) => {
     const queryClient = useQueryClient();
@@ -60,7 +58,6 @@ export default ({ step, config }) => {
             })
                 .then(handle)
                 .then((data) => data.results),
-        staleTime: Infinity,
     });
 
     const local_metric_indexes = useQuery({
@@ -82,7 +79,6 @@ export default ({ step, config }) => {
             })
                 .then(handle)
                 .then((data) => data.results),
-        staleTime: Infinity,
     });
 
     const handleCreate = () => {

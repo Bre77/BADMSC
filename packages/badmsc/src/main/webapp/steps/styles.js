@@ -11,6 +11,6 @@ export const Top = styled.div`
     width: 100%;
 `
 
-export const Nav = styled.div`
+export const Steper = styled.div`
     margin: 1.414em 0 0.4em;
 `

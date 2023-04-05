@@ -2,7 +2,7 @@ import React from 'react';
 import { useQuery, useQueries } from '@tanstack/react-query';
 import { splunkdPath, username } from '@splunk/splunk-utils/config';
 import { defaultFetchInit } from '@splunk/splunk-utils/fetch';
-import { makeBody, request } from './fetch';
+import { request } from './fetch';
 import { CONF_FILES } from './const';
 
 export const LOCAL_URL = `${splunkdPath}/servicesNS/${username}/badmsc`;
@@ -34,7 +34,7 @@ export const useConfig = () =>
                 }
                 return Promise.reject();
             }),
-        staleTime: Infinity,
+
         notifyOnChangeProps: ['data'],
     });
 
@@ -56,26 +56,8 @@ export const useGetApi = (target, path, postprocess = entry, staleTime = Infinit
         staleTime,
     });
 
-/*export const usePostApi = (target, path, postprocess = entry) =>
-    useQuery({
-        queryKey: [target.key, path],
-        queryFn: () =>
-            request({
-                url: `${target.api}/${path}`,
-                method: 'GET',
-                params: { output_mode: 'json', count: -1 },
-                headers: {
-                    Authorization: `Bearer ${target.token}`,
-                },
-            })
-                .then(handle)
-                .then(postprocess),
-        enabled: !!target,
-        staleTime: Infinity,
-    });*/
-
 export const useApps = (target) =>
-    // useApps is called in multiple steps, so is defined one for consistency
+    // useApps is called in multiple steps, so is defined once for consistency
     useGetApi(target, 'services/apps/local', (data) =>
         Object.fromEntries(data.entry.map((app) => [app.name, app]))
     );
@@ -93,5 +75,57 @@ export const useAcs = (target, endpoint) =>
                 },
             }).then(handle),
         enabled: !!target,
-        staleTime: Infinity,
+    });
+
+export const useConfs = (target, files = CONF_FILES) =>
+    useQueries({
+        queries: files.map((file) => ({
+            queryKey: [target.key, 'config', file],
+            queryFn: () =>
+                request({
+                    url: `${target.api}/servicesNS/nobody/-/configs/conf-${file}`,
+                    method: 'GET',
+                    params: { output_mode: 'json', count: -1 },
+                    headers: {
+                        Authorization: `Bearer ${target.token}`,
+                    },
+                })
+                    .then(handle)
+                    .then((data) =>
+                        data.entry.reduce((x, { name, acl, content }) => {
+                            x[acl.app] ||= {};
+                            x[acl.app][name] = {
+                                sharing: acl.sharing,
+                                perms: acl.perms,
+                                owner: acl.owner,
+                                content,
+                            };
+                            return x;
+                        }, {})
+                    ),
+        })),
+    });
+
+export const useDefaults = (target, files = CONF_FILES) =>
+    useQueries({
+        queries: files.map((file) => ({
+            queryKey: [target.key, 'default', file],
+            queryFn: () =>
+                request({
+                    url: `${target.api}/services/properties/${file}/default`,
+                    method: 'GET',
+                    params: { output_mode: 'json', count: -1 },
+                    headers: {
+                        Authorization: `Bearer ${target.token}`,
+                    },
+                })
+                    .then(handle)
+                    .then((data) =>
+                        data.entry.reduce((x, { name, content }) => {
+                            x[name] = content;
+                            return x;
+                        }, {})
+                    )
+                    .catch(() => ({})),
+        })),
     });

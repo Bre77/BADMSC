@@ -1,8 +1,9 @@
 import React, { useMemo } from 'react';
 import { useMutation, useQueryClient, useQueries } from '@tanstack/react-query';
-import { handle, useApps } from '../shared/hooks';
+import { handle, useApps, useConfs, useDefaults } from '../shared/hooks';
 import { isort0, latest } from '../shared/helpers';
 import { CONF_FILES, ATTR_BLACKLIST } from '../shared/const';
+import { request } from '../shared/fetch';
 
 // Splunk UI
 import Button from '@splunk/react-ui/Button';
@@ -10,70 +11,11 @@ import Table from '@splunk/react-ui/Table';
 import WaitSpinner from '@splunk/react-ui/WaitSpinner';
 import Typography from '@splunk/react-ui/Typography';
 import { normalizeBoolean } from '@splunk/splunk-utils/boolean';
-import { request } from '../shared/fetch';
-
-const processConf = (data) =>
-    data.entry.reduce(
-        (x, { name, acl, content }) => {
-            x[acl.sharing][acl.app] ||= {};
-            x[acl.sharing][acl.app][name] = {
-                perms: acl.perms,
-                owner: acl.owner,
-                content,
-            };
-            return x;
-        },
-        { system: {}, global: {}, app: {} }
-    );
-
-const useConfigs = (target, files = CONF_FILES) =>
-    useQueries({
-        queries: files.map((file) => ({
-            queryKey: [target.key, 'config', file],
-            queryFn: () =>
-                request({
-                    url: `${target.api}/servicesNS/nobody/-/configs/conf-${file}`,
-                    method: 'GET',
-                    params: { output_mode: 'json', count: -1 },
-                    headers: {
-                        Authorization: `Bearer ${target.token}`,
-                    },
-                })
-                    .then(handle)
-                    .then(processConf),
-            staleTime: Infinity,
-        })),
-    });
-
-const useDefaults = (target, files = CONF_FILES) =>
-    useQueries({
-        queries: files.map((file) => ({
-            queryKey: [target.key, 'default', file],
-            queryFn: () =>
-                request({
-                    url: `${target.api}/services/properties/${file}/default`,
-                    method: 'GET',
-                    params: { output_mode: 'json', count: -1 },
-                    headers: {
-                        Authorization: `Bearer ${target.token}`,
-                    },
-                })
-                    .then(handle)
-                    .then((data) =>
-                        data.entry.reduce((x, { name, content }) => {
-                            x[name] = content;
-                            return x;
-                        }, {})
-                    )
-                    .catch(() => ({})),
-            staleTime: Infinity,
-        })),
-    });
 
 export default ({ config, scope }) => {
     const def = useDefaults(config.src);
-    const src = useConfigs(config.src);
-    const dst = useConfigs(config.dst);
+    const src = useConfs(config.src);
+    const dst = useConfs(config.dst);
     const dst_apps = useApps(config.dst);
 
     const isLoading =
@@ -88,9 +30,13 @@ export default ({ config, scope }) => {
         const output = {};
         CONF_FILES.forEach((file, f) => {
             if (dst[f].data && src[f].data) {
-                Object.entries(src[f].data?.[scope] || {}).forEach(([app, stanzas]) => {
+                Object.entries(src[f].data || {}).forEach(([app, stanzas]) => {
                     if (scope === 'system' || app in dst_apps.data) {
-                        Object.entries(stanzas).forEach(([stanza, { perms, content }]) => {
+                        Object.entries(stanzas).forEach(([stanza, { sharing, perms, content }]) => {
+                            if (sharing != scope) return;
+                            const sharing_correct =
+                                dst[f].data?.[app]?.[stanza]?.sharing == sharing;
+
                             Object.keys(perms).forEach((rw) =>
                                 perms[rw].map((group) => (group === 'admin' ? 'sc_admin' : group))
                             );
@@ -100,15 +46,18 @@ export default ({ config, scope }) => {
                                     const src_value = normalizeBoolean(value);
                                     const def_value = normalizeBoolean(def[f].data?.[attr]);
                                     const dst_value = normalizeBoolean(
-                                        dst[f].data?.[scope]?.[app]?.[stanza]?.content?.[attr]
+                                        dst[f].data?.[app]?.[stanza]?.content?.[attr]
                                     );
 
-                                    if (src_value !== def_value && src_value !== dst_value) {
+                                    if (
+                                        src_value !== def_value &&
+                                        (src_value !== dst_value || !sharing_correct)
+                                    ) {
                                         output[app] ||= {};
                                         output[app][file] ||= {};
                                         output[app][file][stanza] ||= {
                                             attr: {},
-                                            exists: !!dst[f].data?.[scope]?.[app]?.[stanza],
+                                            exists: !!dst[f].data?.[app]?.[stanza],
                                             perms,
                                         };
                                         output[app][file][stanza].attr[attr] = {
@@ -238,9 +187,8 @@ const CopyConfig = ({ config, scope, file, app, stanza, attr, perms, exists }) =
                           Authorization: `Bearer ${config.dst.token}`,
                       },
                   })
-        )
-            .then(handle)
-            //.then((data) => if(data.entry[0].acl.));
+        ).then(handle);
+        //.then((data) => if(data.entry[0].acl.));
     });
 
     return (

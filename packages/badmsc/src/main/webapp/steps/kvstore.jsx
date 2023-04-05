@@ -125,8 +125,8 @@ export default ({ step, config }) => {
     return (
         <div>
             <P>
-                Lookups are either CSV files or KV Store collections. Unfortuantely its difficult to
-                know if a lookup is different, so you will need to use some disgression.
+                KV Store are special lookups that leverage MongoDB. This has not been implemented
+                yet.
             </P>
             {src_apps.data && 'lookup_editor' in src_apps.data === false && (
                 <Message appearance="fill" type="error">
@@ -154,7 +154,7 @@ export default ({ step, config }) => {
                             files.map(([file, { perms, sharing, src, dst }]) => (
                                 <Table.Row key={app + '/' + file}>
                                     <Table.Cell>
-                                        <b>{app}</b> / {file} {sharing}
+                                        <b>{app}</b> / {file}
                                     </Table.Cell>
                                     <Table.Cell>{src && <Button disabled>Open</Button>}</Table.Cell>
                                     <Table.Cell>{dst && <Button disabled>Open</Button>}</Table.Cell>

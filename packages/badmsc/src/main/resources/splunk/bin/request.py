@@ -34,13 +34,11 @@ class request(PersistentServerConnectionApplication):
         if options["url"].startswith("/services"):
             options["verify"] = False
             options["url"] = f"{args['server']['rest_uri']}{options['url']}"
-            options["headers"][
-                "Authorization"
-            ] = f"Splunk {args['session']['authtoken']}"
-        elif not (
-            options["url"].startswith("https://")
-            or options["url"].startswith("http://")
-        ):
+            if options["headers"]["Authorization"] == "Bearer ":
+                options["headers"][
+                    "Authorization"
+                ] = f"Splunk {args['session']['authtoken']}"
+        elif not (options["url"].startswith("https://")):
             options["url"] = f"https://{options['url']}"
 
         try:

@@ -85,7 +85,6 @@ export default ({ step, config }) => {
             request({ url: 'https://api.ipify.org/', method: 'GET' }).then((res) =>
                 res.ok ? res.text() : Promise.reject(res.text())
             ),
-        staleTime: Infinity,
     });
     const user_ip = useQuery({
         queryKey: ['wanip', 'user'],
@@ -93,7 +92,6 @@ export default ({ step, config }) => {
             fetch('https://api.ipify.org/').then((res) =>
                 res.ok ? res.text() : Promise.reject(res.text())
             ),
-        staleTime: Infinity,
     });
 
     return (

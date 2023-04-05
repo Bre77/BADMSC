@@ -133,7 +133,7 @@ export default ({ step, config }) => {
                       )
                     : []
             ).then((apps) => Object.fromEntries(apps.map((app) => [app.appid, app]))),
-        staleTime: Infinity,
+
         enabled: !!src.data,
     });
 
@@ -420,14 +420,27 @@ const InstallPrivate = ({ config, token, app }) => {
                         )
                         .then((res) => (res.status === 200 ? res.json() : Promise.reject()))
                         .then((data) => {
-                            console.info(data)
+                            console.info(data);
                             if (
                                 data.summary.error > 0 ||
                                 data.summary.failure > 0 ||
                                 data.summary.manual_check > 0
                             ) {
                                 setStatus('AppInspect Failed - See Console');
-                                console.warn(`${app} failed AppInspect`,data.reports.flatMap(a=>a.groups.flatMap(b=>b.checks.filter(c=>['failure','error','manual_check'].includes(c.result)).flatMap(c=>c.messages))))
+                                console.warn(
+                                    `${app} failed AppInspect`,
+                                    data.reports.flatMap((a) =>
+                                        a.groups.flatMap((b) =>
+                                            b.checks
+                                                .filter((c) =>
+                                                    ['failure', 'error', 'manual_check'].includes(
+                                                        c.result
+                                                    )
+                                                )
+                                                .flatMap((c) => c.messages)
+                                        )
+                                    )
+                                );
                                 return Promise.reject();
                             }
                             setStatus('Installing');
@@ -450,19 +463,21 @@ const InstallPrivate = ({ config, token, app }) => {
                         },
                     })
                 )
-                .then((res) => (res.status === 200 ? res.json() : Promise.reject(setStatus('Failed'))))
+                .then((res) =>
+                    res.status === 200 ? res.json() : Promise.reject(setStatus('Failed'))
+                )
                 .then((data) => {
-                    console.log(data)
-                    setStatus('Success')
-                    return Promise.resolve()
+                    console.log(data);
+                    setStatus('Success');
+                    return Promise.resolve();
                 })
                 .catch((err) => {
-                    if(err){
-                        setStatus(err)
+                    if (err) {
+                        setStatus(err);
                     }
-                    console.error(err)
-                    return Promise.reject()
-                })
+                    console.error(err);
+                    return Promise.reject();
+                });
         },
     });
     return (
