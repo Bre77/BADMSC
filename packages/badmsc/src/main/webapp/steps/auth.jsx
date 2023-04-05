@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useReducer } from 'react';
-
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import styled from 'styled-components';
+import MutateButton from '../components/mutateButton';
 
 // Splunk UI
 import Heading from '@splunk/react-ui/Heading';
@@ -27,20 +28,21 @@ import { wrapSetValue } from '../shared/helpers';
 import { makeBody, request } from '../shared/fetch';
 import { handle, useAcs, useConfig, useGetApi } from '../shared/hooks';
 
-const StatusCheck = ({ host, disabled, method = 'OPTIONS' }) => {
+const StatusCheck = ({ host, disabled, method = 'GET' }) => {
     const { data, isLoading } = useQuery({
         queryKey: ['check', host],
         queryFn: () =>
             request({
                 url: `https://${host}`,
                 method,
-            }).then((res) => res.ok),
+            }).then((res) => res.ok || res.status == 401 || res.statusText || res.status),
 
         enabled: !disabled,
     });
     if (disabled) return <NotAllowed />;
     if (isLoading) return <WaitSpinner />;
     if (data === true) return <Success />;
+    console.info(host, data);
     return (
         <Tooltip content={data}>
             <Error />
@@ -48,63 +50,55 @@ const StatusCheck = ({ host, disabled, method = 'OPTIONS' }) => {
     );
 };
 
+const Adorn = styled.div`
+    margin: 0 8px;
+    vertical-align: middle;
+`;
+
 const dropHTTPS = (prev, stack) => stack.replace('https://', '');
 
 const e = (query) => (query.isError ? query.error : false);
-
 export default ({ step, config }) => {
     const [src_api, setSrcApi] = useReducer(dropHTTPS, '');
     const handleSrcApi = wrapSetValue(setSrcApi);
-    const src_api_valid = useMutation(() => request({ url: src_api, method: 'GET' }).then(handle));
     const [src_token, setSrcToken] = useState('');
     const handleSrcToken = wrapSetValue(setSrcToken);
-    const src_token_valid = useQuery({
-        queryFn: () =>
-            request({
-                url: `${src_api}/services/server/info`,
-                method: 'GET',
-                headers: { Authorization: `Bearer ${src_token}` },
-            }).then(handle),
-        queryKey: ['test', 'src_api', src_api],
-        enabled: src_api !== '' && src_token !== '',
-    });
+    const src_test = useMutation(() =>
+        request({
+            url: `${src_api}/services`,
+            method: 'GET',
+            params: { output_mode: 'json' },
+            headers: { Authorization: `Bearer ${src_token}` },
+        }).then(handle)
+    );
 
     const [dst_sh, setDstSh] = useReducer(dropHTTPS, '');
     const handleDstSh = wrapSetValue(setDstSh);
     const [dst_api, setDstApi] = useReducer(dropHTTPS, '');
     const handleDstApi = wrapSetValue(setDstApi);
-    const dst_api_valid = useQuery({
-        queryFn: () => request({ url: dst_api, method: 'GET' }).then(handle),
-        queryKey: ['test', 'dst_api', dst_api],
-        enabled: dst_api !== '',
-    });
     const [dst_token, setDstToken] = useState('');
     const handleDstToken = wrapSetValue(setDstToken);
-    const dst_token_valid = useQuery({
-        queryFn: () =>
-            request({
-                url: `${dst_api}/services/server/info`,
-                method: 'GET',
-                headers: { Authorization: `Bearer ${dst_token}` },
-            }).then(handle),
-        queryKey: ['test', 'src_api', dst_api],
-        enabled: dst_api !== '' && dst_token !== '',
-    });
+    const dst_test = useMutation(() =>
+        request({
+            url: `${dst_acs}/adminconfig/v2`,
+            method: 'GET',
+            headers: { Authorization: `Bearer ${dst_token}` },
+        }).then(handle)
+    );
 
     const [dst_acs, setDstAcs] = useReducer(dropHTTPS, '');
     const handleDstAcs = wrapSetValue(setDstAcs);
-    const dst_acs_valid = useAcs(
-        dst_acs !== '' && dst_token !== '' && { acs: dst_acs, token: dst_token },
-        'status'
-    );
 
     const stack_valid = dst_sh.endsWith('.splunkcloud.com');
 
     useEffect(() => {
         if (stack_valid) {
-            let stack = dst_sh.replace(/^(es-|itsi-)/, '');
             setDstApi(`${dst_sh}:8089`);
-            setDstAcs(`admin.splunk.com/${stack.replace('.splunkcloud.com', '')}`);
+            setDstAcs(
+                `admin.splunk.com/${dst_sh
+                    .replace(/^(es-|itsi-)/, '')
+                    .replace('.splunkcloud.com', '')}`
+            );
         }
     }, [dst_sh]);
 
@@ -130,7 +124,6 @@ export default ({ step, config }) => {
                     token: dst_token,
                     api: dst_api,
                     acs: dst_acs,
-                    hec: dst_hec,
                 },
             });
             return (
@@ -176,7 +169,6 @@ export default ({ step, config }) => {
                 Do not include https:// in any inputs. HTTPS is mandatory for all communication and
                 will be automatically enforced.
             </Message>
-
             <Heading level={2}>Step {step}.1 - Source System</Heading>
             <P>
                 Please enter the REST API endpoint and authentication token for the source Splunk
@@ -185,15 +177,22 @@ export default ({ step, config }) => {
             <ControlGroup
                 label="REST API"
                 labelWidth={90}
-                error={e(src_api_valid)}
                 help="Exclude Protocol, include port. Leave blank to use this server"
             >
-                <Text value={src_api} onChange={handleSrcApi} placeholder="localhost:8089" />
+                <Text
+                    value={src_api}
+                    onChange={handleSrcApi}
+                    placeholder="localhost:8089"
+                    endAdornment={
+                        <Adorn>
+                            <StatusCheck host={src_api} disabled={src_api == ''} />
+                        </Adorn>
+                    }
+                />
             </ControlGroup>
             <ControlGroup
                 label="Auth Token"
                 labelWidth={90}
-                error={e(src_token_valid)}
                 help="User should have admin role. Leave blank to use your user"
             >
                 <Text
@@ -202,9 +201,8 @@ export default ({ step, config }) => {
                     onChange={handleSrcToken}
                     passwordVisibilityToggle
                 />
-                <Button inline>Test</Button>
+                <MutateButton mutation={src_test} label="Test" />
             </ControlGroup>
-
             <Heading level={2}>Step {step}.2 - Splunk Cloud</Heading>
             <P>
                 Please enter the domain name of the Splunk Cloud search head you want to migrate
@@ -213,7 +211,6 @@ export default ({ step, config }) => {
             <ControlGroup
                 label="Search Head"
                 labelWidth={90}
-                error={e(dst_api_valid)}
                 help="Excluded Protocol, include port"
             >
                 <Text
@@ -223,12 +220,7 @@ export default ({ step, config }) => {
                     error={!stack_valid}
                 />
             </ControlGroup>
-            <ControlGroup
-                label="REST API"
-                labelWidth={90}
-                error={e(src_api_valid)}
-                help="Excluded protocol, include port"
-            >
+            <ControlGroup label="REST API" labelWidth={90} help="Excluded protocol, include port">
                 <Text
                     value={dst_api}
                     onChange={handleDstApi}
@@ -236,25 +228,23 @@ export default ({ step, config }) => {
                     disabled={dst_sh == ''}
                 />
             </ControlGroup>
-            <ControlGroup
-                label="ACS"
-                labelWidth={90}
-                error={e(dst_acs_valid)}
-                help="Excluded protocol and trailing slash"
-            >
+            <ControlGroup label="ACS" labelWidth={90} help="Excluded protocol and trailing slash">
                 <Text
                     value={dst_acs}
                     onChange={handleDstAcs}
                     placeholder="admin.splunk.com/customer"
                     disabled={dst_sh == ''}
+                    endAdornment={
+                        <Adorn>
+                            <StatusCheck
+                                host={`${dst_acs}/adminconfig/v2`}
+                                disabled={dst_sh == ''}
+                            />
+                        </Adorn>
+                    }
                 />
             </ControlGroup>
-            <ControlGroup
-                label="Auth Token"
-                labelWidth={90}
-                error={dst_token_valid}
-                help="User must have sc_admin role"
-            >
+            <ControlGroup label="Auth Token" labelWidth={90} help="User must have sc_admin role">
                 <Text
                     inline
                     value={dst_token}
@@ -263,43 +253,38 @@ export default ({ step, config }) => {
                     disabled={dst_sh == ''}
                     passwordVisibilityToggle
                 />
-                <Button inline>Test</Button>
+                <MutateButton mutation={dst_test} label="Test" />
             </ControlGroup>
             <Heading level={2}>Step {step}.3 - Save</Heading>
-            <Button
-                onClick={mutatePassword.mutate}
-                disabled={mutatePassword.isLoading}
-                label="Save"
-            />
-
+            <P>Save all the details above into an encyrpted passwords.conf entry.</P>
+            <MutateButton mutation={mutatePassword} label="Save" />
             <Heading level={2}>Step {step}.4 - External Access Check</Heading>
             <P>
-                To perform the migration, this Search Head will need access to the following domains
-                using HTTPS. If these checks fail, either the stack name is incorrect or your
-                proxy/firewall rules are prevent access.
+                To perform the migration, this Search Head will also need access to the following
+                domains using HTTPS. If these checks fail, either the stack name is incorrect or
+                your proxy/firewall rules are preventing access.
             </P>
             <List>
                 <List.Item>
-                    <StatusCheck host="api.splunk.com" method="GET" /> api.splunk.com
+                    <StatusCheck host="api.splunk.com" /> api.splunk.com
                 </List.Item>
                 <List.Item>
-                    <StatusCheck host="splunkbase.splunk.com" /> splunkbase.splunk.com
+                    <StatusCheck host="splunkbase.splunk.com" method="OPTIONS" />{' '}
+                    splunkbase.splunk.com
                 </List.Item>
                 <List.Item>
                     <StatusCheck host="api.ipify.org" /> api.ipify.org (optional)
                 </List.Item>
+                <List.Item>
+                    <StatusCheck
+                        host={`http-inputs-${dst_sh.replace(
+                            /^(es-|itsi-)/,
+                            ''
+                        )}/services/collector/health`}
+                    />{' '}
+                    http-inputs-{dst_sh.replace(/^(es-|itsi-)/, '')} (optional)
+                </List.Item>
             </List>
-
-            <Heading level={2}>Step {step}.4 - Compatibility</Heading>
-            <P>This tool is only tested against Splunk Cloud Victoria</P>
-            <DL>
-                {Object.entries(dst_acs_valid.data?.infrastructure || {}).map(([key, value]) => (
-                    <React.Fragment key={key}>
-                        <DL.Term>{key}</DL.Term>
-                        <DL.Description>{value}</DL.Description>
-                    </React.Fragment>
-                ))}
-            </DL>
         </div>
     );
 };
