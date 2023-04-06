@@ -210,9 +210,7 @@ export default ({ step, config }) => {
                     onClick={() => {
                         setEnableArchive(!enablearchive);
                     }}
-                >
-                    Enabled
-                </Switch>
+                />
                 <Number
                     disabled={!enablearchive}
                     value={archive}

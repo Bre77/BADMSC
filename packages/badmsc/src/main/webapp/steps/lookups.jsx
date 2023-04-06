@@ -1,8 +1,9 @@
 import React, { useMemo, useState, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useApps, useGetApi } from '../shared/hooks';
+import { handle, useApps, useGetApi } from '../shared/hooks';
 import { isort0, wrapSetValue } from '../shared/helpers';
 import { request } from '../shared/fetch';
+import MutateButton from '../components/mutateButton';
 
 // Splunk UI
 import Heading from '@splunk/react-ui/Heading';
@@ -13,6 +14,8 @@ import Message from '@splunk/react-ui/Message';
 import WaitSpinner from '@splunk/react-ui/WaitSpinner';
 import Link from '@splunk/react-ui/Link';
 import Modal from '@splunk/react-ui/Modal';
+
+const LOOKUP_ENDPOINT = 'servicesNS/nobody/-/data/lookup-table-files';
 
 const getLookup = (target, app, file) =>
     request({
@@ -28,7 +31,7 @@ const getLookup = (target, app, file) =>
         },
     });
 
-const LookupCopy = ({ app, file, config }) => {
+const LookupCopy = ({ app, file, config, label }) => {
     const queryClient = useQueryClient();
     const copy = useMutation(() =>
         getLookup(config.src, app, file)
@@ -45,16 +48,28 @@ const LookupCopy = ({ app, file, config }) => {
                         namespace: app,
                         contents,
                     },
-                }).then(() => {
-                    queryClient.invalidateQueries(['dst', 'services/data/lookup-table-files']);
                 })
             )
+            .then(() =>
+                request({
+                    url: `${config.dst.api}/servicesNS/nobody/${app}/data/lookup-table-files/${file}/acl`,
+                    method: 'GET',
+                    params: { output_mode: 'json' },
+                    headers: {
+                        Authorization: `Bearer ${config.dst.token}`,
+                    },
+                })
+            )
+            .then(handle)
+            .then((data) => {
+                let acl = data.entry[0].acl;
+            })
+            .then(() => {
+                queryClient.invalidateQueries(['dst', LOOKUP_ENDPOINT]);
+            })
     );
-    return (
-        <Button onClick={copy.mutate} disabled={copy.isLoading}>
-            Copy
-        </Button>
-    );
+
+    return <MutateButton mutation={copy} label={label} />;
 };
 
 const LookupCompare = ({ app, file, config }) => {
@@ -93,7 +108,7 @@ const OpenLookup = ({ app, file, target }) => {
     const modalToggle = useRef(null);
     const [open, setOpen] = useState(false);
     const lookup = useQuery({
-        queryFn: () => getLookup(target, app, file),
+        queryFn: () => getLookup(target, app, file).then(handle),
         queryKey: ['lookup', app, file],
         enabled: open,
     });
@@ -112,7 +127,26 @@ const OpenLookup = ({ app, file, target }) => {
             <Button onClick={handleRequestOpen} ref={modalToggle} label="View" />
             <Modal onRequestClose={handleRequestClose} open={open}>
                 <Modal.Body>
-                    {lookup.isLoading ? <WaitSpinner /> : JSON.stringify(lookup.data)}
+                    {lookup.isLoading ? (
+                        <WaitSpinner />
+                    ) : (
+                        <Table stripeRows>
+                            <Table.Head>
+                                {lookup.data[0].map((cell, x) => (
+                                    <Table.HeadCell key={x}>{cell}</Table.HeadCell>
+                                ))}
+                            </Table.Head>
+                            <Table.Body>
+                                {lookup.data.slice(1).map((row, x) => (
+                                    <Table.Row key={x}>
+                                        {row.map((cell, y) => (
+                                            <Table.Cell key={y}>{cell}</Table.Cell>
+                                        ))}
+                                    </Table.Row>
+                                ))}
+                            </Table.Body>
+                        </Table>
+                    )}
                 </Modal.Body>
             </Modal>
         </>
@@ -120,8 +154,8 @@ const OpenLookup = ({ app, file, target }) => {
 };
 
 export default ({ step, config }) => {
-    const src = useGetApi(config.src, 'services/data/lookup-table-files', lookupHandle);
-    const dst = useGetApi(config.dst, 'services/data/lookup-table-files', lookupHandle);
+    const src = useGetApi(config.src, LOOKUP_ENDPOINT, lookupHandle);
+    const dst = useGetApi(config.dst, LOOKUP_ENDPOINT, lookupHandle);
     const src_apps = useApps(config.src);
     const dst_apps = useApps(config.dst);
 
@@ -134,8 +168,11 @@ export default ({ step, config }) => {
         Object.entries(src.data).forEach(([app, files]) => {
             if (app in dst_apps.data) {
                 Object.entries(files).forEach(([file, { perms, sharing, path, owner }]) => {
-                    Object.keys(perms).forEach((rw) =>
-                        perms[rw].map((group) => (group === 'admin' ? 'sc_admin' : group))
+                    Object.keys(perms).forEach(
+                        (rw) =>
+                            (perms[rw] = perms[rw].map((group) =>
+                                group === 'admin' ? 'sc_admin' : group
+                            ))
                     );
                     output[app] ||= {};
                     output[app][file] = {
@@ -174,11 +211,11 @@ export default ({ step, config }) => {
                 <Table stripeRows>
                     <Table.Head>
                         <Table.HeadCell>Name</Table.HeadCell>
-
+                        <Table.HeadCell>Scope</Table.HeadCell>
                         <Table.HeadCell>Local</Table.HeadCell>
                         <Table.HeadCell>Cloud</Table.HeadCell>
                         <Table.HeadCell>Compare</Table.HeadCell>
-                        <Table.HeadCell>Copy</Table.HeadCell>
+                        <Table.HeadCell>Action</Table.HeadCell>
                     </Table.Head>
                     <Table.Body>
                         {lookups.flatMap(([app, files]) =>
@@ -188,20 +225,36 @@ export default ({ step, config }) => {
                                         <b>{app}</b> / {file}
                                     </Table.Cell>
                                     <Table.Cell>
-                                        {src && (
-                                            <OpenLookup {...{ app, file, target: config.src }} />
-                                        )}
+                                        {sharing} {JSON.stringify(perms)}
                                     </Table.Cell>
                                     <Table.Cell>
-                                        {dst && (
-                                            <OpenLookup {...{ app, file, target: config.dst }} />
-                                        )}
+                                        {src &&
+                                            (!file.endsWith('.kmz') ? (
+                                                <OpenLookup
+                                                    {...{ app, file, target: config.src }}
+                                                />
+                                            ) : (
+                                                'Cannot display'
+                                            ))}
+                                    </Table.Cell>
+                                    <Table.Cell>
+                                        {dst &&
+                                            (!file.endsWith('.kmz') ? (
+                                                <OpenLookup
+                                                    {...{ app, file, target: config.dst }}
+                                                />
+                                            ) : (
+                                                'Cannot display'
+                                            ))}
                                     </Table.Cell>
                                     <Table.Cell>
                                         {dst && <LookupCompare {...{ app, file, config }} />}
                                     </Table.Cell>
                                     <Table.Cell>
-                                        <LookupCopy {...{ app, file, config }} />
+                                        <LookupCopy
+                                            {...{ app, file, config }}
+                                            label={dst ? 'Overwrite' : 'Create'}
+                                        />
                                     </Table.Cell>
                                 </Table.Row>
                             ))

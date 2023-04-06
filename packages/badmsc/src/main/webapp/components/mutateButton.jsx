@@ -9,6 +9,7 @@ export default ({ mutation, label }) => (
             ]
         }
         onClick={() => mutation.mutate()}
+        disabled={mutation.isLoading}
         label={
             { idle: label, loading: 'Running', success: 'Success', error: 'Failed' }[
                 mutation.status
