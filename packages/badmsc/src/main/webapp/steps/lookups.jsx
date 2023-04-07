@@ -226,13 +226,13 @@ export default ({ step, config }) => {
                     </Table.Head>
                     <Table.Body>
                         {lookups.flatMap(([app, files]) =>
-                            files.map(([file, { perms, sharing, src, dst }]) => (
+                            files.map(([file, { src, dst }]) => (
                                 <Table.Row key={app + '/' + file}>
                                     <Table.Cell>
                                         <b>{app}</b> / {file}
                                     </Table.Cell>
                                     <Table.Cell>
-                                        {sharing} {JSON.stringify(perms)}
+                                        {src.sharing} / {dst?.sharing} {JSON.stringify(src.perms)}
                                     </Table.Cell>
                                     <Table.Cell>
                                         {src &&
