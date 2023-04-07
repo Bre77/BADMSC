@@ -15,7 +15,12 @@ import WaitSpinner from '@splunk/react-ui/WaitSpinner';
 import Link from '@splunk/react-ui/Link';
 import Modal from '@splunk/react-ui/Modal';
 
-const LOOKUP_ENDPOINT = 'servicesNS/nobody/-/data/lookup-table-files';
+const useLookup = (target, app, file, enabled) =>
+    useQuery({
+        queryFn: () => getLookup(target, app, file).then(handle),
+        queryKey: [target.key, 'lookup', app, file],
+        enabled,
+    });
 
 const getLookup = (target, app, file) =>
     request({
@@ -32,9 +37,12 @@ const getLookup = (target, app, file) =>
     });
 
 const LookupCopy = ({ app, file, config, label }) => {
+    const [enabled, setEnabled] = useState(false);
     const queryClient = useQueryClient();
+    //const src = useLookup(config.src, app, file, enabled);
+
     const copy = useMutation(() =>
-        getLookup(config.src, app, file)
+        getLookup(config.src, app, file) // I dont know how to make this use useLookup
             .then((res) => res.text()) // Comes in as JSON, goes out as JSON, no need to parse
             .then((contents) =>
                 request({
@@ -73,45 +81,40 @@ const LookupCopy = ({ app, file, config, label }) => {
 };
 
 const LookupCompare = ({ app, file, config }) => {
-    const [same, setSame] = useState();
-    const compare = useMutation(() =>
-        Promise.all([
-            getLookup(config.src, app, file).then((res) => res.text()),
-            getLookup(config.dst, app, file).then((res) => res.text()),
-        ]).then(([src, dst]) => setSame(src === dst))
+    const [enabled, setEnabled] = useState(false);
+    const src = useLookup(config.src, app, file, enabled);
+    const dst = useLookup(config.dst, app, file, enabled);
+
+    const same = useMemo(
+        () => (src.data && dst.data ? JSON.stringify(src.data) == JSON.stringify(dst.data) : null),
+        [src.data, dst.data]
     );
+
+    const fetching = src.isFetching || dst.isFetching;
+
     return (
         <Button
-            onClick={compare.mutate}
-            disabled={compare.isLoading}
+            onClick={() => setEnabled(true)}
+            disabled={fetching}
             appearance={
-                (same === true && 'primary') || (same === false && 'destructive') || 'default'
+                (same === true && 'primary') ||
+                (same === false && 'destructive') ||
+                (fetching && 'pill') ||
+                'default'
             }
         >
-            {(same === true && 'Same') || (same === false && 'Different') || 'Compare'}
+            {(same === true && 'Same') ||
+                (same === false && 'Different') ||
+                (fetching && 'Loading') ||
+                'Compare'}
         </Button>
     );
 };
 
-const lookupHandle = (data) =>
-    data.entry.reduce((x, { name, acl, content }) => {
-        x[acl.app] ||= {};
-        x[acl.app][name] = {
-            perms: acl.perms,
-            sharing: acl.sharing,
-            path: content['eai:data'],
-        };
-        return x;
-    }, {});
-
 const OpenLookup = ({ app, file, target }) => {
     const modalToggle = useRef(null);
     const [open, setOpen] = useState(false);
-    const lookup = useQuery({
-        queryFn: () => getLookup(target, app, file).then(handle),
-        queryKey: ['lookup', app, file],
-        enabled: open,
-    });
+    const lookup = useLookup(target, app, file, open);
 
     const handleRequestOpen = () => {
         setOpen(true);
@@ -153,9 +156,16 @@ const OpenLookup = ({ app, file, target }) => {
     );
 };
 
+const lookupHandle = (data) =>
+    data.entry.reduce((x, { name, acl, content }) => {
+        x[acl.app] ||= {};
+        x[acl.app][name] = acl;
+        return x;
+    }, {});
+
 export default ({ step, config }) => {
-    const src = useGetApi(config.src, LOOKUP_ENDPOINT, lookupHandle);
-    const dst = useGetApi(config.dst, LOOKUP_ENDPOINT, lookupHandle);
+    const src = useGetApi(config.src, 'servicesNS/nobody/-/data/lookup-table-files', lookupHandle);
+    const dst = useGetApi(config.dst, 'servicesNS/nobody/-/data/lookup-table-files', lookupHandle);
     const src_apps = useApps(config.src);
     const dst_apps = useApps(config.dst);
 
@@ -167,20 +177,17 @@ export default ({ step, config }) => {
         const output = {};
         Object.entries(src.data).forEach(([app, files]) => {
             if (app in dst_apps.data) {
-                Object.entries(files).forEach(([file, { perms, sharing, path, owner }]) => {
-                    Object.keys(perms).forEach(
+                Object.entries(files).forEach(([file, acl]) => {
+                    Object.keys(acl.perms).forEach(
                         (rw) =>
-                            (perms[rw] = perms[rw].map((group) =>
+                            (acl.perms[rw] = acl.perms[rw].map((group) =>
                                 group === 'admin' ? 'sc_admin' : group
                             ))
                     );
                     output[app] ||= {};
                     output[app][file] = {
-                        perms,
-                        sharing,
-                        owner,
-                        src: path,
-                        dst: dst.data?.[app]?.[file]?.path,
+                        src: acl,
+                        dst: dst.data?.[app]?.[file],
                     };
                 });
             } else console.log(`Skipping ${app} because its not in cloud`);
