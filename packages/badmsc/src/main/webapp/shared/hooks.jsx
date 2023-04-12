@@ -77,6 +77,18 @@ export const useAcs = (target, endpoint) =>
         enabled: !!target,
     });
 
+export const processConfs = (data) =>
+    data.entry.reduce((x, { name, acl, content }) => {
+        x[acl.app] ||= {};
+        x[acl.app][name] = {
+            sharing: acl.sharing,
+            perms: acl.perms,
+            owner: acl.owner,
+            content,
+        };
+        return x;
+    }, {});
+
 export const useConfs = (target, files = CONF_FILES) =>
     useQueries({
         queries: files.map((file) => ({
@@ -91,18 +103,7 @@ export const useConfs = (target, files = CONF_FILES) =>
                     },
                 })
                     .then(handle)
-                    .then((data) =>
-                        data.entry.reduce((x, { name, acl, content }) => {
-                            x[acl.app] ||= {};
-                            x[acl.app][name] = {
-                                sharing: acl.sharing,
-                                perms: acl.perms,
-                                owner: acl.owner,
-                                content,
-                            };
-                            return x;
-                        }, {})
-                    ),
+                    .then(processConfs),
         })),
     });
 
