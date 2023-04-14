@@ -17,7 +17,6 @@ export default ({ step, config }) => {
                 Review the configuration very carefully and only copy it if you are sure you want to
                 make these changes in your new Splunk Cloud.
             </P>
-
             <Heading level={2}>Step {step}.1 - Copy System Config</Heading>
             <Conf scope="system" config={config} />
         </div>
