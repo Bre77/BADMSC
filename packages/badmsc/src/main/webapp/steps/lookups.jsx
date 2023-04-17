@@ -4,6 +4,7 @@ import { handle, useApps, useGetApi } from '../shared/hooks';
 import { isort0, wrapSetValue } from '../shared/helpers';
 import { request } from '../shared/fetch';
 import MutateButton from '../components/mutateButton';
+import {OpenLookup,LookupCompare} from '../components/lookupTools';
 
 // Splunk UI
 import Heading from '@splunk/react-ui/Heading';
@@ -13,14 +14,6 @@ import Table from '@splunk/react-ui/Table';
 import Message from '@splunk/react-ui/Message';
 import WaitSpinner from '@splunk/react-ui/WaitSpinner';
 import Link from '@splunk/react-ui/Link';
-import Modal from '@splunk/react-ui/Modal';
-
-const useLookup = (target, app, file, enabled) =>
-    useQuery({
-        queryFn: () => getLookup(target, app, file).then(handle),
-        queryKey: [target.key, 'lookup', app, file],
-        enabled,
-    });
 
 const getLookup = (target, app, file) =>
     request({
@@ -36,8 +29,15 @@ const getLookup = (target, app, file) =>
         },
     });
 
+const useLookup = (target, app, file, enabled) =>
+    useQuery({
+        queryFn: () => getLookup(target, app, file).then(handle),
+        queryKey: [target.key, 'lookup', app, file],
+        enabled,
+    });
+
 const LookupCopy = ({ app, file, config, label }) => {
-    const [enabled, setEnabled] = useState(false);
+    //const [enabled, setEnabled] = useState(false);
     const queryClient = useQueryClient();
     //const src = useLookup(config.src, app, file, enabled);
 
@@ -80,84 +80,10 @@ const LookupCopy = ({ app, file, config, label }) => {
     return <MutateButton mutation={copy} label={label} />;
 };
 
-const LookupCompare = ({ app, file, config }) => {
-    const [enabled, setEnabled] = useState(false);
-    const src = useLookup(config.src, app, file, enabled);
-    const dst = useLookup(config.dst, app, file, enabled);
 
-    const same = useMemo(
-        () => (src.data && dst.data ? JSON.stringify(src.data) == JSON.stringify(dst.data) : null),
-        [src.data, dst.data]
-    );
-
-    const fetching = src.isFetching || dst.isFetching;
-
-    return (
-        <Button
-            onClick={() => setEnabled(true)}
-            disabled={fetching}
-            appearance={
-                (same === true && 'primary') ||
-                (same === false && 'destructive') ||
-                (fetching && 'pill') ||
-                'default'
-            }
-        >
-            {(same === true && 'Same') ||
-                (same === false && 'Different') ||
-                (fetching && 'Loading') ||
-                'Compare'}
-        </Button>
-    );
-};
-
-const OpenLookup = ({ app, file, target }) => {
-    const modalToggle = useRef(null);
-    const [open, setOpen] = useState(false);
-    const lookup = useLookup(target, app, file, open);
-
-    const handleRequestOpen = () => {
-        setOpen(true);
-    };
-
-    const handleRequestClose = () => {
-        setOpen(false);
-        modalToggle?.current?.focus(); // Must return focus to the invoking element when the modal closes
-    };
-
-    return (
-        <>
-            <Button onClick={handleRequestOpen} ref={modalToggle} label="View" />
-            <Modal onRequestClose={handleRequestClose} open={open}>
-                <Modal.Body>
-                    {lookup.isLoading ? (
-                        <WaitSpinner />
-                    ) : (
-                        <Table stripeRows>
-                            <Table.Head>
-                                {lookup.data[0].map((cell, x) => (
-                                    <Table.HeadCell key={x}>{cell}</Table.HeadCell>
-                                ))}
-                            </Table.Head>
-                            <Table.Body>
-                                {lookup.data.slice(1).map((row, x) => (
-                                    <Table.Row key={x}>
-                                        {row.map((cell, y) => (
-                                            <Table.Cell key={y}>{cell}</Table.Cell>
-                                        ))}
-                                    </Table.Row>
-                                ))}
-                            </Table.Body>
-                        </Table>
-                    )}
-                </Modal.Body>
-            </Modal>
-        </>
-    );
-};
 
 const lookupHandle = (data) =>
-    data.entry.reduce((x, { name, acl, content }) => {
+    data.entry.reduce((x, { name, acl }) => {
         x[acl.app] ||= {};
         x[acl.app][name] = acl;
         return x;
@@ -238,7 +164,7 @@ export default ({ step, config }) => {
                                         {src &&
                                             (!file.endsWith('.kmz') ? (
                                                 <OpenLookup
-                                                    {...{ app, file, target: config.src }}
+                                                    {...{ hook: useLookup, target: config.src, app, file, }}
                                                 />
                                             ) : (
                                                 'Cannot display'
@@ -248,14 +174,14 @@ export default ({ step, config }) => {
                                         {dst &&
                                             (!file.endsWith('.kmz') ? (
                                                 <OpenLookup
-                                                    {...{ app, file, target: config.dst }}
+                                                    {...{ hook: useLookup, target: config.dst, app, file,  }}
                                                 />
                                             ) : (
                                                 'Cannot display'
                                             ))}
                                     </Table.Cell>
                                     <Table.Cell>
-                                        {dst && <LookupCompare {...{ app, file, config }} />}
+                                        {dst && <LookupCompare {...{hook: useCollection, app, file, config }} />}
                                     </Table.Cell>
                                     <Table.Cell>
                                         <LookupCopy
@@ -269,8 +195,6 @@ export default ({ step, config }) => {
                     </Table.Body>
                 </Table>
             )}
-            <Heading level={2}>Step {step}.2 - Copy KVStore Data</Heading>
-            <P>Somthing</P>
         </div>
     );
 };

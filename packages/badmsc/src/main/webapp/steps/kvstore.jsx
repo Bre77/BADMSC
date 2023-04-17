@@ -2,6 +2,8 @@ import React, { useMemo, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useApps, useGetApi } from '../shared/hooks';
 import { isort0, wrapSetValue } from '../shared/helpers';
+import {OpenLookup,LookupCompare} from '../components/lookupTools';
+import { handle } from '../shared/hooks';
 
 // Splunk UI
 import Heading from '@splunk/react-ui/Heading';
@@ -13,37 +15,36 @@ import WaitSpinner from '@splunk/react-ui/WaitSpinner';
 import Link from '@splunk/react-ui/Link';
 import { request } from '../shared/fetch';
 
-const getLookup = (target, app, file) =>
+const getCollection = (target, app, collection) =>
     request({
-        url: `${target.api}/servicesNS/nobody/lookup_editor/data/lookup_edit/lookup_contents`,
+        url: `${target.api}/servicesNS/nobody/${app}/storage/collections/data/${collection}`,
         method: 'GET',
         headers: {
             Authorization: `Bearer ${target.token}`,
         },
-        params: {
-            lookup_file: file,
-            namespace: app,
-            lookup_type: 'csv',
-        },
     });
+
+const useCollection = (target, app, collection, enabled) =>
+    useQuery({
+        queryFn: () => getCollection(target, app, collection).then(handle),
+        queryKey: [target.key, 'kvstore', app, collection],
+        enabled,
+    }); 
 
 const LookupCopy = ({ app, file, config }) => {
     const queryClient = useQueryClient();
     const copy = useMutation(() =>
-        getLookup(config.src, app, file)
-            .then((res) => res.text()) // Comes in as JSON, goes out as JSON, no need to parse
-            .then((contents) =>
+        getCollection(config.src, app, file)
+            .then((res) => res.json()) // Parse to avoid double encoding
+            .then((json) =>
                 request({
                     url: `${config.dst.api}/servicesNS/nobody/lookup_editor/data/lookup_edit/lookup_contents`,
                     method: 'POST',
                     headers: {
                         Authorization: `Bearer ${config.dst.token}`,
+                        'Content-Type': 'application/json',
                     },
-                    data: {
-                        lookup_file: file,
-                        namespace: app,
-                        contents,
-                    },
+                    json,
                 }).then(() => {
                     queryClient.invalidateQueries(['dst', 'services/data/lookup-table-files']);
                 })
@@ -56,42 +57,25 @@ const LookupCopy = ({ app, file, config }) => {
     );
 };
 
-const LookupCompare = ({ app, file, config }) => {
-    const [same, setSame] = useState();
-    const compare = useMutation(() =>
-        Promise.all([
-            getLookup(config.src, app, file).then((res) => res.text()),
-            getLookup(config.dst, app, file).then((res) => res.text()),
-        ]).then(([src, dst]) => setSame(src === dst))
-    );
-    return (
-        <Button
-            onClick={compare.mutate}
-            disabled={compare.isLoading}
-            appearance={
-                (same === true && 'primary') || (same === false && 'destructive') || 'default'
-            }
-        >
-            {(same === true && 'Same') || (same === false && 'Different') || 'Compare'}
-        </Button>
-    );
-};
 
 const lookupHandle = (data) =>
-    data.entry.reduce((x, { name, acl, content }) => {
+    data.entry.reduce((x, { name, acl }) => {
         x[acl.app] ||= {};
-        x[acl.app][name] = {
-            perms: acl.perms,
-            sharing: acl.sharing,
-            path: content['eai:data'],
-        };
+        x[acl.app][name] = acl;
         return x;
     }, {});
 
 export default ({ step, config }) => {
-    const src = useGetApi(config.src, 'services/data/lookup-table-files', lookupHandle);
-    const dst = useGetApi(config.dst, 'services/data/lookup-table-files', lookupHandle);
-    const src_apps = useApps(config.src);
+    const src = useGetApi(
+        config.src,
+        `/servicesNS/nobody/-/storage/collections/config`,
+        lookupHandle
+    );
+    const dst = useGetApi(
+        config.dst,
+        `/servicesNS/nobody/-/storage/collections/config`,
+        lookupHandle
+    );
     const dst_apps = useApps(config.dst);
 
     const isLoading = dst.isLoading || src.isLoading || dst_apps.isLoading;
@@ -111,8 +95,8 @@ export default ({ step, config }) => {
                         perms,
                         sharing,
                         owner,
-                        src: path,
-                        dst: dst.data?.[app]?.[file]?.path,
+                        src: true,
+                        dst: !!dst.data?.[app]?.[file],
                     };
                 });
             } else console.log(`Skipping ${app} because its not in cloud`);
@@ -124,19 +108,8 @@ export default ({ step, config }) => {
 
     return (
         <div>
-            <P>
-                KV Store are special lookups that leverage MongoDB. This has not been implemented
-                yet.
-            </P>
-            {src_apps.data && 'lookup_editor' in src_apps.data === false && (
-                <Message appearance="fill" type="error">
-                    Splunk App for Lookup File Editing is missing from this Search Head.{' '}
-                    <Link to="/manager/badmsc/appsremote?offset=0&count=20&order=relevance&query=Lookup%20File%20Editing&support=splunk">
-                        (Click here to open App Browser)
-                    </Link>
-                </Message>
-            )}
-            <Heading level={2}>Step {step}.1 - Copy CSV Lookup Files</Heading>
+            <P>KV Store are special lookups that leverage MongoDB.</P>
+            <Heading level={2}>Step {step}.1 - Copy KV Store data</Heading>
             {src.isLoading || dst.isLoading ? (
                 <WaitSpinner size="large" />
             ) : (
@@ -156,13 +129,38 @@ export default ({ step, config }) => {
                                     <Table.Cell>
                                         <b>{app}</b> / {file}
                                     </Table.Cell>
-                                    <Table.Cell>{src && <Button disabled>Open</Button>}</Table.Cell>
-                                    <Table.Cell>{dst && <Button disabled>Open</Button>}</Table.Cell>
                                     <Table.Cell>
-                                        {dst && <LookupCompare {...{ app, file, config }} />}
+                                        {src && (
+                                            <OpenLookup
+                                                {...{
+                                                    hook: useCollection,
+                                                    target: config.src,
+                                                    app,
+                                                    file,
+                                                }}
+                                            />
+                                        )}
                                     </Table.Cell>
                                     <Table.Cell>
-                                        <LookupCopy {...{ app, file, config }} />
+                                        {dst && (
+                                            <OpenLookup
+                                                {...{
+                                                    hook: useCollection,
+                                                    target: config.src,
+                                                    app,
+                                                    file,
+                                                }}
+                                            />
+                                        )}
+                                    </Table.Cell>
+                                    <Table.Cell>
+                                        {dst && <LookupCompare {...{ hook: useCollection, app, file, config }} />}
+                                    </Table.Cell>
+                                    <Table.Cell>
+                                        <LookupCopy
+                                            {...{ app, file, config }}
+                                            label={dst ? 'Overwrite' : 'Create'}
+                                        />
                                     </Table.Cell>
                                 </Table.Row>
                             ))
@@ -170,8 +168,6 @@ export default ({ step, config }) => {
                     </Table.Body>
                 </Table>
             )}
-            <Heading level={2}>Step {step}.2 - Copy KVStore Data</Heading>
-            <P>Somthing</P>
         </div>
     );
 };
