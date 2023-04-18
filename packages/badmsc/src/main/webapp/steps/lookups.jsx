@@ -4,7 +4,7 @@ import { handle, useApps, useGetApi } from '../shared/hooks';
 import { isort0, wrapSetValue } from '../shared/helpers';
 import { request } from '../shared/fetch';
 import MutateButton from '../components/mutateButton';
-import {OpenLookup,LookupCompare} from '../components/lookupTools';
+import { OpenLookup, LookupCompare } from '../components/lookupTools';
 
 // Splunk UI
 import Heading from '@splunk/react-ui/Heading';
@@ -80,8 +80,6 @@ const LookupCopy = ({ app, file, config, label }) => {
     return <MutateButton mutation={copy} label={label} />;
 };
 
-
-
 const lookupHandle = (data) =>
     data.entry.reduce((x, { name, acl }) => {
         x[acl.app] ||= {};
@@ -104,12 +102,12 @@ export default ({ step, config }) => {
         Object.entries(src.data).forEach(([app, files]) => {
             if (app in dst_apps.data) {
                 Object.entries(files).forEach(([file, acl]) => {
-                    Object.keys(acl.perms).forEach(
+                    /*Object.keys(acl.perms).forEach(
                         (rw) =>
                             (acl.perms[rw] = acl.perms[rw].map((group) =>
                                 group === 'admin' ? 'sc_admin' : group
                             ))
-                    );
+                    );*/
                     output[app] ||= {};
                     output[app][file] = {
                         src: acl,
@@ -158,13 +156,18 @@ export default ({ step, config }) => {
                                         <b>{app}</b> / {file}
                                     </Table.Cell>
                                     <Table.Cell>
-                                        {src.sharing} / {dst?.sharing} {JSON.stringify(src.perms)}
+                                        {src.sharing} > {dst?.sharing}
                                     </Table.Cell>
                                     <Table.Cell>
                                         {src &&
                                             (!file.endsWith('.kmz') ? (
                                                 <OpenLookup
-                                                    {...{ hook: useLookup, target: config.src, app, file, }}
+                                                    {...{
+                                                        hook: useLookup,
+                                                        target: config.src,
+                                                        app,
+                                                        file,
+                                                    }}
                                                 />
                                             ) : (
                                                 'Cannot display'
@@ -174,14 +177,23 @@ export default ({ step, config }) => {
                                         {dst &&
                                             (!file.endsWith('.kmz') ? (
                                                 <OpenLookup
-                                                    {...{ hook: useLookup, target: config.dst, app, file,  }}
+                                                    {...{
+                                                        hook: useLookup,
+                                                        target: config.dst,
+                                                        app,
+                                                        file,
+                                                    }}
                                                 />
                                             ) : (
                                                 'Cannot display'
                                             ))}
                                     </Table.Cell>
                                     <Table.Cell>
-                                        {dst && <LookupCompare {...{hook: useCollection, app, file, config }} />}
+                                        {dst && (
+                                            <LookupCompare
+                                                {...{ hook: useLookup, app, file, config }}
+                                            />
+                                        )}
                                     </Table.Cell>
                                     <Table.Cell>
                                         <LookupCopy

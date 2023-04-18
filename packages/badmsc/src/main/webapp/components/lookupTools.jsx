@@ -21,6 +21,8 @@ export const OpenLookup = ({ hook, target, app, file }) => {
         modalToggle?.current?.focus(); // Must return focus to the invoking element when the modal closes
     };
 
+    console.log(lookup)
+
     return (
         <>
             <Button onClick={handleRequestOpen} ref={modalToggle} label="View" />

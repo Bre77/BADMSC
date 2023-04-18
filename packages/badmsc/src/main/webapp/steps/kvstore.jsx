@@ -1,8 +1,8 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useApps, useGetApi } from '../shared/hooks';
 import { isort0, wrapSetValue } from '../shared/helpers';
-import {OpenLookup,LookupCompare} from '../components/lookupTools';
+import { OpenLookup, LookupCompare } from '../components/lookupTools';
 import { handle } from '../shared/hooks';
 
 // Splunk UI
@@ -10,9 +10,7 @@ import Heading from '@splunk/react-ui/Heading';
 import P from '@splunk/react-ui/Paragraph';
 import Button from '@splunk/react-ui/Button';
 import Table from '@splunk/react-ui/Table';
-import Message from '@splunk/react-ui/Message';
 import WaitSpinner from '@splunk/react-ui/WaitSpinner';
-import Link from '@splunk/react-ui/Link';
 import { request } from '../shared/fetch';
 
 const getCollection = (target, app, collection) =>
@@ -29,7 +27,7 @@ const useCollection = (target, app, collection, enabled) =>
         queryFn: () => getCollection(target, app, collection).then(handle),
         queryKey: [target.key, 'kvstore', app, collection],
         enabled,
-    }); 
+    });
 
 const LookupCopy = ({ app, file, config }) => {
     const queryClient = useQueryClient();
@@ -56,7 +54,6 @@ const LookupCopy = ({ app, file, config }) => {
         </Button>
     );
 };
-
 
 const lookupHandle = (data) =>
     data.entry.reduce((x, { name, acl }) => {
@@ -86,16 +83,16 @@ export default ({ step, config }) => {
         const output = {};
         Object.entries(src.data).forEach(([app, files]) => {
             if (app in dst_apps.data) {
-                Object.entries(files).forEach(([file, { perms, sharing, path, owner }]) => {
-                    Object.keys(perms).forEach((rw) =>
-                        perms[rw].map((group) => (group === 'admin' ? 'sc_admin' : group))
-                    );
+                Object.entries(files).forEach(([file, acl]) => {
+                    /*Object.keys(acl.perms).forEach(
+                        (rw) =>
+                            (acl.perms[rw] = acl.perms[rw].map((group) =>
+                                group === 'admin' ? 'sc_admin' : group
+                            ))
+                    );*/
                     output[app] ||= {};
                     output[app][file] = {
-                        perms,
-                        sharing,
-                        owner,
-                        src: true,
+                        src: acl,
                         dst: !!dst.data?.[app]?.[file],
                     };
                 });
@@ -116,7 +113,7 @@ export default ({ step, config }) => {
                 <Table stripeRows>
                     <Table.Head>
                         <Table.HeadCell>Name</Table.HeadCell>
-
+                        <Table.HeadCell>Scope</Table.HeadCell>
                         <Table.HeadCell>Local</Table.HeadCell>
                         <Table.HeadCell>Cloud</Table.HeadCell>
                         <Table.HeadCell>Compare</Table.HeadCell>
@@ -124,10 +121,13 @@ export default ({ step, config }) => {
                     </Table.Head>
                     <Table.Body>
                         {lookups.flatMap(([app, files]) =>
-                            files.map(([file, { perms, sharing, src, dst }]) => (
+                            files.map(([file, { src, dst }]) => (
                                 <Table.Row key={app + '/' + file}>
                                     <Table.Cell>
                                         <b>{app}</b> / {file}
+                                    </Table.Cell>
+                                    <Table.Cell>
+                                        {src.sharing} > {dst?.sharing}
                                     </Table.Cell>
                                     <Table.Cell>
                                         {src && (
@@ -154,7 +154,11 @@ export default ({ step, config }) => {
                                         )}
                                     </Table.Cell>
                                     <Table.Cell>
-                                        {dst && <LookupCompare {...{ hook: useCollection, app, file, config }} />}
+                                        {dst && (
+                                            <LookupCompare
+                                                {...{ hook: useCollection, config, app, file }}
+                                            />
+                                        )}
                                     </Table.Cell>
                                     <Table.Cell>
                                         <LookupCopy
