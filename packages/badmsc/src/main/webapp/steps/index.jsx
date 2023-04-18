@@ -18,14 +18,14 @@ import Auth from './auth';
 import Allowlist from './allowlist';
 import Indexes from './indexes';
 import Apps from './apps';
-import Lookups from './lookups';
+import CSV from './lookup_csv';
 import Sourcetypes from './sourcetypes';
 import ConfigSystem from './config_system';
 import ConfigGlobal from './config_global';
 import ConfigApp from './config_app';
 import Nav from './nav';
 import Views from './views';
-import KVStore from './kvstore';
+import KV from './lookup_kv';
 import Users from './users';
 import Data from './data';
 import Finish from './finish';
@@ -44,8 +44,8 @@ const steps = [
     ['Private Config', Users],
     ['Navigation', Nav],
     ['Views', Views],
-    ['Lookups', Lookups],
-    ['KV Store', KVStore],
+    ['CSV Lookups', CSV],
+    ['KV Lookups', KV],
     ['Data', Data],
     ['Finish', Finish],
 ];
