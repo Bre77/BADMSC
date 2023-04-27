@@ -2,181 +2,51 @@ import React, { useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useApps, useGetApi } from '../shared/hooks';
 import { isort0, wrapSetValue } from '../shared/helpers';
-import { OpenLookup, LookupCompare } from '../components/lookupTools';
+import { OpenLookup, LookupCompare } from '../components/lookup';
 import { handle } from '../shared/hooks';
+import Lookup from '../components/lookup';
 
 // Splunk UI
 import Heading from '@splunk/react-ui/Heading';
 import P from '@splunk/react-ui/Paragraph';
-import Button from '@splunk/react-ui/Button';
-import Table from '@splunk/react-ui/Table';
 import WaitSpinner from '@splunk/react-ui/WaitSpinner';
 import { request } from '../shared/fetch';
 
-const getLookup = (target, app, file) =>
-    request({
-        url: `${target.api}/servicesNS/nobody/lookup_editor/data/lookup_edit/lookup_contents`,
-        method: 'GET',
-        headers: {
-            Authorization: `Bearer ${target.token}`,
-        },
-        params: {
-            lookup_file: file,
-            namespace: app,
-            lookup_type: 'kv',
-        },
-    });
-
-const useLookup = (target, app, collection, enabled) =>
-    useQuery({
-        queryFn: () => getLookup(target, app, collection).then(handle),
-        queryKey: [target.key, 'kvstore', app, collection],
-        enabled,
-    });
-
-const LookupCopy = ({ app, file, config }) => {
-    const queryClient = useQueryClient();
-    const copy = useMutation(() =>
-        getLookup(config.src, app, file)
-            .then((res) => res.json()) // Parse to avoid double encoding
-            .then((json) =>
+export default ({ step, config }) => {
+    const mutation = (contents, app, file) =>
+        request({
+            url: `${config.dst.api}/servicesNS/nobody/-/storage/collections/data/${file}/batch_save`,
+            method: 'POST',
+            headers: {
+                Authorization: `Bearer ${config.dst.token}`,
+                'Content-Type': 'application/json',
+            },
+            json: contents
+                .slice(1)
+                .map((row) => Object.fromEntries(contents[0].map((e, i) => [e, row[i]]))),
+        })
+            .then(() =>
                 request({
-                    url: `${config.dst.api}/servicesNS/nobody/lookup_editor/data/lookup_edit/lookup_contents`,
-                    method: 'POST',
+                    url: `${config.dst.api}/servicesNS/nobody/${app}/storage/collections/${file}/acl`,
+                    method: 'GET',
+                    params: { output_mode: 'json' },
                     headers: {
                         Authorization: `Bearer ${config.dst.token}`,
-                        'Content-Type': 'application/json',
                     },
-                    json,
-                }).then(() => {
-                    queryClient.invalidateQueries(['dst', 'services/data/lookup-table-files']);
                 })
             )
-    );
-    return (
-        <Button onClick={copy.mutate} disabled={copy.isLoading}>
-            Copy
-        </Button>
-    );
-};
-
-const lookupHandle = (data) =>
-    data.entry.reduce((x, { name, acl }) => {
-        x[acl.app] ||= {};
-        x[acl.app][name] = acl;
-        return x;
-    }, {});
-
-export default ({ step, config }) => {
-    const src = useGetApi(
-        config.src,
-        `/servicesNS/nobody/-/storage/collections/config`,
-        lookupHandle
-    );
-    const dst = useGetApi(
-        config.dst,
-        `/servicesNS/nobody/-/storage/collections/config`,
-        lookupHandle
-    );
-    const dst_apps = useApps(config.dst);
-
-    const isLoading = dst.isLoading || src.isLoading || dst_apps.isLoading;
-
-    const lookups = useMemo(() => {
-        if (isLoading) return [];
-
-        const output = {};
-        Object.entries(src.data).forEach(([app, files]) => {
-            if (app in dst_apps.data) {
-                Object.entries(files).forEach(([file, acl]) => {
-                    /*Object.keys(acl.perms).forEach(
-                        (rw) =>
-                            (acl.perms[rw] = acl.perms[rw].map((group) =>
-                                group === 'admin' ? 'sc_admin' : group
-                            ))
-                    );*/
-                    output[app] ||= {};
-                    output[app][file] = {
-                        src: acl,
-                        dst: dst.data?.[app]?.[file],
-                    };
-                });
-            } else console.log(`Skipping ${app} because its not in cloud`);
-        });
-        return Object.entries(output)
-            .sort(isort0)
-            .map(([app, files]) => [app, Object.entries(files).sort(isort0)]);
-    }, [dst.data, src.data, dst_apps.data]);
+            .then(handle);
 
     return (
         <div>
             <P>KV Store are special lookups that leverage MongoDB.</P>
             <Heading level={2}>Step {step}.1 - Copy KV Store data</Heading>
-            {src.isLoading || dst.isLoading ? (
-                <WaitSpinner size="large" />
-            ) : (
-                <Table stripeRows>
-                    <Table.Head>
-                        <Table.HeadCell>Name</Table.HeadCell>
-                        <Table.HeadCell>Scope</Table.HeadCell>
-                        <Table.HeadCell>Local</Table.HeadCell>
-                        <Table.HeadCell>Cloud</Table.HeadCell>
-                        <Table.HeadCell>Compare</Table.HeadCell>
-                        <Table.HeadCell>Copy</Table.HeadCell>
-                    </Table.Head>
-                    <Table.Body>
-                        {lookups.flatMap(([app, files]) =>
-                            files.map(([file, { src, dst }]) => (
-                                <Table.Row key={app + '/' + file}>
-                                    <Table.Cell>
-                                        <b>{app}</b> / {file}
-                                    </Table.Cell>
-                                    <Table.Cell>
-                                        {src.sharing} > {dst?.sharing}
-                                    </Table.Cell>
-                                    <Table.Cell>
-                                        {src && (
-                                            <OpenLookup
-                                                {...{
-                                                    hook: useLookup,
-                                                    target: config.src,
-                                                    app,
-                                                    file,
-                                                }}
-                                            />
-                                        )}
-                                    </Table.Cell>
-                                    <Table.Cell>
-                                        {dst && (
-                                            <OpenLookup
-                                                {...{
-                                                    hook: useLookup,
-                                                    target: config.src,
-                                                    app,
-                                                    file,
-                                                }}
-                                            />
-                                        )}
-                                    </Table.Cell>
-                                    <Table.Cell>
-                                        {dst && (
-                                            <LookupCompare
-                                                {...{ hook: useLookup, config, app, file }}
-                                            />
-                                        )}
-                                    </Table.Cell>
-                                    <Table.Cell>
-                                        <LookupCopy
-                                            {...{ app, file, config }}
-                                            label={dst ? 'Overwrite' : 'Create'}
-                                        />
-                                    </Table.Cell>
-                                </Table.Row>
-                            ))
-                        )}
-                    </Table.Body>
-                </Table>
-            )}
+            <Lookup
+                config={config}
+                type="kv"
+                path="servicesNS/nobody/-/storage/collections/config"
+                mutationFn={mutation}
+            />
         </div>
     );
 };

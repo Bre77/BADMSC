@@ -1,4 +1,4 @@
-import React, { useState, useRef, useMemo, useMutation } from 'react';
+import React, { useState, useRef, useMemo } from 'react';
 
 // Splunk UI
 import Button from '@splunk/react-ui/Button';
@@ -7,11 +7,14 @@ import WaitSpinner from '@splunk/react-ui/WaitSpinner';
 import Modal from '@splunk/react-ui/Modal';
 import { isort0 } from '../shared/helpers';
 import { handle } from '../shared/hooks';
-import MutateButton from '../components/mutateButton';
+import MutateButton from './mutateButton';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { request } from '../shared/fetch';
+import { useGetApi, useApps } from '../shared/hooks';
 
-const getLookup = (target, app, file, path, type) =>
+const getLookup = (target, app, file, type) =>
     request({
-        url: `${target.api}/${path}`,
+        url: `${target.api}/servicesNS/nobody/lookup_editor/data/lookup_edit/lookup_contents`,
         method: 'GET',
         headers: {
             Authorization: `Bearer ${target.token}`,
@@ -23,10 +26,17 @@ const getLookup = (target, app, file, path, type) =>
         },
     });
 
-export const OpenLookup = ({ hook, target, app, file }) => {
+const useLookup = (target, app, file, type, enabled) =>
+    useQuery({
+        queryFn: () => getLookup(target, app, file, type).then(handle),
+        queryKey: [target.key, type, app, file],
+        enabled,
+    });
+
+export const OpenLookup = ({ target, app, file, type }) => {
     const modalToggle = useRef(null);
     const [open, setOpen] = useState(false);
-    const lookup = hook(target, app, file, open);
+    const lookup = useLookup(target, app, file, type, open);
 
     const handleRequestOpen = () => {
         setOpen(true);
@@ -42,7 +52,7 @@ export const OpenLookup = ({ hook, target, app, file }) => {
             <Button onClick={handleRequestOpen} ref={modalToggle} label="View" />
             <Modal onRequestClose={handleRequestClose} open={open}>
                 <Modal.Body>
-                    {lookup.isLoading ? (
+                    {lookup.isLoading || !open ? (
                         <WaitSpinner />
                     ) : (
                         <Table stripeRows>
@@ -68,13 +78,13 @@ export const OpenLookup = ({ hook, target, app, file }) => {
     );
 };
 
-export const LookupCompare = ({ hook, config, app, file }) => {
+export const LookupCompare = ({ config, app, file, type }) => {
     const [enabled, setEnabled] = useState(false);
-    const src = hook(config.src, app, file, enabled);
-    const dst = hook(config.dst, app, file, enabled);
+    const src = useLookup(config.src, app, file, type, enabled);
+    const dst = useLookup(config.dst, app, file, type, enabled);
 
     const same = useMemo(
-        () => (src.data && dst.data ? JSON.stringify(src.data) == JSON.stringify(dst.data) : null),
+        () => (src.data && dst.data ? JSON.stringify(src.data) === JSON.stringify(dst.data) : null),
         [src.data, dst.data]
     );
 
@@ -99,16 +109,27 @@ export const LookupCompare = ({ hook, config, app, file }) => {
     );
 };
 
-const LookupCopy = ({ mutationFn, app, file, config }) => {
-    const copy = useMutation(() => mutationFn(app, file, config));
-    return <MutateButton mutation={copy} label="Copy"/>
-
+const LookupCopy = ({ mutationFn, app, file, type, config, path, label }) => {
+    const QueryClient = useQueryClient();
+    const copy = useMutation(() =>
+        getLookup(config.src, app, file, type) // I dont know how to make this use useLookup
+            .then((res) => res.text()) // Comes in as JSON, goes out as JSON, no need to parse
+            .then((contents) => mutationFn(contents, app, file))
+            .then(() => QueryClient.invalidateQueries([config.dst.key, path]))
+    );
+    return <MutateButton mutation={copy} label={label} />;
 };
 
-export default ({ config, get_path }) => {
-    const src = useGetApi(config.src, get_path, lookupHandle);
-    const dst = useGetApi(config.dst, get_path, lookupHandle);
-    const src_apps = useApps(config.src);
+const lookupHandle = (data) =>
+    data.entry.reduce((x, { name, acl }) => {
+        x[acl.app] ||= {};
+        x[acl.app][name] = acl;
+        return x;
+    }, {});
+
+export default ({ config, type, path, mutationFn }) => {
+    const src = useGetApi(config.src, path, lookupHandle);
+    const dst = useGetApi(config.dst, path, lookupHandle);
     const dst_apps = useApps(config.dst);
 
     const isLoading = dst.isLoading || src.isLoading || dst_apps.isLoading;
@@ -139,7 +160,7 @@ export default ({ config, get_path }) => {
             .map(([app, files]) => [app, Object.entries(files).sort(isort0)]);
     }, [dst.data, src.data, dst_apps.data]);
 
-    return src.isLoading || dst.isLoading ? (
+    return isLoading ? (
         <WaitSpinner size="large" />
     ) : (
         <Table stripeRows>
@@ -166,10 +187,10 @@ export default ({ config, get_path }) => {
                                     (!file.endsWith('.kmz') ? (
                                         <OpenLookup
                                             {...{
-                                                hook: useLookup,
                                                 target: config.src,
                                                 app,
                                                 file,
+                                                type,
                                             }}
                                         />
                                     ) : (
@@ -181,10 +202,10 @@ export default ({ config, get_path }) => {
                                     (!file.endsWith('.kmz') ? (
                                         <OpenLookup
                                             {...{
-                                                hook: useLookup,
                                                 target: config.dst,
                                                 app,
                                                 file,
+                                                type,
                                             }}
                                         />
                                     ) : (
@@ -193,12 +214,22 @@ export default ({ config, get_path }) => {
                             </Table.Cell>
                             <Table.Cell>
                                 {dst && (
-                                    <LookupCompare {...{ hook: useLookup, app, file, config }} />
+                                    <LookupCompare
+                                        config={config}
+                                        app={app}
+                                        file={file}
+                                        type={type}
+                                    />
                                 )}
                             </Table.Cell>
                             <Table.Cell>
                                 <LookupCopy
-                                    {...{ app, file, config }}
+                                    mutationFn={mutationFn}
+                                    app={app}
+                                    file={file}
+                                    type={type}
+                                    config={config}
+                                    path={path}
                                     label={dst ? 'Overwrite' : 'Create'}
                                 />
                             </Table.Cell>
