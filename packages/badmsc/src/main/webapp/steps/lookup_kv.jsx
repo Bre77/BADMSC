@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useApps, useGetApi } from '../shared/hooks';
+import { useApps, useApi } from '../shared/hooks';
 import { isort0, wrapSetValue } from '../shared/helpers';
 import { OpenLookup, LookupCompare } from '../components/lookup';
 import { handle } from '../shared/hooks';

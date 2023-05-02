@@ -26,7 +26,7 @@ import DL from '@splunk/react-ui/DefinitionList';
 import { wrapSetValue } from '../shared/helpers';
 
 import { makeBody, request } from '../shared/fetch';
-import { handle, useAcs, useConfig, useGetApi } from '../shared/hooks';
+import { handle, useAcs, useConfig, useApi } from '../shared/hooks';
 
 const StatusCheck = ({ host, disabled, method = 'GET' }) => {
     const { data, isLoading } = useQuery({
@@ -112,7 +112,7 @@ export default ({ step, config }) => {
         if (config?.dst?.acs) setDstAcs(config.dst.acs);
     }, [config]);
 
-    //const apiTest = useGetApi({ api, token }, 'services/admin/server-info');
+    //const apiTest = useApi({ api, token }, 'services/admin/server-info');
 
     const queryClient = useQueryClient();
     const mutatePassword = useMutation({

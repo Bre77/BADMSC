@@ -29,6 +29,7 @@ import KV from './lookup_kv';
 import Users from './users';
 import Data from './data';
 import Finish from './finish';
+import Roles from './roles'
 
 const steps = [
     ['Start', Start],
@@ -36,7 +37,7 @@ const steps = [
     ['IP Allow Lists', Allowlist],
     ['Indexes', Indexes],
     ['Apps', Apps],
-    ['Roles', Users],
+    ['Roles', Roles],
     ['Sourcetypes', Sourcetypes],
     ['System Config', ConfigSystem],
     ['Global Config', ConfigGlobal],

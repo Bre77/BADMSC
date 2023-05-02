@@ -38,7 +38,7 @@ export const useConfig = () =>
         notifyOnChangeProps: ['data'],
     });
 
-export const useGetApi = (target, path, postprocess = entry, staleTime = Infinity) =>
+export const useApi = (target, path, postprocess = entry, staleTime = Infinity) =>
     useQuery({
         queryKey: [target.key, path],
         queryFn: () =>
@@ -58,7 +58,7 @@ export const useGetApi = (target, path, postprocess = entry, staleTime = Infinit
 
 export const useApps = (target) =>
     // useApps is called in multiple steps, so is defined once for consistency
-    useGetApi(target, 'services/apps/local', (data) =>
+    useApi(target, 'services/apps/local', (data) =>
         Object.fromEntries(data.entry.map((app) => [app.name, app]))
     );
 

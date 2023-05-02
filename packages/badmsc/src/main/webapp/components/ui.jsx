@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useGetApi, useApps } from '../shared/hooks';
+import { useApi, useApps } from '../shared/hooks';
 import { isort0 } from '../shared/helpers';
 
 // Splunk UI
@@ -22,8 +22,8 @@ const handleUi = (data) =>
     }, {});
 
 export default ({ config, folder }) => {
-    const src = useGetApi(config.src, `servicesNS/nobody/-/data/ui/${folder}`, handleUi);
-    const dst = useGetApi(config.dst, `servicesNS/nobody/-/data/ui/${folder}`, handleUi);
+    const src = useApi(config.src, `servicesNS/nobody/-/data/ui/${folder}`, handleUi);
+    const dst = useApi(config.dst, `servicesNS/nobody/-/data/ui/${folder}`, handleUi);
     const dst_apps = useApps(config.dst);
 
     const isLoading = dst.isLoading || src.isLoading || dst_apps.isLoading;

@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useGetApi, useApps } from '../shared/hooks';
+import { useApi, useApps } from '../shared/hooks';
 import { isort0, wrapSetValue } from '../shared/helpers';
 import { REQUEST_URL, FETCH_INIT, request } from '../shared/fetch';
 

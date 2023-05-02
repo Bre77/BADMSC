@@ -10,7 +10,7 @@ import { handle } from '../shared/hooks';
 import MutateButton from './mutateButton';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { request } from '../shared/fetch';
-import { useGetApi, useApps } from '../shared/hooks';
+import { useApi, useApps } from '../shared/hooks';
 
 const getLookup = (target, app, file, type) =>
     request({
@@ -128,8 +128,8 @@ const lookupHandle = (data) =>
     }, {});
 
 export default ({ config, type, path, mutationFn }) => {
-    const src = useGetApi(config.src, path, lookupHandle);
-    const dst = useGetApi(config.dst, path, lookupHandle);
+    const src = useApi(config.src, path, lookupHandle);
+    const dst = useApi(config.dst, path, lookupHandle);
     const dst_apps = useApps(config.dst);
 
     const isLoading = dst.isLoading || src.isLoading || dst_apps.isLoading;
