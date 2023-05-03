@@ -7,7 +7,12 @@ import { CONF_FILES } from './const';
 
 export const LOCAL_URL = `${splunkdPath}/servicesNS/${username}/badmsc`;
 
-export const handle = (res) => (res.ok ? res.json() : Promise.reject(res.text()));
+export const handle = (res) => 
+    res.ok ? res.json() : res.text().then(text=>{
+        console.error(text);
+        return Promise.reject(text)
+    })
+
 const entry = (data) => data.entry;
 
 export const useConfig = () =>

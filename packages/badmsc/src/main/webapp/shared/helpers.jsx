@@ -1,14 +1,6 @@
-import React, { useReducer, useState } from 'react';
-import { useMutation, useQueries, useQuery, useQueryClient } from '@tanstack/react-query';
+import React, { useReducer } from 'react';
 
 // Splunk UI
-import Tooltip from '@splunk/react-ui/Tooltip';
-import WaitSpinner from '@splunk/react-ui/WaitSpinner';
-import Success from '@splunk/react-icons/Success';
-import Error from '@splunk/react-icons/Error';
-import NotAllowed from '@splunk/react-icons/NotAllowed';
-import { splunkdPath } from '@splunk/splunk-utils/config';
-import { defaultFetchInit } from '@splunk/splunk-utils/fetch';
 
 export const isort = (a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }); // Case insensitive sort
 export const isort0 = (a, b) => a[0].localeCompare(b[0], undefined, { sensitivity: 'base' });
@@ -25,15 +17,6 @@ export const localLoad = (key, fallback = null) => {
     } catch {
         return fallback;
     }
-};
-
-export const useLocal = (key, fallback) => {
-    return useReducer((prev, value) => {
-        value === null
-            ? window.localStorage.removeItem(key)
-            : window.localStorage.setItem(key, JSON.stringify(value));
-        return value;
-    }, localLoad(key, fallback));
 };
 
 export const wrapSetValue =

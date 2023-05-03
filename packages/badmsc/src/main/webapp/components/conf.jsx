@@ -205,7 +205,7 @@ const CopyConfig = ({ config, scope, file, app, stanza, attr, perms, exists }) =
             .then(processConfs)
             .then((newdata) =>
                 queryClient.setQueryData(['dst', 'config', file], (olddata) => {
-                    olddata[app][stanza] = newdata[app][stanza];
+                    olddata[app][stanza] = newdata[app][stanza]; //This is a mutation which is not allowed
                     return olddata;
                 })
             );

@@ -3,12 +3,6 @@
 import { splunkdPath } from '@splunk/splunk-utils/config';
 import { defaultFetchInit } from '@splunk/splunk-utils/fetch';
 
-import { TOAST_TYPES } from '@splunk/react-toast-notifications/ToastConstants';
-import Toaster, { makeCreateToast } from '@splunk/react-toast-notifications/Toaster';
-
-// Helpers
-const Toast = makeCreateToast(Toaster);
-
 export const makeBody = (data) => {
     return Object.entries(data).reduce((form, [key, value]) => {
         form.append(key, value);
@@ -31,4 +25,4 @@ export const request = (body) =>
     fetch(REQUEST_URL, {
         ...FETCH_INIT,
         body: JSON.stringify(body),
-    });
+    })
