@@ -11,6 +11,7 @@ import { Typography } from '@splunk/react-ui/Typography';
 import { request } from '../shared/fetch';
 import Message from '@splunk/react-ui/Message';
 import { dedup } from '../shared/helpers';
+import Button from '@splunk/react-ui/Button';
 
 const ENDPOINT = 'services/authorization/roles';
 const SYMBOLS = ['!', '+', '~', ' '];
@@ -30,6 +31,9 @@ const handleRoles = (data) =>
     Object.fromEntries(data.entry.map(({ name, content }) => [name, content]));
 
 const CreateButton = ({ config, role, data, exists }) => {
+    if (exists && !data.length) {
+        return <Button label="Empty" disabled />;
+    }
     const queryClient = useQueryClient();
     let url = `${config.dst.api}/${ENDPOINT}/`;
     exists ? (url += role) : data.push(['name', role]);
@@ -60,8 +64,8 @@ export default ({ step, config }) => {
     const queryClient = useQueryClient();
     const src = useApi(config.src, ENDPOINT, handleRoles);
     const dst = useApi(config.dst, ENDPOINT, handleRoles);
-    const srcCapabilities = useApi(
-        config.src,
+    const dstCapabilities = useApi(
+        config.dst,
         'services/authorization/capabilities',
         (data) => data.entry[0].content.capabilities
     );
@@ -69,7 +73,11 @@ export default ({ step, config }) => {
     const dstApps = useApps(config.dst);
 
     const isLoading =
-        src.isLoading || dst.isLoading || srcCapabilities.isLoading || dstIndexes.isLoading || dstApps.isLoading;
+        src.isLoading ||
+        dst.isLoading ||
+        dstCapabilities.isLoading ||
+        dstIndexes.isLoading ||
+        dstApps.isLoading;
 
     const missingRoles = useMemo(() => {
         if (src.isLoading || dst.isLoading) return [];
@@ -84,8 +92,8 @@ export default ({ step, config }) => {
         if (isLoading) return [];
 
         const allowedIndexes = dstIndexes.data.map((i) => i.name);
-        allowedIndexes.push("*")
-        const allowedApps = Object.keys(dstApps.data)
+        allowedIndexes.push('*');
+        const allowedApps = Object.keys(dstApps.data);
 
         return Object.entries(src.data)
             .filter(([name]) => !['admin', 'sc_admin', 'splunk-system-role'].includes(name))
@@ -102,20 +110,31 @@ export default ({ step, config }) => {
                     field,
                     srcContent[field],
                     dstContent[field],
-                ]).filter(([field, src, dst]) => src && src !== dst && (field !== 'defaultApp' || allowedApps.includes(src) || console.info(`Ignoring default app '${src}' on role '${name}'`)));
-
-                
+                ]).filter(
+                    ([field, src, dst]) =>
+                        src &&
+                        src !== dst &&
+                        (field !== 'defaultApp' ||
+                            allowedApps.includes(src) ||
+                            console.info(`Ignoring default app '${src}' on role '${name}'`))
+                );
 
                 return [
                     name,
                     dedup([...srcContent.capabilities, ...dstContent.capabilities])
+                        .filter(
+                            (cap) =>
+                                dstCapabilities.data.includes(cap) ||
+                                console.info(`Ignoring capability '${cap}' on role '${name}'`)
+                        )
                         .sort()
                         .map((cap) => [
                             cap,
-                            srcContent.capabilities.includes(cap),
-                            dstContent.capabilities.includes(cap),
-                        ])
-                        .map(([cap, s, d]) => [cap, ['', '+', '~', ' '][s + 2 * d]]),
+                            SYMBOLS[
+                                srcContent.capabilities.includes(cap) +
+                                    2 * dstContent.capabilities.includes(cap)
+                            ],
+                        ]),
                     dedup([...srcContent.imported_roles, ...dstContent.imported_roles])
                         .sort()
                         .map((role) => [
@@ -127,7 +146,11 @@ export default ({ step, config }) => {
                             ],
                         ]),
                     dedup([...srcContent.srchIndexesAllowed, ...dstContent.srchIndexesAllowed])
-                        .filter((index) => allowedIndexes.includes(index) || console.info(`Ignoring allowed index '${index}' on role '${name}'`))
+                        .filter(
+                            (index) =>
+                                allowedIndexes.includes(index) ||
+                                console.info(`Ignoring allowed index '${index}' on role '${name}'`)
+                        )
                         .sort()
                         .map((index) => [
                             index,
@@ -137,7 +160,11 @@ export default ({ step, config }) => {
                             ],
                         ]),
                     dedup([...srcContent.srchIndexesDefault, ...dstContent.srchIndexesDefault])
-                        .filter((index) => allowedIndexes.includes(index)  || console.info(`Ignoring default index '${index}' on role '${name}'`))
+                        .filter(
+                            (index) =>
+                                allowedIndexes.includes(index) ||
+                                console.info(`Ignoring default index '${index}' on role '${name}'`)
+                        )
                         .sort()
                         .map((index) => [
                             index,
@@ -150,7 +177,13 @@ export default ({ step, config }) => {
                         ...srcContent.srchIndexesDisallowed,
                         ...dstContent.srchIndexesDisallowed,
                     ])
-                        .filter((index) => allowedIndexes.includes(index) || console.info(`Ignoring disallowed index '${index}' on role '${name}'`))
+                        .filter(
+                            (index) =>
+                                allowedIndexes.includes(index) ||
+                                console.info(
+                                    `Ignoring disallowed index '${index}' on role '${name}'`
+                                )
+                        )
                         .sort()
                         .map((index) => [
                             index,
@@ -162,7 +195,7 @@ export default ({ step, config }) => {
                     others,
                 ];
             });
-    }, [src.data, dst.data, srcCapabilities.data, dstIndexes.data, dstApps.data]);
+    }, [src.data, dst.data, dstCapabilities.data, dstIndexes.data, dstApps.data]);
 
     const createRoles = useMutation(() => {
         return missingRoles.reduce(
@@ -223,7 +256,10 @@ export default ({ step, config }) => {
                 marked with an exclamation mark (!) have an issue and will fail. For example an
                 inherited roled or a default app doesnt exist.
             </P>
-            <Message>If you did not migrate all apps and indexes, they will be filtered out on this page. See console for a list of ignored items.</Message>
+            <Message appearance="fill" type="warning">
+                If you did not migrate all apps and indexes, they will be filtered out on this page.
+                See console for a list of ignored items.
+            </Message>
             <Table stripeRows>
                 <Table.Head>
                     <Table.HeadCell>Role</Table.HeadCell>
