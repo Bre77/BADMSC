@@ -5,7 +5,7 @@ import { isort0, latest } from '../shared/helpers';
 import { CONF_FILES, ATTR_BLACKLIST } from '../shared/const';
 import { request } from '../shared/fetch';
 import styled from 'styled-components';
-import MutateButton from '../components/mutateButton';
+import MutateButton from './mutateButton';
 
 // Splunk UI
 import Button from '@splunk/react-ui/Button';

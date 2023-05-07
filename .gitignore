@@ -1,3 +1,5 @@
+stage/
+temp
 .DS_Store
 .idea/
 lerna-debug.log
