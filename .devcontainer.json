@@ -1,5 +1,0 @@
-{
-  "image": "hub.docker.com/r/splunk/splunk/",
-  "postCreateCommand": "",
-  "forwardPorts": [8000]
-}

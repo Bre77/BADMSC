@@ -1,5 +1,5 @@
 {
   "build": { "dockerfile": "dockerfile" },
-  "postCreateCommand": "",
+  "postCreateCommand": "/opt/splunk/bin/splunk start",
   "forwardPorts": [8000]
 }
