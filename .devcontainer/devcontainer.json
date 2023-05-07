@@ -1,0 +1,5 @@
+{
+  "build": { "dockerfile": "dockerfile" },
+  "postCreateCommand": "",
+  "forwardPorts": [8000]
+}

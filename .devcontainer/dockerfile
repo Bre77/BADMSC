@@ -1,0 +1,5 @@
+FROM splunk/splunk as splunk
+FROM mcr.microsoft.com/devcontainers/javascript-node
+COPY --from=splunk /opt/splunk /opt/splunk
+ENV SPLUNK_HOME=/opt/splunk
+#RUN /opt/splunk/bin/splunk start --accept-license --answer-yes --no-prompt --seed-passwd devcontainer
