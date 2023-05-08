@@ -15,6 +15,7 @@ import WaitSpinner from '@splunk/react-ui/WaitSpinner';
 import ControlGroup from '@splunk/react-ui/ControlGroup';
 import { wrapSetValue } from '../shared/helpers';
 import { request } from '../shared/fetch';
+import Link from '@splunk/react-ui/Link';
 
 const Allowlist = ({ feature, config }) => {
     const query = useAcs(config.dst, `access/${feature}/ipallowlists`);
@@ -136,6 +137,7 @@ export default ({ step, config }) => {
                 test fails you will need to modify the Search Head API allow list and wait a few
                 minutes.
             </P>
+
             {test.fetchStatus == 'fetching' ? (
                 <Message appearance="fill" type="info">
                     Testing connection to the Splunk Cloud Search Head REST API
@@ -146,7 +148,7 @@ export default ({ step, config }) => {
                 </Message>
             ) : (
                 <Message appearance="fill" type="error">
-                    Failed to connect to the Splunk Cloud Search Head REST API
+                    Failed to connect to the Splunk Cloud Search Head REST API. <Link onClick={() => test.refetch()}>Click here to try again.</Link>
                 </Message>
             )}
         </div>
