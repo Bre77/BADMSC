@@ -259,7 +259,7 @@ export default ({ step, config }) => {
             <MutateButton mutation={mutatePassword} label="Save" />
             <Heading level={2}>Step {step}.4 - External Access Check</Heading>
             <P>
-                To perform the migration, this Search Head will also need access to the following
+                To perform the migration, this Search Head will also access the following
                 domains using HTTPS. If these checks fail, either the stack name is incorrect or
                 your proxy/firewall rules are preventing access.
             </P>
@@ -280,6 +280,7 @@ export default ({ step, config }) => {
                             /^(es-|itsi-)/,
                             ''
                         )}/services/collector/health`}
+                        disabled={dst_sh == ''}
                     />{' '}
                     http-inputs-{dst_sh.replace(/^(es-|itsi-)/, '')} (optional)
                 </List.Item>
