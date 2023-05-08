@@ -5,14 +5,10 @@ import styled, { createGlobalStyle } from 'styled-components';
 import { variables, mixins } from '@splunk/themes';
 import { QueryClient, QueryClientProvider, useIsFetching } from '@tanstack/react-query';
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
-
-// Splunk UI
 import layout from '@splunk/react-page';
 import { getUserTheme } from '@splunk/splunk-utils/themes';
 import Progress from '@splunk/react-ui/Progress';
 import ToastMessages from '@splunk/react-toast-notifications/ToastMessages';
-
-//Shared
 import Steps from '../../steps';
 
 const StyledContainer = styled.div`
@@ -32,7 +28,7 @@ const GlobalStyle = createGlobalStyle`
 
 const Loading = () => {
     const isFetching = useIsFetching();
-    return isFetching ? <Progress percentage={100} /> : <div style={{ height: '3px' }}></div>;
+    return isFetching ? <Progress percentage={100} /> : <div style={{ height: '3px' }} />;
 };
 
 // Setup the query client with defaults
