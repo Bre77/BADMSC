@@ -1,10 +1,10 @@
 FROM splunk/splunk as splunk
 FROM mcr.microsoft.com/devcontainers/javascript-node:14
+USER node
 COPY --from=splunk --chown=node /opt/splunk /opt/splunk
 COPY --from=splunk --chown=node /opt/splunk-etc /opt/splunk/etc
 RUN echo '\nOPTIMISTIC_ABOUT_FILE_LOCKING = 1' >> /opt/splunk/etc/splunk-launch.conf
-RUN git clone https://github.com/Bre77/splunk-dev.git /opt/splunk/etc/apps/splunk-dev && git clone https://github.com/ChrisYounger/config_explorer.git /opt/splunk/etc/apps/config_explorer
+RUN npx degit Bre77/splunk-dev /opt/splunk/etc/apps/splunk-dev && npx degit ChrisYounger/config_explorer /opt/splunk/etc/apps/config_explorer
 VOLUME [ "/opt/splunk/etc", "/opt/splunk/var" ]
-USER node
 ENV SPLUNK_HOME=/opt/splunk
-RUN /opt/splunk/bin/splunk start --accept-license --answer-yes --no-prompt --seed-passwd devcontainer && /opt/splunk/bin/splunk stop
+#RUN /opt/splunk/bin/splunk start --accept-license --answer-yes --no-prompt --seed-passwd devcontainer && /opt/splunk/bin/splunk stop
