@@ -65,11 +65,10 @@ export default ({ step, config }) => {
     const handleSrcToken = wrapSetValue(setSrcToken);
     const src_test = useMutation(() =>
         request({
-            url: `${src_api}/services/server/info`,
+            url: `${src_api}/services`,
             method: 'GET',
-            params: { output_mode: 'json' },
             headers: { Authorization: `Bearer ${src_token}` },
-        }).then(handle)
+        }).then(res => res.ok)
     );
 
     const [dst_sh, setDstSh] = useReducer(dropHTTPS, '');
@@ -129,27 +128,27 @@ export default ({ step, config }) => {
             return (
                 config
                     ? fetch(
-                          `${splunkdPath}/servicesNS/${username}/badmsc/storage/passwords/badmsc%3Aauth%3A?output_mode=json`,
-                          {
-                              ...defaultFetchInit,
-                              method: 'POST',
-                              body: makeBody({
-                                  password: payload,
-                              }),
-                          }
-                      )
+                        `${splunkdPath}/servicesNS/${username}/badmsc/storage/passwords/badmsc%3Aauth%3A?output_mode=json`,
+                        {
+                            ...defaultFetchInit,
+                            method: 'POST',
+                            body: makeBody({
+                                password: payload,
+                            }),
+                        }
+                    )
                     : fetch(
-                          `${splunkdPath}/servicesNS/${username}/badmsc/storage/passwords?output_mode=json`,
-                          {
-                              ...defaultFetchInit,
-                              method: 'POST',
-                              body: makeBody({
-                                  realm: 'badmsc',
-                                  name: 'auth',
-                                  password: payload,
-                              }),
-                          }
-                      )
+                        `${splunkdPath}/servicesNS/${username}/badmsc/storage/passwords?output_mode=json`,
+                        {
+                            ...defaultFetchInit,
+                            method: 'POST',
+                            body: makeBody({
+                                realm: 'badmsc',
+                                name: 'auth',
+                                password: payload,
+                            }),
+                        }
+                    )
             ).then((res) => {
                 if (!res.ok) return console.warn(res.text());
                 queryClient.invalidateQueries();
