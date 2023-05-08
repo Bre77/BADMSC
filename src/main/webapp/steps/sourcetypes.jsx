@@ -4,12 +4,11 @@ import React, { useMemo } from "react";
 import Heading from "@splunk/react-ui/Heading";
 import P from "@splunk/react-ui/Paragraph";
 
-import { handle, useApps, useConfs, useDefaults } from "../shared/hooks";
+import { useConfs, useDefaults } from "../shared/hooks";
 import { normalizeBoolean } from "@splunk/splunk-utils/boolean";
 import { ATTR_BLACKLIST } from "../shared/const";
 import Button from "@splunk/react-ui/Button";
 import Table from "@splunk/react-ui/Table";
-import WaitSpinner from "@splunk/react-ui/WaitSpinner";
 import Typography from "@splunk/react-ui/Typography";
 
 const PARSING = [
@@ -63,7 +62,7 @@ const PARSING = [
     "METRIC-SCHEMA-MEASURE",
 ];
 
-const PARSING_STARTS_WITH = ["TRANSFORMS-", "SEDCMD-", "METRIC-SCHEMA-MEASURES-", "METRIC-SCHEMA-BLACKLIST-DIMS-", "METRIC-SCHEMA-WHITELIST-DIMS-"];
+//const PARSING_STARTS_WITH = ["TRANSFORMS-", "SEDCMD-", "METRIC-SCHEMA-MEASURES-", "METRIC-SCHEMA-BLACKLIST-DIMS-", "METRIC-SCHEMA-WHITELIST-DIMS-"];
 
 const merge = (data) =>
     Object.entries(data)
