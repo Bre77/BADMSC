@@ -65,7 +65,7 @@ export default ({ step, config }) => {
     const handleSrcToken = wrapSetValue(setSrcToken);
     const src_test = useMutation(() =>
         request({
-            url: `${src_api}/services`,
+            url: `${src_api}/services/server/info`,
             method: 'GET',
             params: { output_mode: 'json' },
             headers: { Authorization: `Bearer ${src_token}` },
