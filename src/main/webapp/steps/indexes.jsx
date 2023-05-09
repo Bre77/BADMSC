@@ -7,7 +7,6 @@ import { request } from '../shared/fetch';
 // Splunk UI
 import Heading from '@splunk/react-ui/Heading';
 import P from '@splunk/react-ui/Paragraph';
-import Text from '@splunk/react-ui/Text';
 import ControlGroup from '@splunk/react-ui/ControlGroup';
 import Button from '@splunk/react-ui/Button';
 import Table from '@splunk/react-ui/Table';
@@ -152,9 +151,9 @@ export default ({ step, config }) => {
             <ControlGroup label="Historical Search Days" labelWidth={150}>
                 <Number value={history} onChange={handleHistory} min={1} max={3650} />
             </ControlGroup>
-            {local_event_indexes.isLoading ||
-            local_metric_indexes.isLoading ||
-            cloud_indexes.isLoading ? (
+            {local_event_indexes.isFetching ||
+                local_metric_indexes.isFetching ||
+                cloud_indexes.isFetching ? (
                 <WaitSpinner size="large" />
             ) : (
                 <Table stripeRows>
