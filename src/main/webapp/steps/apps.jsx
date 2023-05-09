@@ -108,29 +108,29 @@ export default ({ step, config }) => {
             Promise.all(
                 src.data
                     ? Object.values(src.data).map((app) =>
-                          request({
-                              url: `https://splunkbase.splunk.com/api/v1/app/?include=releases&appid=${app.name}`,
-                              method: 'GET',
-                          })
-                              .then((res) => (res.ok ? res.json() : Promise.reject(res.json())))
-                              .then((data) =>
-                                  data.total
-                                      ? {
-                                            uid: data.results[0].uid,
-                                            appid: data.results[0].appid,
-                                            title: data.results[0].title,
-                                            version: data.results[0].releases.find((release) =>
-                                                release.product_compatibility.includes(
-                                                    'Splunk Cloud'
-                                                )
-                                            )?.title,
-                                            license: data.results[0].license_name,
-                                            license_url: data.results[0].license_url,
-                                        }
-                                      : false
-                              )
-                              .catch((e) => console.warn(e))
-                      )
+                        request({
+                            url: `https://splunkbase.splunk.com/api/v1/app/?include=releases&appid=${app.name}`,
+                            method: 'GET',
+                        })
+                            .then((res) => (res.ok ? res.json() : Promise.reject(res.json())))
+                            .then((data) =>
+                                data.total
+                                    ? {
+                                        uid: data.results[0].uid,
+                                        appid: data.results[0].appid,
+                                        title: data.results[0].title,
+                                        version: data.results[0].releases.find((release) =>
+                                            release.product_compatibility.includes(
+                                                'Splunk Cloud'
+                                            )
+                                        )?.title,
+                                        license: data.results[0].license_name,
+                                        license_url: data.results[0].license_url,
+                                    }
+                                    : false
+                            )
+                            .catch((e) => console.warn(e))
+                    )
                     : []
             ).then((apps) => Object.fromEntries(apps.map((app) => [app.appid, app]))),
 
@@ -348,7 +348,7 @@ const InstallSplunkbase = ({ config, token, splunkbase }) => {
             onClick={install.mutate}
             disabled={!token || install.isLoading || install.isSuccess || !config}
         >
-            {(install.isSuccess && 'Installing') ||
+            {(install.isSuccess && 'Installed') ||
                 (install.isLoading && <WaitSpinner />) ||
                 (install.isError && 'Error') ||
                 'Install'}
