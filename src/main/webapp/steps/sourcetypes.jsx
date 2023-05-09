@@ -1,15 +1,14 @@
-import React, { useMemo } from "react";
+//! Actually finish creating sourcetypes
 
-// Splunk UI
+import Button from "@splunk/react-ui/Button";
 import Heading from "@splunk/react-ui/Heading";
 import P from "@splunk/react-ui/Paragraph";
-
-import { useConfs, useDefaults } from "../shared/hooks";
-import { normalizeBoolean } from "@splunk/splunk-utils/boolean";
-import { ATTR_BLACKLIST } from "../shared/const";
-import Button from "@splunk/react-ui/Button";
 import Table from "@splunk/react-ui/Table";
 import Typography from "@splunk/react-ui/Typography";
+import { normalizeBoolean } from "@splunk/splunk-utils/boolean";
+import React, { useMemo } from "react";
+import { ATTR_BLACKLIST } from "../shared/const";
+import { useConfs, useDefaults } from "../shared/hooks";
 
 const PARSING = [
     "priority",
@@ -131,8 +130,8 @@ export default ({ step, config }) => {
     return (
         <div>
             <P>
-                Splunk Cloud Victoria does not sync parsing configuration to the indexers, so we need to explicity put parsing configration in the 000-self-service app
-                (Noah Bundle) using a specific API endpoint, or uploaded as a private app. Transforms need to be uploaded as private apps.
+                Splunk Cloud Victoria does not sync parsing configuration to the indexers, so we need to explicity put parsing configration in the
+                000-self-service app (Noah Bundle) using a specific API endpoint, or uploaded as a private app. Transforms need to be uploaded as private apps.
             </P>
             <P>If there will be no parsing in Splunk Cloud (using Heavy Forwarders) you can skip this step.</P>
             <Heading level={2}>Step {step}.1 - Copy/Select Sourcetypes</Heading>

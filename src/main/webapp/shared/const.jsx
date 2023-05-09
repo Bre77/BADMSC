@@ -14,3 +14,5 @@ export const ATTR_BLACKLIST = [
     'maxDist',
     'termFrequencyWeightedDist',
 ];
+
+export const APP_ID = 'badmsc';
