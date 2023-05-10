@@ -1,33 +1,50 @@
 import ControlGroup from "@splunk/react-ui/ControlGroup";
 import Date from "@splunk/react-ui/Date";
 import Heading from "@splunk/react-ui/Heading";
+import Multiselect from "@splunk/react-ui/Multiselect";
 import Number from "@splunk/react-ui/Number";
 import P from "@splunk/react-ui/Paragraph";
 import Table from "@splunk/react-ui/Table";
 import Text from "@splunk/react-ui/Text";
+import { splunkdPath } from "@splunk/splunk-utils/config";
 import { useMutation } from "@tanstack/react-query";
 import moment from "moment";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import MutateButton from "../components/mutateButton";
-import { request } from "../shared/fetch";
-import { wrapSetValue } from "../shared/helpers";
-import { handle, useLocal } from "../shared/hooks";
+import { FETCH_INIT, request } from "../shared/fetch";
+import { wrapSetValue, wrapSetValues } from "../shared/helpers";
+import { handle, useApi, useLocal } from "../shared/hooks";
 
 export default ({ step, config }) => {
-    const [search, setSearch] = useState("index = *");
-    const handleSearch = wrapSetValue(setSearch);
+    const [indexes, setIndexes] = useState([]);
+    const handleIndexes = wrapSetValues(setIndexes);
     const [earliest, setEarliest] = useState(moment().add(-90, "day").format("YYYY-MM-DD"));
     const handleEarliest = wrapSetValue(setEarliest);
     const [latest, setLatest] = useState(moment().format("YYYY-MM-DD"));
     const handleLatest = wrapSetValue(setLatest);
     const [plan, setPlan] = useLocal("badmsc_migration_plan", []);
+    const [concurrency, setConcurrency] = useState(2);
+    const handleConcurrency = wrapSetValue(setConcurrency);
+    const [token, setToken] = useState("77d5ceac-229c-42ea-96b1-e6dd13adcf45");
+    const handleToken = wrapSetValue(setToken);
 
-    const summary = useMutation(() =>
+    const src_indexes = useApi(config.src, "/services/data/indexes", (data) =>
+        data.entry.filter((index) => index.content.datatype == "event").map((index) => index.name)
+    );
+
+    useEffect(() => {
+        if (indexes.length == 0 && src_indexes.data) {
+            console.log("Adding Indexes", src_indexes.data);
+            setIndexes(src_indexes.data.filter((index) => !index.startsWith("_")));
+        }
+    }, [src_indexes.data]);
+
+    const calculatePlan = useMutation(() =>
         request({
             url: `${config.src.api}/services/search/jobs`,
             method: "POST",
             data: {
-                search: `| tstats count where ${search} by index _time span=1d`,
+                search: `| tstats count where index IN (${indexes.join(",")}) by index _time span=1d`,
                 earliest_time: moment(earliest).unix(),
                 latest_time: moment(latest).add(1, "day").unix(),
                 output_mode: "json",
@@ -46,7 +63,7 @@ export default ({ step, config }) => {
                     count = parseInt(count);
                     _time = parseInt(_time);
                     if (!plan[index]) {
-                        plan[index] = { index, total: 0, tasks: [] };
+                        plan[index] = { index, total: 0, progress: 0, tasks: [], running: false, done: [] };
                     }
                     plan[index].tasks.push([_time, count]);
                     plan[index].total += count;
@@ -54,7 +71,34 @@ export default ({ step, config }) => {
                 setPlan(Object.values(plan));
             })
     );
-    console.log(plan);
+
+    const createToken = useMutation(() => {});
+
+    const migrateData = useMutation(() => {
+        plan.reduce(
+            (chain, { index, tasks }) =>
+                tasks.reduce(
+                    (chain, [earliest, count]) =>
+                        chain.then(() =>
+                            fetch(`${splunkdPath}/services/badmsc/data`, {
+                                ...FETCH_INIT,
+                                body: JSON.stringify({
+                                    src_api: config.src.api,
+                                    src_token: config.src.token,
+                                    dest_hec: config.dst.hec,
+                                    dest_token: token,
+                                    index,
+                                    earliest,
+                                    latest: earliest + 86400,
+                                }),
+                            })
+                        ),
+                    chain
+                ),
+            Promise.resolve()
+        );
+    });
+
     return (
         <div>
             <P>
@@ -63,18 +107,30 @@ export default ({ step, config }) => {
             </P>
             <Heading level={2}>Step {step} Option 1 - Dual Forwarding</Heading>
             <Heading level={2}>Step {step} Option 2 - _raw Event Copy</Heading>
-            <ControlGroup label="Earliest">
-                <Date highlightToday value={earliest} onChange={handleEarliest} />
+            <ControlGroup label="Earliest & Latest">
+                <Date highlightToday value={earliest} onChange={handleEarliest} disabled={migrateData.isLoading} />
+                <Date highlightToday value={latest} onChange={handleLatest} disabled={migrateData.isLoading} />
             </ControlGroup>
-            <ControlGroup label="Latest">
-                <Date highlightToday value={latest} onChange={handleLatest} />
-            </ControlGroup>
-            <ControlGroup label="Search">
-                <Text value={search} onChange={handleSearch} /> Hours
+
+            <ControlGroup label="Indexes">
+                <Multiselect values={indexes} onChange={handleIndexes} isLoadingOptions={src_indexes.isLoading}>
+                    {src_indexes.data?.map((index) => (
+                        <Multiselect.Option key={index} value={index} label={index} />
+                    ))}
+                </Multiselect>
             </ControlGroup>
             <ControlGroup label=" ">
-                <MutateButton mutation={summary} label="Create New Migration Plan" />
+                <MutateButton mutation={calculatePlan} label="Create New Migration Plan" disabled={migrateData.isLoading || !indexes.length} />
             </ControlGroup>
+            <ControlGroup label="HEC Token">
+                <Text value={token} onChange={handleToken} />
+                <MutateButton mutation={createToken} label="Create Token" />
+            </ControlGroup>
+            <ControlGroup label="Concurrency">
+                <Number value={concurrency} onChange={handleConcurrency} min={1} max={32} />
+                <MutateButton mutation={migrateData} label="Start Migration" disabled={!token} />
+            </ControlGroup>
+
             <Table>
                 <Table.Head>
                     <Table.HeadCell>Index</Table.HeadCell>
