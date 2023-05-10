@@ -50,6 +50,7 @@ export default ({ step, config }) => {
                     latest_time: "now",
                     output_mode: "json",
                     exec_mode: "oneshot",
+                    count: 0,
                 },
                 headers: {
                     Authorization: `Bearer ${config.src.token}`,
