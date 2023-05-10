@@ -1,22 +1,22 @@
-import React, { useMemo, useState } from 'react';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { handle, useAcs } from '../shared/hooks';
-import { isort0, wrapSetValue } from '../shared/helpers';
-import { request } from '../shared/fetch';
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import React, { useMemo, useState } from "react";
+import { request } from "../shared/fetch";
+import { isort0, wrapSetValue } from "../shared/helpers";
+import { handle, useAcs } from "../shared/hooks";
 
 // Splunk UI
-import Heading from '@splunk/react-ui/Heading';
-import P from '@splunk/react-ui/Paragraph';
-import ControlGroup from '@splunk/react-ui/ControlGroup';
-import Button from '@splunk/react-ui/Button';
-import Table from '@splunk/react-ui/Table';
-import Check from '@splunk/react-icons/Check';
-import Clear from '@splunk/react-icons/Clear';
-import Events from '@splunk/react-icons/Events';
-import Metrics from '@splunk/react-icons/Metrics';
-import Number from '@splunk/react-ui/Number';
-import Switch from '@splunk/react-ui/Switch';
-import WaitSpinner from '@splunk/react-ui/WaitSpinner';
+import Check from "@splunk/react-icons/Check";
+import Clear from "@splunk/react-icons/Clear";
+import Events from "@splunk/react-icons/Events";
+import Metrics from "@splunk/react-icons/Metrics";
+import Button from "@splunk/react-ui/Button";
+import ControlGroup from "@splunk/react-ui/ControlGroup";
+import Heading from "@splunk/react-ui/Heading";
+import Number from "@splunk/react-ui/Number";
+import P from "@splunk/react-ui/Paragraph";
+import Switch from "@splunk/react-ui/Switch";
+import Table from "@splunk/react-ui/Table";
+import WaitSpinner from "@splunk/react-ui/WaitSpinner";
 
 export default ({ step, config }) => {
     const queryClient = useQueryClient();
@@ -24,7 +24,7 @@ export default ({ step, config }) => {
     // Refresh critical data for this step
     useMemo(() => {
         queryClient.invalidateQueries({
-            queryKey: ['acs', 'indexes'],
+            queryKey: ["acs", "indexes"],
         });
     }, []);
 
@@ -37,19 +37,19 @@ export default ({ step, config }) => {
     const [archive, setArchive] = useState(365);
     const handleArchive = wrapSetValue(setArchive);
 
-    const cloud_indexes = useAcs(config.dst, 'indexes');
+    const cloud_indexes = useAcs(config.dst, "indexes");
     const local_event_indexes = useQuery({
-        queryKey: ['src', 'search', 'tstats', history],
+        queryKey: ["src", "search", "tstats", history],
         queryFn: () =>
             request({
                 url: `${config.src.api}/services/search/jobs`,
-                method: 'POST',
+                method: "POST",
                 data: {
-                    search: '| tstats count where index=* by index',
+                    search: "| tstats count where index=* by index",
                     earliest_time: `-${history}d`,
-                    latest_time: 'now',
-                    output_mode: 'json',
-                    exec_mode: 'oneshot',
+                    latest_time: "now",
+                    output_mode: "json",
+                    exec_mode: "oneshot",
                 },
                 headers: {
                     Authorization: `Bearer ${config.src.token}`,
@@ -60,17 +60,18 @@ export default ({ step, config }) => {
     });
 
     const local_metric_indexes = useQuery({
-        queryKey: ['src', 'search', 'mstats', history],
+        queryKey: ["src", "search", "mstats", history],
         queryFn: () =>
             request({
                 url: `${config.src.api}/services/search/jobs`,
-                method: 'POST',
+                method: "POST",
                 data: {
-                    search: '| mstats count(*) where index=* by index | untable index metric count | stats sum(count) as count by index',
+                    search: "| mstats count(*) where index=* by index | untable index metric count | stats sum(count) as count by index",
                     earliest_time: `-${history}d`,
-                    latest_time: 'now',
-                    output_mode: 'json',
-                    exec_mode: 'oneshot',
+                    latest_time: "now",
+                    output_mode: "json",
+                    exec_mode: "oneshot",
+                    count: -1,
                 },
                 headers: {
                     Authorization: `Bearer ${config.src.token}`,
@@ -85,9 +86,7 @@ export default ({ step, config }) => {
         const base = { SearchableDays: searchable, MaxDataSizeMB: 0 };
         if (enablearchive) base.SplunkArchivalRetentionDays = archive;
 
-        const list = indexes
-            .filter((i) => i[1].local && !i[1].cloud)
-            .map((i) => ({ name: i[0], Datatype: i[1].local.datatype, ...base }));
+        const list = indexes.filter((i) => i[1].local && !i[1].cloud).map((i) => ({ name: i[0], Datatype: i[1].local.datatype, ...base }));
         console.log(list);
 
         let count = 0;
@@ -97,7 +96,7 @@ export default ({ step, config }) => {
                 chain.then(() =>
                     request({
                         url: `${config.dst.acs}/adminconfig/v2/indexes`,
-                        method: 'POST',
+                        method: "POST",
                         headers: {
                             Authorization: `Bearer ${config.dst.token}`,
                         },
@@ -111,25 +110,24 @@ export default ({ step, config }) => {
             Promise.resolve()
         ).then(() => {
             queryClient.invalidateQueries({
-                queryKey: ['acs', 'indexes'],
+                queryKey: ["acs", "indexes"],
             });
             setCreate(100);
         });
     };
 
     const indexes = useMemo(() => {
-        if (!local_event_indexes.data || !local_metric_indexes.data || !cloud_indexes.data)
-            return [];
+        if (!local_event_indexes.data || !local_metric_indexes.data || !cloud_indexes.data) return [];
 
         let output = {};
 
         output = (local_event_indexes.data || []).reduce((output, i) => {
-            output[i.index] = { local: { count: i.count, datatype: 'event' }, cloud: false };
+            output[i.index] = { local: { count: i.count, datatype: "event" }, cloud: false };
             return output;
         }, output);
 
         output = (local_metric_indexes.data || []).reduce((output, i) => {
-            output[i.index] = { local: { count: i.count, datatype: 'metric' }, cloud: false };
+            output[i.index] = { local: { count: i.count, datatype: "metric" }, cloud: false };
             return output;
         }, output);
 
@@ -151,9 +149,7 @@ export default ({ step, config }) => {
             <ControlGroup label="Historical Search Days" labelWidth={150}>
                 <Number value={history} onChange={handleHistory} min={1} max={3650} />
             </ControlGroup>
-            {local_event_indexes.isFetching ||
-                local_metric_indexes.isFetching ||
-                cloud_indexes.isFetching ? (
+            {local_event_indexes.isFetching || local_metric_indexes.isFetching || cloud_indexes.isFetching ? (
                 <WaitSpinner size="large" />
             ) : (
                 <Table stripeRows>
@@ -175,15 +171,7 @@ export default ({ step, config }) => {
                                 <Table.Cell>{local ? <Check /> : <Clear />}</Table.Cell>
                                 <Table.Cell>{cloud ? <Check /> : <Clear />}</Table.Cell>
 
-                                <Table.Cell>
-                                    {local && !cloud ? (
-                                        <b>Create</b>
-                                    ) : !local && cloud ? (
-                                        <i>Skip</i>
-                                    ) : (
-                                        <i>Skip</i>
-                                    )}
-                                </Table.Cell>
+                                <Table.Cell>{local && !cloud ? <b>Create</b> : !local && cloud ? <i>Skip</i> : <i>Skip</i>}</Table.Cell>
                                 <Table.Cell>{cloud?.searchableDays}</Table.Cell>
                                 <Table.Cell>{cloud?.SplunkArchivalRetentionDays}</Table.Cell>
                             </Table.Row>
@@ -193,11 +181,9 @@ export default ({ step, config }) => {
             )}
             <Heading level={2}>Step {step}.2 - Create Indexes</Heading>
             <P>
-                By default, Splunk Cloud comes with 90 days of searchable storage. If you have
-                purchased additional storage you can adjust the searchable and archive retention
-                days that will be used when creating the missing indexes. When you are ready, click
-                the button to create all missing indexes. You can customise settings per index using
-                the Splunk Cloud Web UI after they are created.
+                By default, Splunk Cloud comes with 90 days of searchable storage. If you have purchased additional storage you can adjust the searchable and
+                archive retention days that will be used when creating the missing indexes. When you are ready, click the button to create all missing indexes.
+                You can customise settings per index using the Splunk Cloud Web UI after they are created.
             </P>
             <ControlGroup label="Searchable Retention (DDAS) Days" labelWidth={260}>
                 <Number value={searchable} onChange={handleSearchable} min={1} max={3650} />
@@ -210,17 +196,11 @@ export default ({ step, config }) => {
                         setEnableArchive(!enablearchive);
                     }}
                 />
-                <Number
-                    disabled={!enablearchive}
-                    value={archive}
-                    onChange={handleArchive}
-                    min={searchable}
-                    max={3650}
-                />
+                <Number disabled={!enablearchive} value={archive} onChange={handleArchive} min={searchable} max={3650} />
             </ControlGroup>
             <ControlGroup label="" labelWidth={260}>
                 <Button disabled={!indexes.length || create < 100} onClick={handleCreate}>
-                    {create < 100 ? `${create}% Done` : 'Create Missing Indexes'}
+                    {create < 100 ? `${create}% Done` : "Create Missing Indexes"}
                 </Button>
             </ControlGroup>
         </div>
