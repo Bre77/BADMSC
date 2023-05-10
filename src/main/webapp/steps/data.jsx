@@ -20,19 +20,19 @@ export default ({ step, config }) => {
     const handleEarliest = wrapSetValue(setEarliest);
     const [latest, setLatest] = useState(moment().format("YYYY-MM-DD"));
     const handleLatest = wrapSetValue(setLatest);
-    const [plan, setPlan] = useLocal("badmsc_migration_plan", false);
+    const [plan, setPlan] = useLocal("badmsc_migration_plan", []);
 
     const summary = useMutation(() =>
         request({
             url: `${config.src.api}/services/search/jobs`,
             method: "POST",
-            params: { output_mode: "json", count: -1 },
             data: {
-                search: `| tstats count where ${search} by index _time span=1d | xyseries index _time count`,
+                search: `| tstats count where ${search} by index _time span=1d`,
                 earliest_time: moment(earliest).unix(),
                 latest_time: moment(latest).add(1, "day").unix(),
                 output_mode: "json",
                 exec_mode: "oneshot",
+                time_format: "%s",
                 count: 0,
             },
             headers: {
@@ -40,8 +40,21 @@ export default ({ step, config }) => {
             },
         })
             .then(handle)
-            .then((data) => setPlan(data.results))
+            .then((data) => {
+                const plan = {};
+                data.results.forEach(({ index, _time, count }) => {
+                    count = parseInt(count);
+                    _time = parseInt(_time);
+                    if (!plan[index]) {
+                        plan[index] = { index, total: 0, tasks: [] };
+                    }
+                    plan[index].tasks.push([_time, count]);
+                    plan[index].total += count;
+                });
+                setPlan(Object.values(plan));
+            })
     );
+    console.log(plan);
     return (
         <div>
             <P>
@@ -62,7 +75,22 @@ export default ({ step, config }) => {
             <ControlGroup label=" ">
                 <MutateButton mutation={summary} label="Create New Migration Plan" />
             </ControlGroup>
-            {plan && JSON.stringify(plan)}
+            <Table>
+                <Table.Head>
+                    <Table.HeadCell>Index</Table.HeadCell>
+                    <Table.HeadCell>Events</Table.HeadCell>
+                    <Table.HeadCell>Progress</Table.HeadCell>
+                </Table.Head>
+                <Table.Body>
+                    {plan.map(({ index, total, tasks }) => (
+                        <Table.Row key={index}>
+                            <Table.Cell>{index}</Table.Cell>
+                            <Table.Cell>{total}</Table.Cell>
+                            <Table.Cell>{total}</Table.Cell>
+                        </Table.Row>
+                    ))}
+                </Table.Body>
+            </Table>
         </div>
     );
 };
