@@ -33,7 +33,7 @@ export default ({ step, config }) => {
                 latest_time: moment(latest).add(1, "day").unix(),
                 output_mode: "json",
                 exec_mode: "oneshot",
-                count: -1,
+                count: 0,
             },
             headers: {
                 Authorization: `Bearer ${config.src.token}`,
@@ -62,6 +62,7 @@ export default ({ step, config }) => {
             <ControlGroup label=" ">
                 <MutateButton mutation={summary} label="Create New Migration Plan" />
             </ControlGroup>
+            {plan && JSON.stringify(plan)}
         </div>
     );
 };
