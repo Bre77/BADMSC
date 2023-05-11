@@ -1,4 +1,4 @@
-import React, { useMemo, Fragment } from 'react';
+import React, { useMemo } from 'react';
 import { useMutation, useQueryClient, useQueries } from '@tanstack/react-query';
 import { handle, useApps, useConfs, processConfs, useDefaults } from '../shared/hooks';
 import { isort0, latest } from '../shared/helpers';
@@ -187,7 +187,7 @@ export default ({ config, scope }) => {
 
 const CopyConfig = ({ config, scope, file, app, stanza, attr, perms, exists }) => {
     const queryClient = useQueryClient();
-    const copy = useMutation(() => {
+    const copy = useMutation(async () => {
         let data = Object.fromEntries(attr.map(([a, { src }]) => [a, src]));
         console.log('data', data);
         let url = `${config.dst.api}/servicesNS/nobody/${app}/configs/conf-${file}/`;
@@ -200,6 +200,7 @@ const CopyConfig = ({ config, scope, file, app, stanza, attr, perms, exists }) =
             headers: {
                 Authorization: `Bearer ${config.dst.token}`,
             },
+            
         })
             .then(handle)
             .then(processConfs)
