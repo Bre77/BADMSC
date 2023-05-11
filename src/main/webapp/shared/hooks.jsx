@@ -1,7 +1,7 @@
 import { splunkdPath, username } from "@splunk/splunk-utils/config";
 import { defaultFetchInit } from "@splunk/splunk-utils/fetch";
 import { useQueries, useQuery } from "@tanstack/react-query";
-import React, { useReducer } from "react";
+import { useReducer, useState, useEffect } from "react";
 import { CONF_FILES } from "./const";
 import { request } from "./fetch";
 import { localLoad } from "./helpers";
@@ -21,8 +21,8 @@ const entry = (data) => data.entry;
 export const useConfig = () =>
     useQuery({
         queryKey: ["config"],
-        queryFn: () =>
-            fetch(`${LOCAL_URL}/storage/passwords/badmsc%3Aauth%3A?output_mode=json&count=1`, defaultFetchInit).then((res) => {
+        queryFn: ({signal}) =>
+            fetch(`${LOCAL_URL}/storage/passwords/badmsc%3Aauth%3A?output_mode=json&count=1`, {...defaultFetchInit, signal}).then((res) => {
                 if (res.status === 404) {
                     return false;
                 }
@@ -46,7 +46,7 @@ export const useConfig = () =>
 export const useApi = (target, path, postprocess = entry, staleTime = Infinity) =>
     useQuery({
         queryKey: [target.key, path],
-        queryFn: () =>
+        queryFn: ({signal}) =>
             request({
                 url: `${target.api}/${path}`,
                 method: "GET",
@@ -54,7 +54,7 @@ export const useApi = (target, path, postprocess = entry, staleTime = Infinity) 
                 headers: {
                     Authorization: `Bearer ${target.token}`,
                 },
-            })
+            },signal)
                 .then(handle)
                 .then(postprocess),
         enabled: !!target,
@@ -68,7 +68,7 @@ export const useApps = (target) =>
 export const useAcs = (target, endpoint) =>
     useQuery({
         queryKey: ["acs", endpoint],
-        queryFn: () =>
+        queryFn: ({signal}) =>
             request({
                 url: `${target.acs}/adminconfig/v2/${endpoint}`,
                 method: "GET",
@@ -76,7 +76,7 @@ export const useAcs = (target, endpoint) =>
                 headers: {
                     Authorization: `Bearer ${target.token}`,
                 },
-            }).then(handle),
+            },signal).then(handle),
         enabled: !!target,
     });
 
@@ -96,7 +96,7 @@ export const useConfs = (target, files = CONF_FILES) =>
     useQueries({
         queries: files.map((file) => ({
             queryKey: [target.key, "config", file],
-            queryFn: () =>
+            queryFn: ({signal}) =>
                 request({
                     url: `${target.api}/servicesNS/nobody/-/configs/conf-${file}`,
                     method: "GET",
@@ -104,7 +104,7 @@ export const useConfs = (target, files = CONF_FILES) =>
                     headers: {
                         Authorization: `Bearer ${target.token}`,
                     },
-                })
+                },signal)
                     .then(handle)
                     .then(processConfs),
         })),
@@ -114,7 +114,7 @@ export const useDefaults = (target, files = CONF_FILES) =>
     useQueries({
         queries: files.map((file) => ({
             queryKey: [target.key, "default", file],
-            queryFn: () =>
+            queryFn: ({signal}) =>
                 request({
                     url: `${target.api}/services/properties/${file}/default`,
                     method: "GET",
@@ -122,7 +122,7 @@ export const useDefaults = (target, files = CONF_FILES) =>
                     headers: {
                         Authorization: `Bearer ${target.token}`,
                     },
-                })
+                },signal)
                     .then(handle)
                     .then((data) =>
                         data.entry.reduce((x, { name, content }) => {
@@ -140,3 +140,20 @@ export const useLocal = (key, fallback) => {
         return value;
     }, localLoad(key, fallback));
 };
+
+
+export const useDebounce = (value, delay) => {
+    const [debouncedValue, setDebouncedValue] = useState(value);
+    useEffect(
+      () => {
+        const handler = setTimeout(() => {
+          setDebouncedValue(value);
+        }, delay);
+        return () => {
+          clearTimeout(handler);
+        };
+      },
+      [value, delay]
+    );
+    return debouncedValue;
+  }

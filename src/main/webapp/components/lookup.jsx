@@ -12,7 +12,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { request } from '../shared/fetch';
 import { useApi, useApps } from '../shared/hooks';
 
-const getLookup = (target, app, file, type) =>
+const getLookup = async (target, app, file, type, signal) =>
     request({
         url: `${target.api}/servicesNS/nobody/lookup_editor/data/lookup_edit/lookup_contents`,
         method: 'GET',
@@ -24,11 +24,11 @@ const getLookup = (target, app, file, type) =>
             namespace: app,
             lookup_type: type,
         },
-    });
+    },signal);
 
 const useLookup = (target, app, file, type, enabled) =>
     useQuery({
-        queryFn: () => getLookup(target, app, file, type).then(handle),
+        queryFn: ({signal}) => getLookup(target, app, file, type, signal).then(handle),
         queryKey: [target.key, type, app, file],
         enabled,
     });
@@ -111,8 +111,8 @@ export const LookupCompare = ({ config, app, file, type }) => {
 
 const LookupCopy = ({ mutationFn, app, file, type, config, path, label }) => {
     const QueryClient = useQueryClient();
-    const copy = useMutation(() =>
-        getLookup(config.src, app, file, type) // I dont know how to make this use useLookup
+    const copy = useMutation(({signal}) =>
+        getLookup(config.src, app, file, type, signal) // I dont know how to make this use useLookup
             .then((res) => res.text()) // Comes in as JSON, goes out as JSON, no need to parse
             .then((contents) => mutationFn(contents, app, file))
             .then(() => QueryClient.invalidateQueries([config.dst.key, path]))

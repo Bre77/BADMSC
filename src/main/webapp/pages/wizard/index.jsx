@@ -36,7 +36,7 @@ const queryClient = new QueryClient({
     defaultOptions: {
         queries: {
             cacheTime: 60000, // 1 minute
-            retry: process.env.NODE_ENV === "production",
+            retry: 2,
             refetchOnMount: true,
             staleTime: 600000, // 10 minutes,
         },

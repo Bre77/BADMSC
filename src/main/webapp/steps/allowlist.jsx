@@ -82,15 +82,15 @@ export default ({ step, config }) => {
 
     const sh_ip = useQuery({
         queryKey: ['wanip', 'sh'],
-        queryFn: () =>
-            request({ url: 'https://api.ipify.org/', method: 'GET' }).then((res) =>
+        queryFn: ({signal}) =>
+            request({ url: 'https://api.ipify.org/', method: 'GET' },signal).then((res) =>
                 res.ok ? res.text() : Promise.reject(res.text())
             ),
     });
     const user_ip = useQuery({
         queryKey: ['wanip', 'user'],
-        queryFn: () =>
-            fetch('https://api.ipify.org/').then((res) =>
+        queryFn: ({signal}) =>
+            fetch('https://api.ipify.org/',{signal}).then((res) =>
                 res.ok ? res.text() : Promise.reject(res.text())
             ),
     });
