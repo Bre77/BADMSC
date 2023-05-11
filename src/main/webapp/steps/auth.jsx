@@ -31,11 +31,11 @@ import { handle, useAcs, useConfig, useApi } from '../shared/hooks';
 const StatusCheck = ({ host, disabled, method = 'GET' }) => {
     const { data, isLoading } = useQuery({
         queryKey: ['check', host],
-        queryFn: () =>
+        queryFn: ({signal}) =>
             request({
                 url: `https://${host}`,
                 method,
-            }).then((res) => res.ok || res.status == 401 || res.statusText || res.status),
+            },signal).then((res) => res.ok || res.status == 401 || res.statusText || res.status),
 
         enabled: !disabled,
     });

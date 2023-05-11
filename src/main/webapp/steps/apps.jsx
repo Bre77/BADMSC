@@ -105,14 +105,14 @@ export default ({ step, config }) => {
     const dst = useApps(config.dst);
     const splunkbase = useQuery({
         queryKey: ["splunkbase"],
-        queryFn: () =>
+        queryFn: ({signal}) =>
             Promise.all(
                 src.data
                     ? Object.values(src.data).map((app) =>
                           request({
                               url: `https://splunkbase.splunk.com/api/v1/app/?include=releases&appid=${app.name}`,
                               method: "GET",
-                          })
+                          },signal)
                               .then((res) => (res.ok ? res.json() : Promise.reject(res.json())))
                               .then((data) =>
                                   data.total

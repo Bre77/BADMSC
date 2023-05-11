@@ -1,10 +1,8 @@
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient, useCallback } from "@tanstack/react-query";
 import React, { useMemo, useState } from "react";
 import { request } from "../shared/fetch";
 import { isort0, wrapSetValue } from "../shared/helpers";
-import { handle, useAcs } from "../shared/hooks";
-
-// Splunk UI
+import { handle, useAcs, useDebounce } from "../shared/hooks";
 import Check from "@splunk/react-icons/Check";
 import Clear from "@splunk/react-icons/Clear";
 import Events from "@splunk/react-icons/Events";
@@ -29,8 +27,9 @@ export default ({ step, config }) => {
     }, []);
 
     const [create, setCreate] = useState(100);
-    const [history, setHistory] = useState(90);
+    const [history, setHistory] = useState(30);
     const handleHistory = wrapSetValue(setHistory);
+    const debouncedhistory = useDebounce(history, 500);
     const [searchable, setSearchable] = useState(90);
     const handleSearchable = wrapSetValue(setSearchable);
     const [enablearchive, setEnableArchive] = useState(false);
@@ -39,14 +38,14 @@ export default ({ step, config }) => {
 
     const cloud_indexes = useAcs(config.dst, "indexes");
     const local_event_indexes = useQuery({
-        queryKey: ["src", "search", "tstats", history],
-        queryFn: () =>
+        queryKey: ["src", "search", "tstats", debouncedhistory],
+        queryFn: ({signal}) =>
             request({
                 url: `${config.src.api}/services/search/jobs`,
                 method: "POST",
                 data: {
                     search: "| tstats count where index=* by index",
-                    earliest_time: `-${history}d`,
+                    earliest_time: `-${debouncedhistory}d`,
                     latest_time: "now",
                     output_mode: "json",
                     exec_mode: "oneshot",
@@ -55,20 +54,20 @@ export default ({ step, config }) => {
                 headers: {
                     Authorization: `Bearer ${config.src.token}`,
                 },
-            })
+            },signal)
                 .then(handle)
                 .then((data) => data.results),
     });
 
     const local_metric_indexes = useQuery({
-        queryKey: ["src", "search", "mstats", history],
-        queryFn: () =>
+        queryKey: ["src", "search", "mstats", debouncedhistory],
+        queryFn: ({signal}) =>
             request({
                 url: `${config.src.api}/services/search/jobs`,
                 method: "POST",
                 data: {
                     search: "| mstats count(*) where index=* by index | untable index metric count | stats sum(count) as count by index",
-                    earliest_time: `-${history}d`,
+                    earliest_time: `-${debouncedhistory}d`,
                     latest_time: "now",
                     output_mode: "json",
                     exec_mode: "oneshot",
@@ -77,7 +76,7 @@ export default ({ step, config }) => {
                 headers: {
                     Authorization: `Bearer ${config.src.token}`,
                 },
-            })
+            },signal)
                 .then(handle)
                 .then((data) => data.results),
     });
