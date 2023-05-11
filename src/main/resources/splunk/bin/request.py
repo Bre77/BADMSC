@@ -38,7 +38,9 @@ class request(PersistentServerConnectionApplication):
                 options["headers"][
                     "Authorization"
                 ] = f"Splunk {args['session']['authtoken']}"
-        elif not (options["url"].startswith("https://")):
+        elif options["url"].startswith("localhost"):
+            options["verify"] = False
+        if not (options["url"].startswith("https://")):
             options["url"] = f"https://{options['url']}"
 
         try:
