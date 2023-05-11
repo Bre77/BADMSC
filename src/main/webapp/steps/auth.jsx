@@ -93,8 +93,8 @@ export default ({ step, config }) => {
     useEffect(() => {
         if (stack_valid) {
             setDstApi(`${dst_sh}:8089`);
-            setDstAcs(`admin.splunk.com/${dst_sh.replace(/^(es-|itsi-)/, "").replace(".splunkcloud.com", "")}`);
-            setDstHec(`http-inputs-${dst_sh.replace(/^(es-|itsi-)/, "")}:443`);
+            if (!config?.dst?.acs) setDstAcs(`admin.splunk.com/${dst_sh.replace(/^(es-|itsi-)/, "").replace(".splunkcloud.com", "")}`);
+            if (!config?.dst?.hec) setDstHec(`http-inputs-${dst_sh.replace(/^(es-|itsi-)/, "")}:443`);
         }
     }, [dst_sh]);
 
