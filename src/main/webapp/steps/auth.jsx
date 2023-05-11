@@ -26,16 +26,19 @@ import { defaultFetchInit } from "@splunk/splunk-utils/fetch";
 import { wrapSetValue } from "../shared/helpers";
 
 import { makeBody, request } from "../shared/fetch";
-import { handle, useAcs, useApi, useConfig } from "../shared/hooks";
+import { handle } from "../shared/hooks";
 
 const StatusCheck = ({ host, disabled, method = "GET" }) => {
     const { data, isLoading } = useQuery({
-        queryKey: ['check', host],
-        queryFn: ({signal}) =>
-            request({
-                url: `https://${host}`,
-                method,
-            },signal).then((res) => res.ok || res.status == 401 || res.statusText || res.status),
+        queryKey: ["check", host],
+        queryFn: ({ signal }) =>
+            request(
+                {
+                    url: `https://${host}`,
+                    method,
+                },
+                signal
+            ).then((res) => res.ok || res.status == 401 || res.statusText || res.status),
 
         enabled: !disabled,
     });
@@ -50,11 +53,6 @@ const StatusCheck = ({ host, disabled, method = "GET" }) => {
     );
 };
 
-const Adorn = styled.div`
-    margin: 0 8px;
-    vertical-align: middle;
-`;
-
 const dropHTTPS = (prev, stack) => stack.replace("https://", "");
 
 const e = (query) => (query.isError ? query.error : false);
@@ -68,7 +66,7 @@ export default ({ step, config }) => {
             url: `${src_api}/services`,
             method: "GET",
             headers: { Authorization: `Bearer ${src_token}` },
-        }).then((res) => res.ok)
+        }).then((res) => (res.ok ? Promise.resolve() : Promise.reject()))
     );
 
     const [dst_sh, setDstSh] = useReducer(dropHTTPS, "");
