@@ -1,8 +1,5 @@
-import { useQuery, useQueryClient, useCallback } from "@tanstack/react-query";
-import React, { useMemo, useState } from "react";
-import { request } from "../shared/fetch";
-import { isort0, wrapSetValue } from "../shared/helpers";
-import { handle, useAcs, useDebounce } from "../shared/hooks";
+//! Add exclusion select
+
 import Check from "@splunk/react-icons/Check";
 import Clear from "@splunk/react-icons/Clear";
 import Events from "@splunk/react-icons/Events";
@@ -15,6 +12,11 @@ import P from "@splunk/react-ui/Paragraph";
 import Switch from "@splunk/react-ui/Switch";
 import Table from "@splunk/react-ui/Table";
 import WaitSpinner from "@splunk/react-ui/WaitSpinner";
+import { useCallback, useQuery, useQueryClient } from "@tanstack/react-query";
+import React, { useMemo, useState } from "react";
+import { request } from "../shared/fetch";
+import { isort0, wrapSetValue } from "../shared/helpers";
+import { handle, useAcs, useDebounce } from "../shared/hooks";
 
 export default ({ step, config }) => {
     const queryClient = useQueryClient();
@@ -39,44 +41,50 @@ export default ({ step, config }) => {
     const cloud_indexes = useAcs(config.dst, "indexes");
     const local_event_indexes = useQuery({
         queryKey: ["src", "search", "tstats", debouncedhistory],
-        queryFn: ({signal}) =>
-            request({
-                url: `${config.src.api}/services/search/jobs`,
-                method: "POST",
-                data: {
-                    search: "| tstats count where index=* by index",
-                    earliest_time: `-${debouncedhistory}d`,
-                    latest_time: "now",
-                    output_mode: "json",
-                    exec_mode: "oneshot",
-                    count: 0,
+        queryFn: ({ signal }) =>
+            request(
+                {
+                    url: `${config.src.api}/services/search/jobs`,
+                    method: "POST",
+                    data: {
+                        search: "| tstats count where index=* by index",
+                        earliest_time: `-${debouncedhistory}d`,
+                        latest_time: "now",
+                        output_mode: "json",
+                        exec_mode: "oneshot",
+                        count: 0,
+                    },
+                    headers: {
+                        Authorization: `Bearer ${config.src.token}`,
+                    },
                 },
-                headers: {
-                    Authorization: `Bearer ${config.src.token}`,
-                },
-            },signal)
+                signal
+            )
                 .then(handle)
                 .then((data) => data.results),
     });
 
     const local_metric_indexes = useQuery({
         queryKey: ["src", "search", "mstats", debouncedhistory],
-        queryFn: ({signal}) =>
-            request({
-                url: `${config.src.api}/services/search/jobs`,
-                method: "POST",
-                data: {
-                    search: "| mstats count(*) where index=* by index | untable index metric count | stats sum(count) as count by index",
-                    earliest_time: `-${debouncedhistory}d`,
-                    latest_time: "now",
-                    output_mode: "json",
-                    exec_mode: "oneshot",
-                    count: 0,
+        queryFn: ({ signal }) =>
+            request(
+                {
+                    url: `${config.src.api}/services/search/jobs`,
+                    method: "POST",
+                    data: {
+                        search: "| mstats count(*) where index=* by index | untable index metric count | stats sum(count) as count by index",
+                        earliest_time: `-${debouncedhistory}d`,
+                        latest_time: "now",
+                        output_mode: "json",
+                        exec_mode: "oneshot",
+                        count: 0,
+                    },
+                    headers: {
+                        Authorization: `Bearer ${config.src.token}`,
+                    },
                 },
-                headers: {
-                    Authorization: `Bearer ${config.src.token}`,
-                },
-            },signal)
+                signal
+            )
                 .then(handle)
                 .then((data) => data.results),
     });
