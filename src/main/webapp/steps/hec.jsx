@@ -15,8 +15,8 @@ const processHecs = (data) =>
     );
 
 export default ({ step, config }) => {
-    const src = useApi(config.src, "/servicesNS/nobody/-/data/inputs/http", processHecs);
-    const dst = useApi(config.dst, "/servicesNS/nobody/-/data/inputs/http", processHecs);
+    const src = useApi(config.src, "servicesNS/nobody/-/data/inputs/http", processHecs);
+    const dst = useApi(config.dst, "servicesNS/nobody/-/data/inputs/http", processHecs);
 
     const hec = useMemo(() => {
         if (!src.data || !dst.data) return [];
