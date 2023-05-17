@@ -1,13 +1,13 @@
-import React, { useMemo, useState } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useApi, useApps } from '../shared/hooks';
-import { isort0 } from '../shared/helpers';
-
-// Splunk UI
-import Button from '@splunk/react-ui/Button';
-import Table from '@splunk/react-ui/Table';
-import WaitSpinner from '@splunk/react-ui/WaitSpinner';
-import Code from '@splunk/react-ui/Code';
+import Code from "@splunk/react-ui/Code";
+import Message from "@splunk/react-ui/Message";
+import Table from "@splunk/react-ui/Table";
+import WaitSpinner from "@splunk/react-ui/WaitSpinner";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import React, { useMemo } from "react";
+import { request } from "../shared/fetch";
+import { isort0 } from "../shared/helpers";
+import { handle, useApi, useApps } from "../shared/hooks";
+import MutateButton from "./mutateButton";
 
 const handleUi = (data) =>
     data.entry.reduce((x, { name, acl, content }) => {
@@ -15,11 +15,40 @@ const handleUi = (data) =>
         x[acl.app][name] = {
             perms: acl.perms,
             sharing: acl.sharing,
-            data: content['eai:data'],
-            digest: content['eai:digest'],
+            data: content["eai:data"],
+            digest: content["eai:digest"],
+            description: content.description,
         };
         return x;
     }, {});
+
+const CopyUi = ({ config, app, folder, file, content, exists }) => {
+    console.log(folder, file);
+    const queryClient = useQueryClient();
+    const mutation = useMutation(async () => {
+        let data = { "eai:data": content };
+        let url = `${config.dst.api}/servicesNS/nobody/${app}/data/ui/${folder}/`;
+        exists ? (url += file) : (data["name"] = file);
+        return request({
+            url,
+            method: "POST",
+            data,
+            params: { output_mode: "json" },
+            headers: {
+                Authorization: `Bearer ${config.dst.token}`,
+            },
+        })
+            .then(handle)
+            .then(handleUi)
+            .then((newdata) =>
+                queryClient.setQueryData(["dst", `servicesNS/nobody/-/data/ui/${folder}`], (olddata) => ({
+                    ...olddata,
+                    [app]: { ...olddata[app], [file]: newdata[app][file] },
+                }))
+            );
+    });
+    return <MutateButton mutation={mutation} label={exists ? "Overwrite" : "Create"} />;
+};
 
 export default ({ config, folder }) => {
     const src = useApi(config.src, `servicesNS/nobody/-/data/ui/${folder}`, handleUi);
@@ -36,9 +65,7 @@ export default ({ config, folder }) => {
             if (app in dst_apps.data) {
                 Object.entries(files).forEach(([file, { perms, sharing, data, digest }]) => {
                     if (digest !== dst.data?.[app]?.[file]?.digest) {
-                        Object.keys(perms).forEach((rw) =>
-                            perms[rw].map((group) => (group === 'admin' ? 'sc_admin' : group))
-                        );
+                        Object.keys(perms).forEach((rw) => perms[rw].map((group) => (group === "admin" ? "sc_admin" : group)));
                         output[app] ||= {};
                         output[app][file] = {
                             perms,
@@ -70,7 +97,7 @@ export default ({ config, folder }) => {
 
     return isLoading ? (
         <WaitSpinner size="large" />
-    ) : (
+    ) : ui.length ? (
         <Table stripeRows rowExpansion="single">
             <Table.Head>
                 <Table.HeadCell>Name</Table.HeadCell>
@@ -81,27 +108,21 @@ export default ({ config, folder }) => {
             <Table.Body>
                 {ui.flatMap(([app, files]) =>
                     files.map(([file, { perms, sharing, src, dst }]) => (
-                        <Table.Row key={app + '/' + file} expansionRow={detailRow(src, dst)}>
+                        <Table.Row key={app + "/" + file} expansionRow={detailRow(src, dst)}>
                             <Table.Cell>
                                 <b>{app}</b> / {file}.xml
                             </Table.Cell>
-                            <Table.Cell>{src && `${src?.split('\n').length} Lines`}</Table.Cell>
-                            <Table.Cell>{dst && `${dst?.split('\n').length} Lines`}</Table.Cell>
+                            <Table.Cell>{src && `${src.split("\n").length} Lines`}</Table.Cell>
+                            <Table.Cell>{dst && `${dst.split("\n").length} Lines`}</Table.Cell>
                             <Table.Cell>
-                                <Button>Copy</Button>
+                                <CopyUi config={config} app={app} folder={folder} file={file} content={src} exists={!!dst} />
                             </Table.Cell>
                         </Table.Row>
                     ))
                 )}
-                <Table.Row>
-                    <Table.Cell></Table.Cell>
-                    <Table.Cell></Table.Cell>
-                    <Table.Cell></Table.Cell>
-                    <Table.Cell>
-                        <Button>Copy All</Button>
-                    </Table.Cell>
-                </Table.Row>
             </Table.Body>
         </Table>
+    ) : (
+        <Message>No modified {folder} found</Message>
     );
 };
