@@ -1,7 +1,7 @@
 import { splunkdPath, username } from "@splunk/splunk-utils/config";
 import { defaultFetchInit } from "@splunk/splunk-utils/fetch";
 import { useQueries, useQuery } from "@tanstack/react-query";
-import { useReducer, useState, useEffect } from "react";
+import { useEffect, useReducer, useState } from "react";
 import { CONF_FILES } from "./const";
 import { request } from "./fetch";
 import { localLoad } from "./helpers";
@@ -21,8 +21,8 @@ const entry = (data) => data.entry;
 export const useConfig = () =>
     useQuery({
         queryKey: ["config"],
-        queryFn: ({signal}) =>
-            fetch(`${LOCAL_URL}/storage/passwords/badmsc%3Aauth%3A?output_mode=json&count=1`, {...defaultFetchInit, signal}).then((res) => {
+        queryFn: ({ signal }) =>
+            fetch(`${LOCAL_URL}/storage/passwords/badmsc%3Aauth%3A?output_mode=json&count=1`, { ...defaultFetchInit, signal }).then((res) => {
                 if (res.status === 404) {
                     return false;
                 }
@@ -46,15 +46,18 @@ export const useConfig = () =>
 export const useApi = (target, path, postprocess = entry, staleTime = Infinity) =>
     useQuery({
         queryKey: [target.key, path],
-        queryFn: ({signal}) =>
-            request({
-                url: `${target.api}/${path}`,
-                method: "GET",
-                params: { output_mode: "json", count: -1 },
-                headers: {
-                    Authorization: `Bearer ${target.token}`,
+        queryFn: ({ signal }) =>
+            request(
+                {
+                    url: `${target.api}/${path}`,
+                    method: "GET",
+                    params: { output_mode: "json", count: -1 },
+                    headers: {
+                        Authorization: `Bearer ${target.token}`,
+                    },
                 },
-            },signal)
+                signal
+            )
                 .then(handle)
                 .then(postprocess),
         enabled: !!target,
@@ -65,18 +68,23 @@ export const useApps = (target) =>
     // useApps is called in multiple steps, so is defined once for consistency
     useApi(target, "services/apps/local", (data) => Object.fromEntries(data.entry.map((app) => [app.name, app])));
 
-export const useAcs = (target, endpoint) =>
+export const useAcs = (target, endpoint, postprocess = (x) => x) =>
     useQuery({
         queryKey: ["acs", endpoint],
-        queryFn: ({signal}) =>
-            request({
-                url: `${target.acs}/adminconfig/v2/${endpoint}`,
-                method: "GET",
-                params: { count: 0 },
-                headers: {
-                    Authorization: `Bearer ${target.token}`,
+        queryFn: ({ signal }) =>
+            request(
+                {
+                    url: `${target.acs}/adminconfig/v2/${endpoint}`,
+                    method: "GET",
+                    params: { count: 0 },
+                    headers: {
+                        Authorization: `Bearer ${target.token}`,
+                    },
                 },
-            },signal).then(handle),
+                signal
+            )
+                .then(handle)
+                .then(postprocess),
         enabled: !!target,
     });
 
@@ -96,15 +104,18 @@ export const useConfs = (target, files = CONF_FILES) =>
     useQueries({
         queries: files.map((file) => ({
             queryKey: [target.key, "config", file],
-            queryFn: ({signal}) =>
-                request({
-                    url: `${target.api}/servicesNS/nobody/-/configs/conf-${file}`,
-                    method: "GET",
-                    params: { output_mode: "json", count: -1 },
-                    headers: {
-                        Authorization: `Bearer ${target.token}`,
+            queryFn: ({ signal }) =>
+                request(
+                    {
+                        url: `${target.api}/servicesNS/nobody/-/configs/conf-${file}`,
+                        method: "GET",
+                        params: { output_mode: "json", count: -1 },
+                        headers: {
+                            Authorization: `Bearer ${target.token}`,
+                        },
                     },
-                },signal)
+                    signal
+                )
                     .then(handle)
                     .then(processConfs),
         })),
@@ -114,22 +125,20 @@ export const useDefaults = (target, files = CONF_FILES) =>
     useQueries({
         queries: files.map((file) => ({
             queryKey: [target.key, "default", file],
-            queryFn: ({signal}) =>
-                request({
-                    url: `${target.api}/services/properties/${file}/default`,
-                    method: "GET",
-                    params: { output_mode: "json", count: -1 },
-                    headers: {
-                        Authorization: `Bearer ${target.token}`,
+            queryFn: ({ signal }) =>
+                request(
+                    {
+                        url: `${target.api}/services/properties/${file}/default`,
+                        method: "GET",
+                        params: { output_mode: "json", count: -1 },
+                        headers: {
+                            Authorization: `Bearer ${target.token}`,
+                        },
                     },
-                },signal)
+                    signal
+                )
                     .then(handle)
-                    .then((data) =>
-                        data.entry.reduce((x, { name, content }) => {
-                            x[name] = content;
-                            return x;
-                        }, {})
-                    )
+                    .then((data) => Object.fromEntries(data.entry.map(({ name, content }) => [name, content])))
                     .catch(() => ({})),
         })),
     });
@@ -141,19 +150,15 @@ export const useLocal = (key, fallback) => {
     }, localLoad(key, fallback));
 };
 
-
 export const useDebounce = (value, delay) => {
     const [debouncedValue, setDebouncedValue] = useState(value);
-    useEffect(
-      () => {
+    useEffect(() => {
         const handler = setTimeout(() => {
-          setDebouncedValue(value);
+            setDebouncedValue(value);
         }, delay);
         return () => {
-          clearTimeout(handler);
+            clearTimeout(handler);
         };
-      },
-      [value, delay]
-    );
+    }, [value, delay]);
     return debouncedValue;
-  }
+};
