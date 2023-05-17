@@ -21,7 +21,7 @@ const processApiHec = (data) =>
             Object.fromEntries(Object.entries(content).filter(([key]) => !key.startsWith("_") && !key.startsWith("eai:") && key != "run_only_one")),
         ])
     );
-const processAcsHec = (data) =>
+/*const processAcsHec = (data) =>
     Object.fromEntries(
         data["http-event-collectors"].map(({ token, spec }) => [
             spec.name,
@@ -30,7 +30,7 @@ const processAcsHec = (data) =>
                 token,
             },
         ])
-    );
+    );*/
 
 const CopyHec = ({ config, name, content, exists }) => {
     const queryClient = useQueryClient();
