@@ -1,18 +1,18 @@
-import React, { useMemo } from 'react';
-import { useMutation, useQueryClient, useQueries } from '@tanstack/react-query';
-import { handle, useApps, useConfs, processConfs, useDefaults } from '../shared/hooks';
-import { isort0, latest } from '../shared/helpers';
-import { CONF_FILES, ATTR_BLACKLIST } from '../shared/const';
-import { request } from '../shared/fetch';
-import styled from 'styled-components';
-import MutateButton from './mutateButton';
+import { useMutation, useQueries, useQueryClient } from "@tanstack/react-query";
+import React, { useMemo } from "react";
+import styled from "styled-components";
+import { ATTR_BLACKLIST, CONF_FILES } from "../shared/const";
+import { request } from "../shared/fetch";
+import { isort0, latest } from "../shared/helpers";
+import { handle, processConfs, useApps, useConfs, useDefaults } from "../shared/hooks";
+import MutateButton from "./mutateButton";
 
 // Splunk UI
-import Button from '@splunk/react-ui/Button';
-import Table from '@splunk/react-ui/Table';
-import WaitSpinner from '@splunk/react-ui/WaitSpinner';
-import Typography from '@splunk/react-ui/Typography';
-import { normalizeBoolean } from '@splunk/splunk-utils/boolean';
+import Button from "@splunk/react-ui/Button";
+import Table from "@splunk/react-ui/Table";
+import Typography from "@splunk/react-ui/Typography";
+import WaitSpinner from "@splunk/react-ui/WaitSpinner";
+import { normalizeBoolean } from "@splunk/splunk-utils/boolean";
 
 const CodeCell = styled(Table.Cell)`
     max-width: 40vw;
@@ -28,10 +28,7 @@ export default ({ config, scope }) => {
     const dst_apps = useApps(config.dst);
 
     const isLoading =
-        def.some((query) => query.isLoading) ||
-        src.some((query) => query.isLoading) ||
-        dst.some((query) => query.isLoading) ||
-        dst_apps.isLoading;
+        def.some((query) => query.isLoading) || src.some((query) => query.isLoading) || dst.some((query) => query.isLoading) || dst_apps.isLoading;
 
     const conf = useMemo(() => {
         if (isLoading) return [];
@@ -41,31 +38,25 @@ export default ({ config, scope }) => {
         CONF_FILES.forEach((file, f) => {
             if (dst[f].data && src[f].data) {
                 Object.entries(src[f].data || {}).forEach(([app, stanzas]) => {
-                    if (app === 'learned') return;
-                    if (scope === 'system' || app in dst_apps.data) {
+                    if (app === "learned") return;
+                    if (scope === "system" || app in dst_apps.data) {
                         Object.entries(stanzas).forEach(([stanza, { sharing, perms, content }]) => {
                             if (sharing != scope) return;
-                            const dst_sharing =
-                                dst[f].data?.[app]?.[stanza]?.sharing !== scope &&
-                                dst[f].data?.[app]?.[stanza]?.sharing;
+                            const dst_sharing = dst[f].data?.[app]?.[stanza]?.sharing !== scope && dst[f].data?.[app]?.[stanza]?.sharing;
 
-                            if (dst_sharing === 'app') {
+                            if (dst_sharing === "app") {
                                 scopes[app] ||= {};
                                 scopes[app][file] ||= {};
                                 scopes[app][file][stanza] ||= content;
                             }
 
-                            Object.keys(perms).forEach((rw) =>
-                                perms[rw].map((group) => (group === 'admin' ? 'sc_admin' : group))
-                            );
+                            Object.keys(perms).forEach((rw) => perms[rw].map((group) => (group === "admin" ? "sc_admin" : group)));
 
                             Object.entries(content).forEach(([attr, value]) => {
                                 if (!ATTR_BLACKLIST.includes(attr)) {
                                     const src_value = normalizeBoolean(value);
                                     const def_value = normalizeBoolean(def[f].data?.[attr]);
-                                    const dst_value = normalizeBoolean(
-                                        dst[f].data?.[app]?.[stanza]?.content?.[attr]
-                                    );
+                                    const dst_value = normalizeBoolean(dst[f].data?.[app]?.[stanza]?.content?.[attr]);
                                     const exists = !!dst[f].data?.[app]?.[stanza];
 
                                     if (src_value !== def_value && src_value !== dst_value) {
@@ -142,23 +133,13 @@ export default ({ config, scope }) => {
                                 </Table.Cell>
                                 <CodeCell>
                                     <Typography as="pre" variant="monoSmallBody">
-                                        {[
-                                            `[${stanza}]`,
-                                            ...attr.map(([a, { src }]) =>
-                                                src !== undefined ? `${a} = ${src}` : ''
-                                            ),
-                                        ].join('\n')}
+                                        {[`[${stanza}]`, ...attr.map(([a, { src }]) => (src !== undefined ? `${a} = ${src}` : ""))].join("\n")}
                                     </Typography>
                                 </CodeCell>
                                 <CodeCell>
                                     {exists && (
                                         <Typography as="pre" variant="monoSmallBody">
-                                            {[
-                                                `[${stanza}]`,
-                                                ...attr.map(([a, { dst }]) =>
-                                                    dst !== undefined ? `${a} = ${dst}` : ''
-                                                ),
-                                            ].join('\n')}
+                                            {[`[${stanza}]`, ...attr.map(([a, { dst }]) => (dst !== undefined ? `${a} = ${dst}` : ""))].join("\n")}
                                         </Typography>
                                     )}
                                 </CodeCell>
@@ -189,28 +170,33 @@ const CopyConfig = ({ config, scope, file, app, stanza, attr, perms, exists }) =
     const queryClient = useQueryClient();
     const copy = useMutation(async () => {
         let data = Object.fromEntries(attr.map(([a, { src }]) => [a, src]));
-        console.log('data', data);
+        console.log("data", data);
         let url = `${config.dst.api}/servicesNS/nobody/${app}/configs/conf-${file}/`;
-        exists ? (url += stanza) : (data['name'] = stanza);
+        exists ? (url += stanza) : (data["name"] = stanza);
         return request({
             url,
-            method: 'POST',
+            method: "POST",
             data,
-            params: { output_mode: 'json' },
+            params: { output_mode: "json" },
             headers: {
                 Authorization: `Bearer ${config.dst.token}`,
             },
-            
         })
             .then(handle)
             .then(processConfs)
-            .then((newdata) =>
-                queryClient.setQueryData(['dst', 'config', file], (olddata) => {
-                    olddata[app][stanza] = newdata[app][stanza]; //This is a mutation which is not allowed
-                    return olddata;
-                })
-            );
+            .then((newdata) => {
+                let newapp = Object.keys(newdata)[0];
+                if (newapp !== app) {
+                    console.warn(
+                        `The new configuration for '${stanza}' was returned in the app '${newapp}' instead of '${app}'. This means it may not show up where you expect it to.`
+                    );
+                }
+                queryClient.setQueryData(["dst", "config", file], (olddata) => ({
+                    ...olddata,
+                    [newapp]: { ...olddata[newapp], [stanza]: newdata[newapp][stanza] },
+                }));
+            });
     });
 
-    return <MutateButton mutation={copy} label={exists ? 'Update' : 'Create'} />;
+    return <MutateButton mutation={copy} label={exists ? "Update" : "Create"} />;
 };
