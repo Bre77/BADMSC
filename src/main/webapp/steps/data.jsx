@@ -105,7 +105,7 @@ export default ({ step, config }) => {
                 User (private) knowledge objects can be transferred as long as the user exists in Splunk Cloud. If you are using SSO then this requires them to
                 have logged in once.
             </P>
-            <Heading level={2}>Step {step} Option 1 - Dual Forwarding</Heading>
+            <Heading level={2}>Step {step} Option 1 - Modular Input</Heading>
             <Heading level={2}>Step {step} Option 2 - _raw Event Copy</Heading>
             <ControlGroup label="Earliest & Latest">
                 <Date highlightToday value={earliest} onChange={handleEarliest} disabled={migrateData.isLoading} />

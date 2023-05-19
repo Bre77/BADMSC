@@ -61,17 +61,14 @@ class Input(Script):
         config = json.loads(stored_password[0].content.clear_password)
 
 
-        url = f"https://{input_items['searchhead']}:{input_items.get('port','8089')}/services/search/v2/jobs/export"
+        url = f"https://{config['src']['api']}/services/search/v2/jobs/export"
+        auth = f"Splunk {config['src']['token']}"
         MOD = 1000
 
         ew.log(
             EventWriter.INFO,
             f"status=startup name={name} url={url}",
         )
-
-        # Password Encryption
-        auth = {}
-        updates = {}
 
         # Checkpoint
         try:
@@ -80,7 +77,7 @@ class Input(Script):
             earliest = start
 
         with requests.Session() as s:
-            s.headers.update({"Authorization": f"Splunk {auth['authtoken']}"})
+            s.headers.update({"Authorization": auth})
 
             # Do the logic
             while earliest < end:
