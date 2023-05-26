@@ -11,7 +11,7 @@ from splunklib.modularinput import *
 
 class Input(Script):
     MASK = "<encrypted>"
-    APP = "datapull"
+    APP = "badmsc"
 
     def get_scheme(self):
         scheme = Scheme("Data Pull")
@@ -40,7 +40,9 @@ class Input(Script):
         checkpointfile = os.path.join(
             self._input_definition.metadata["checkpoint_dir"], name
         )
+        
         input = self.service.inputs.__getitem__((name, kind))
+        
         # Set start to earliest days ago
         start = int(time.time()) - (int(input_items["earliest"]) * 86400)
         end = int(time.time()) - 60
