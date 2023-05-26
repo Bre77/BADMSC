@@ -1,3 +1,2 @@
 [datapull://<name>]
-earliest=<string>
-latest=<string>
+earliest = <integer>
