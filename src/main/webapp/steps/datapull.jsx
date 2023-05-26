@@ -19,9 +19,9 @@ export default ({ step, config }) => {
     const [earliest, setEarliest] = useState(360);
     const handleEarliest = wrapSetValue(setEarliest);
 
-    const dst_indexes = useApi(config.src, '/services/data/indexes', (data) =>
+    const dst_indexes = useApi(config.dst, 'services/data/indexes', (data) =>
         data.entry
-            .filter((index) => index.content.datatype == 'event' && !index.namestartsWith('_'))
+            .filter((index) => index.content.datatype == 'event' && !index.name.startsWith('_'))
             .map((index) => index.name)
     );
 
@@ -34,7 +34,7 @@ export default ({ step, config }) => {
                     ','
                 )}) by index _time span=1d`,
                 earliest_time: `-${earliest}d`,
-                latest_time: `-${latest}d`,
+                latest_time: 'now',
                 output_mode: 'json',
                 exec_mode: 'oneshot',
                 time_format: '%s',

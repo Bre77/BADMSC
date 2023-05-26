@@ -16,7 +16,7 @@ import Auth from './auth';
 import ConfigApp from './config_app';
 import ConfigGlobal from './config_global';
 import ConfigSystem from './config_system';
-import Data from './datapull';
+import Data from './data';
 import Finish from './finish';
 import HEC from './hec';
 import Indexes from './indexes';

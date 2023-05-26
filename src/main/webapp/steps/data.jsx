@@ -28,7 +28,7 @@ export default ({ step, config }) => {
     const [token, setToken] = useState("77d5ceac-229c-42ea-96b1-e6dd13adcf45");
     const handleToken = wrapSetValue(setToken);
 
-    const src_indexes = useApi(config.src, "/services/data/indexes", (data) =>
+    const src_indexes = useApi(config.src, "services/data/indexes", (data) =>
         data.entry.filter((index) => index.content.datatype == "event").map((index) => index.name)
     );
 
@@ -105,8 +105,8 @@ export default ({ step, config }) => {
                 User (private) knowledge objects can be transferred as long as the user exists in Splunk Cloud. If you are using SSO then this requires them to
                 have logged in once.
             </P>
-            <Heading level={2}>Step {step} Option 1 - Modular Input</Heading>
-            <Heading level={2}>Step {step} Option 2 - _raw Event Copy</Heading>
+            <Heading level={2}>Option {step}.1 - Dual Forwarding</Heading>
+            <Heading level={2}>Option {step}.2 - _raw Event Copy</Heading>
             <ControlGroup label="Earliest & Latest">
                 <Date highlightToday value={earliest} onChange={handleEarliest} disabled={migrateData.isLoading} />
                 <Date highlightToday value={latest} onChange={handleLatest} disabled={migrateData.isLoading} />
