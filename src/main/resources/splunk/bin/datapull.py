@@ -145,8 +145,8 @@ class Input(Script):
                     )
 
                 # Save Progress
+                open(checkpointfile, "w").write(str(latest))
                 earliest = latest
-                open(checkpointfile, "w").write(str(earliest))
 
 
 if __name__ == "__main__":
