@@ -3,6 +3,7 @@ import sys
 import csv
 import time
 import requests
+import json
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "lib"))
 from splunklib.modularinput import *
@@ -22,16 +23,7 @@ class Input(Script):
         scheme.add_argument(
             Argument(
                 name="earliest",
-                title="Earliest (Days)",
-                data_type=Argument.data_type_number,
-                required_on_create=True,
-                required_on_edit=False,
-            )
-        )
-        scheme.add_argument(
-            Argument(
-                name="latest",
-                title="Latest (Days)",
+                title="Backfill Days",
                 data_type=Argument.data_type_number,
                 required_on_create=True,
                 required_on_edit=False,
@@ -51,7 +43,7 @@ class Input(Script):
         input = self.service.inputs.__getitem__((name, kind))
         # Set start to earliest days ago
         start = int(time.time()) - (int(input_items["earliest"]) * 86400)
-        end = int(time.time()) - (int(input_items["latest"]) * 86400)
+        end = int(time.time()) - 60
 
         stored_password = [
             x
@@ -59,7 +51,6 @@ class Input(Script):
             if x.username == "auth" and x.realm == "badmsc"
         ]
         config = json.loads(stored_password[0].content.clear_password)
-
 
         url = f"https://{config['src']['api']}/services/search/v2/jobs/export"
         auth = f"Splunk {config['src']['token']}"
@@ -91,8 +82,8 @@ class Input(Script):
                     stream=True,
                     data={
                         "search": f"search index={name}",
-                        "earliest_time": earliest,
-                        "latest_time": latest,
+                        "index_earliest": earliest,
+                        "index_latest": latest,
                         "enable_lookups": False,
                         "output_mode": "csv",
                         "exec_mode": "oneshot",
