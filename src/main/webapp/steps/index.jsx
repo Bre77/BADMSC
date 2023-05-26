@@ -46,7 +46,7 @@ const steps = [
     ['Views', Views],
     ['CSV Lookups', CSV],
     ['KV Lookups', KV],
-    ['Data', Data],
+    //['Data', Data],
     ['Finish', Finish],
 ];
 
