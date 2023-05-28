@@ -105,14 +105,17 @@ export default ({ step, config }) => {
     const dst = useApps(config.dst);
     const splunkbase = useQuery({
         queryKey: ["splunkbase"],
-        queryFn: ({signal}) =>
+        queryFn: ({ signal }) =>
             Promise.all(
                 src.data
                     ? Object.values(src.data).map((app) =>
-                          request({
-                              url: `https://splunkbase.splunk.com/api/v1/app/?include=releases&appid=${app.name}`,
-                              method: "GET",
-                          },signal)
+                          request(
+                              {
+                                  url: `https://splunkbase.splunk.com/api/v1/app/?include=releases&appid=${app.name}`,
+                                  method: "GET",
+                              },
+                              signal
+                          )
                               .then((res) => (res.ok ? res.json() : Promise.reject(res.json())))
                               .then((data) =>
                                   data.total
@@ -144,6 +147,7 @@ export default ({ step, config }) => {
         if (!dst.data || !src.data || !splunkbase.data) return output;
 
         Object.values(src.data).forEach((a) => {
+            if (a.name == APP_ID) return;
             if (dst.data[a.name]) {
                 // App already exist in cloud
                 console.log(`Skipping existing app '${a.name}'`);
@@ -180,7 +184,7 @@ export default ({ step, config }) => {
         return output;
     }, [dst.data, src.data, splunkbase.data]);
 
-    const ENABLE_PRIVATE = !!src[APP_ID];
+    const ENABLE_PRIVATE = !!src?.data?.[APP_ID];
 
     return (
         <div>
@@ -248,7 +252,7 @@ export default ({ step, config }) => {
                 These apps do not exist in Splunkbase so will need to be installed as private apps. Any configuration in their local directory will not be
                 included in this step. This process runs on the source system, even if its remote.
             </P>
-            {!ENABLE_PRIVATE && (
+            {src.data && !ENABLE_PRIVATE && (
                 <Message appearance="fill" type="error">
                     This app is not installed on the source Splunk system, so private apps cannot be packaged.
                 </Message>
