@@ -12,7 +12,8 @@
     "lint:ci": "yarn run eslint:ci && yarn run stylelint",
     "start": "webpack --watch",
     "stylelint": "stylelint \"src/**/*.{js,jsx}\" --config stylelint.config.js",
-    "make": "./make.sh"
+    "make": "./make.sh",
+    "package": "./make.sh"
   },
   "devDependencies": {
     "@babel/core": "^7.2.0",
