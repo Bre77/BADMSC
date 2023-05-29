@@ -1,33 +1,27 @@
 //! Queue mutations
 
-import Button from '@splunk/react-ui/Button';
-import Heading from '@splunk/react-ui/Heading';
-import Message from '@splunk/react-ui/Message';
-import P from '@splunk/react-ui/Paragraph';
-import Table from '@splunk/react-ui/Table';
-import Typography from '@splunk/react-ui/Typography';
-import WaitSpinner from '@splunk/react-ui/WaitSpinner';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
-import React, { useMemo } from 'react';
-import MutateButton from '../components/mutateButton';
-import { request } from '../shared/fetch';
-import { handle, useAcs, useApi, useDefaults } from '../shared/hooks';
+import Heading from "@splunk/react-ui/Heading";
+import Message from "@splunk/react-ui/Message";
+import P from "@splunk/react-ui/Paragraph";
+import Table from "@splunk/react-ui/Table";
+import Typography from "@splunk/react-ui/Typography";
+import WaitSpinner from "@splunk/react-ui/WaitSpinner";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import React, { useMemo } from "react";
+import MutateButton from "../components/mutateButton";
+import { request } from "../shared/fetch";
+import { handle, useApi } from "../shared/hooks";
 
-const PATH = 'servicesNS/nobody/-/data/inputs/http';
+const PATH = "servicesNS/nobody/-/data/inputs/http";
 const IDX_LIMIT = 8;
 
 const processApiHec = (data) =>
     Object.fromEntries(
         data.entry
-            .filter(({ name }) => name != 'http')
+            .filter(({ name }) => name != "http")
             .map(({ name, content }) => [
-                name.replace('http://', ''),
-                Object.fromEntries(
-                    Object.entries(content).filter(
-                        ([key]) =>
-                            !key.startsWith('_') && !key.startsWith('eai:') && key != 'run_only_one'
-                    )
-                ),
+                name.replace("http://", ""),
+                Object.fromEntries(Object.entries(content).filter(([key]) => !key.startsWith("_") && !key.startsWith("eai:") && key != "run_only_one")),
             ])
     );
 /*const processAcsHec = (data) =>
@@ -47,26 +41,24 @@ const CopyHec = ({ config, name, content, exists }) => {
         let data = { ...content };
         console.log(content);
         if (data.indexes) {
-            data.indexes = data.indexes.join(',');
+            data.indexes = data.indexes.join(",");
         }
         let url = `${config.dst.api}/services/data/inputs/http/`;
-        exists ? (url += name) : (data['name'] = name);
+        exists ? (url += name) : (data["name"] = name);
         return request({
             url,
-            method: 'POST',
+            method: "POST",
             data,
-            params: { output_mode: 'json' },
+            params: { output_mode: "json" },
             headers: {
                 Authorization: `Bearer ${config.dst.token}`,
             },
         })
             .then(handle)
             .then(processApiHec)
-            .then((newdata) =>
-                queryClient.setQueryData(['dst', PATH], (olddata) => ({ ...olddata, ...newdata }))
-            );
+            .then((newdata) => queryClient.setQueryData(["dst", PATH], (olddata) => ({ ...olddata, ...newdata })));
     });
-    return <MutateButton mutation={mutation} label={exists ? 'Overwrite' : 'Create'} />;
+    return <MutateButton mutation={mutation} label={exists ? "Overwrite" : "Create"} />;
 };
 
 export default ({ step, config }) => {
@@ -86,18 +78,14 @@ export default ({ step, config }) => {
             if (srcContent.indexes) {
                 srcContent.indexes =
                     srcContent.indexes.length > IDX_LIMIT
-                        ? `${srcContent.indexes.slice(0, IDX_LIMIT).join(',')} (and ${
-                              srcContent.indexes.length - IDX_LIMIT
-                          } more)`
-                        : srcContent.indexes.join(',');
+                        ? `${srcContent.indexes.slice(0, IDX_LIMIT).join(",")} (and ${srcContent.indexes.length - IDX_LIMIT} more)`
+                        : srcContent.indexes.join(",");
             }
             if (dstContent?.indexes) {
                 dstContent.indexes =
                     dstContent.indexes.length > IDX_LIMIT
-                        ? `${dstContent.indexes.slice(0, IDX_LIMIT).join(',')} (and ${
-                              dstContent.indexes.length - IDX_LIMIT
-                          } more)`
-                        : dstContent.indexes.join(',');
+                        ? `${dstContent.indexes.slice(0, IDX_LIMIT).join(",")} (and ${dstContent.indexes.length - IDX_LIMIT} more)`
+                        : dstContent.indexes.join(",");
             }
             return [name, Object.entries(srcContent), Object.entries(dstContent || {})];
         });
@@ -105,10 +93,7 @@ export default ({ step, config }) => {
 
     return (
         <div>
-            <P>
-                HEC Inputs cannot be created from inputs.conf as they need to be pushed to the
-                indexers.
-            </P>
+            <P>HEC Inputs cannot be created from inputs.conf as they need to be pushed to the indexers.</P>
             <Heading level={2}>Step {step}.1 - Migrate HEC Inputs</Heading>
             {loading ? (
                 <WaitSpinner size="medium" />
@@ -126,25 +111,16 @@ export default ({ step, config }) => {
                                 <Table.Cell>{name}</Table.Cell>
                                 <Table.Cell>
                                     <Typography as="pre" variant="monoSmallBody">
-                                        {srcContent
-                                            .map(([key, value]) => `${key} = ${value}`)
-                                            .join('\n')}
+                                        {srcContent.map(([key, value]) => `${key} = ${value}`).join("\n")}
                                     </Typography>
                                 </Table.Cell>
                                 <Table.Cell>
                                     <Typography as="pre" variant="monoSmallBody">
-                                        {dstContent
-                                            .map(([key, value]) => `${key} = ${value}`)
-                                            .join('\n')}
+                                        {dstContent.map(([key, value]) => `${key} = ${value}`).join("\n")}
                                     </Typography>
                                 </Table.Cell>
                                 <Table.Cell>
-                                    <CopyHec
-                                        config={config}
-                                        name={name}
-                                        content={src.data[name]}
-                                        exists={!!dstContent.length}
-                                    />
+                                    <CopyHec config={config} name={name} content={src.data[name]} exists={!!dstContent.length} />
                                 </Table.Cell>
                             </Table.Row>
                         ))}
