@@ -1,3 +1,7 @@
+import Table from "@splunk/react-ui/Table";
+import Typography from "@splunk/react-ui/Typography";
+import WaitSpinner from "@splunk/react-ui/WaitSpinner";
+import { normalizeBoolean } from "@splunk/splunk-utils/boolean";
 import { useMutation, useQueries, useQueryClient } from "@tanstack/react-query";
 import React, { useMemo } from "react";
 import styled from "styled-components";
@@ -7,12 +11,6 @@ import { isort0, latest } from "../shared/helpers";
 import { handle, processConfs, useApps, useConfs, useDefaults } from "../shared/hooks";
 import MutateButton from "./mutateButton";
 
-// Splunk UI
-import Table from "@splunk/react-ui/Table";
-import Typography from "@splunk/react-ui/Typography";
-import WaitSpinner from "@splunk/react-ui/WaitSpinner";
-import { normalizeBoolean } from "@splunk/splunk-utils/boolean";
-
 const CodeCell = styled(Table.Cell)`
     max-width: 40vw;
     overflow: hidden;
@@ -20,7 +18,7 @@ const CodeCell = styled(Table.Cell)`
     white-space: nowrap;
 `;
 
-export default ({ config, scope }) => {
+export default ({ config, scope = false, files = CONF_FILES }) => {
     const def = useDefaults(config.src);
     const src = useConfs(config.src);
     const dst = useConfs(config.dst);
@@ -34,13 +32,13 @@ export default ({ config, scope }) => {
 
         const change = {};
         const scopes = {};
-        CONF_FILES.forEach((file, f) => {
+        files.forEach((file, f) => {
             if (dst[f].data && src[f].data) {
                 Object.entries(src[f].data || {}).forEach(([app, stanzas]) => {
                     if (app === "learned") return;
                     if (scope === "system" || app in dst_apps.data) {
                         Object.entries(stanzas).forEach(([stanza, { sharing, perms, content }]) => {
-                            if (sharing != scope) return;
+                            if (scope && sharing != scope) return;
                             const dst_sharing = dst[f].data?.[app]?.[stanza]?.sharing !== scope && dst[f].data?.[app]?.[stanza]?.sharing;
 
                             if (dst_sharing === "app") {

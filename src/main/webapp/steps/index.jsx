@@ -38,6 +38,7 @@ const steps = [
     ["Roles", Roles],
     ["Sourcetypes", Sourcetypes],
     ["HEC", HEC],
+    ["Inputs", HEC],
     ["System Config", ConfigSystem],
     ["Global Config", ConfigGlobal],
     ["App Config", ConfigApp],
