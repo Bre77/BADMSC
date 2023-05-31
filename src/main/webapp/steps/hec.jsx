@@ -58,7 +58,7 @@ const CopyHec = ({ config, name, content, exists, lock }) => {
                 .then(handle)
                 .then(processApiHec)
                 .then((newdata) => queryClient.setQueryData(["dst", PATH], (olddata) => ({ ...olddata, ...newdata })))
-                .finally(() => unlock())
+                .finally(unlock)
         );
     });
     return <MutateButton mutation={mutation} label={exists ? "Overwrite" : "Create"} />;
@@ -77,8 +77,6 @@ export default ({ step, config }) => {
         return Object.keys(src.data).map((name) => {
             const srcContent = { ...src.data?.[name] };
             const dstContent = { ...dst.data?.[name] };
-
-            console.log(name, srcContent, dstContent);
 
             if (srcContent.indexes) {
                 srcContent.indexes =
