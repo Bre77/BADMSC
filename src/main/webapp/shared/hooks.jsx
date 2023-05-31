@@ -168,7 +168,7 @@ export const useLock = () => {
     return async () => {
         await lock;
         let unlock = () => {};
-        setLock(new Promise((resolve) => (unlock = resolve)));
+        setLock(lock.then((resolve) => (unlock = resolve)));
         return unlock;
     };
 };
