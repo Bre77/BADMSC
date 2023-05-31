@@ -4,7 +4,7 @@ import Table from "@splunk/react-ui/Table";
 import Typography from "@splunk/react-ui/Typography";
 import { normalizeBoolean } from "@splunk/splunk-utils/boolean";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import React, { useMemo } from "react";
+import React, { Fragment, useMemo } from "react";
 import MutateButton from "../components/mutateButton";
 import { ATTR_BLACKLIST } from "../shared/const";
 import { request } from "../shared/fetch";
@@ -117,16 +117,14 @@ export default ({ step, config }) => {
         const dst = merge(dst_props.data);
 
         return Object.entries(src).reduce((x, [stanza, content]) => {
-            let required = Object.entries(content)
+            let base = Object.entries(content)
                 .filter(
                     ([k, v]) =>
-                        !ATTR_BLACKLIST.includes(k) &&
-                        normalizeBoolean(def_props.data?.[k]) !== normalizeBoolean(v) &&
-                        normalizeBoolean(dst?.[stanza]?.[k]) !== normalizeBoolean(v) &&
-                        PARSING.some((z) => k.startsWith(z))
+                        !ATTR_BLACKLIST.includes(k) && normalizeBoolean(def_props.data?.[k]) !== normalizeBoolean(v) && PARSING.some((z) => k.startsWith(z))
                 )
-                .map(([k, v]) => [k, v, dst?.[stanza]?.[k]]);
-            required.length && x.push([stanza, required, !!dst?.[stanza]], { ...dst?.[stanza]?.[k], ...required });
+                .map(([k, v]) => [k, v, dst?.[stanza]?.[k], normalizeBoolean(dst?.[stanza]?.[k]) !== normalizeBoolean(v)]);
+
+            base.some(([k, v, x, diff]) => diff) && x.push([stanza, base, !!dst?.[stanza]]);
             return x;
         }, []);
     }, [src_props.data, dst_props.data, def_props.data]);
@@ -167,9 +165,10 @@ export default ({ step, config }) => {
             <Heading level={2}>Step {step}.1 - Copy/Select Sourcetypes</Heading>
             <Table stripeRows>
                 <Table.Head>
-                    <Table.HeadCell>Local</Table.HeadCell>
-                    <Table.HeadCell>Cloud</Table.HeadCell>
-                    <Table.HeadCell>Copy</Table.HeadCell>
+                    <Table.HeadCell>Local Differences</Table.HeadCell>
+                    <Table.HeadCell>Cloud Differences</Table.HeadCell>
+                    <Table.HeadCell>Final Output</Table.HeadCell>
+                    <Table.HeadCell>Action</Table.HeadCell>
                 </Table.Head>
                 <Table.Body>
                     {props.map(([stanza, content, present]) => (
@@ -177,24 +176,39 @@ export default ({ step, config }) => {
                             <Table.Cell>
                                 <Typography as="code" variant="monoBody">
                                     [{stanza}]<br />
-                                    {content.map(([a, src, dst], i) => (
-                                        <span key={i}>
-                                            {src !== undefined && `${a} = ${src}`}
-                                            <br />
-                                        </span>
-                                    ))}
+                                    {content.map(([a, src, dst, diff], i) =>
+                                        diff ? (
+                                            <b key={i}>
+                                                {src !== undefined && `${a} = ${src}`}
+                                                <br />
+                                            </b>
+                                        ) : (
+                                            <Fragment key={i}>
+                                                {src !== undefined && `${a} = ${src}`}
+                                                <br />
+                                            </Fragment>
+                                        )
+                                    )}
                                 </Typography>
                             </Table.Cell>
                             <Table.Cell>
                                 {present && (
                                     <Typography as="code" variant="monoBody">
-                                        [{stanza}]<br />
-                                        {content.map(([a, src, dst], i) => (
-                                            <span key={i}>
-                                                {dst !== undefined && `${a} = ${dst}`}
-                                                <br />
-                                            </span>
-                                        ))}
+                                        {`[${stanza}]`}
+                                        <br />
+                                        {content.map(([a, src, dst, diff], i) =>
+                                            diff ? (
+                                                <b key={i}>
+                                                    {dst !== undefined && `${a} = ${dst}`}
+                                                    <br />
+                                                </b>
+                                            ) : (
+                                                <Fragment key={i}>
+                                                    {dst !== undefined && `${a} = ${dst}`}
+                                                    <br />
+                                                </Fragment>
+                                            )
+                                        )}
                                     </Typography>
                                 )}
                             </Table.Cell>
