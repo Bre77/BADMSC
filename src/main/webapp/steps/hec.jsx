@@ -7,10 +7,10 @@ import Table from "@splunk/react-ui/Table";
 import Typography from "@splunk/react-ui/Typography";
 import WaitSpinner from "@splunk/react-ui/WaitSpinner";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import React, { useMemo } from "react";
+import React, { useMemo, useReducer } from "react";
 import MutateButton from "../components/mutateButton";
 import { request } from "../shared/fetch";
-import { handle, useApi } from "../shared/hooks";
+import { handle, useApi, useLock } from "../shared/hooks";
 
 const PATH = "servicesNS/nobody/-/data/inputs/http";
 const IDX_LIMIT = 8;
@@ -35,7 +35,7 @@ const processApiHec = (data) =>
         ])
     );*/
 
-const CopyHec = ({ config, name, content, exists }) => {
+const CopyHec = ({ config, name, content, exists, lock }) => {
     const queryClient = useQueryClient();
     const mutation = useMutation(async () => {
         let data = { ...content };
@@ -45,18 +45,21 @@ const CopyHec = ({ config, name, content, exists }) => {
         }
         let url = `${config.dst.api}/services/data/inputs/http/`;
         exists ? (url += name) : (data["name"] = name);
-        return request({
-            url,
-            method: "POST",
-            data,
-            params: { output_mode: "json" },
-            headers: {
-                Authorization: `Bearer ${config.dst.token}`,
-            },
-        })
-            .then(handle)
-            .then(processApiHec)
-            .then((newdata) => queryClient.setQueryData(["dst", PATH], (olddata) => ({ ...olddata, ...newdata })));
+        return lock().then((unlock) =>
+            request({
+                url,
+                method: "POST",
+                data,
+                params: { output_mode: "json" },
+                headers: {
+                    Authorization: `Bearer ${config.dst.token}`,
+                },
+            })
+                .then(handle)
+                .then(processApiHec)
+                .then((newdata) => queryClient.setQueryData(["dst", PATH], (olddata) => ({ ...olddata, ...newdata })))
+                .finally(() => unlock())
+        );
     });
     return <MutateButton mutation={mutation} label={exists ? "Overwrite" : "Create"} />;
 };
@@ -66,6 +69,8 @@ export default ({ step, config }) => {
     const dst = useApi(config.dst, PATH, processApiHec);
     //const dst = useAcs(config.dst, "inputs/http-event-collectors", processAcsHec);
     const loading = src.isLoading || dst.isLoading;
+
+    const lock = useLock();
 
     const hec = useMemo(() => {
         if (loading) return [];
@@ -120,7 +125,7 @@ export default ({ step, config }) => {
                                     </Typography>
                                 </Table.Cell>
                                 <Table.Cell>
-                                    <CopyHec config={config} name={name} content={src.data[name]} exists={!!dstContent.length} />
+                                    <CopyHec config={config} name={name} content={src.data[name]} exists={!!dstContent.length} lock={lock} />
                                 </Table.Cell>
                             </Table.Row>
                         ))}

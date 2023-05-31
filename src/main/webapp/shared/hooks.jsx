@@ -162,3 +162,13 @@ export const useDebounce = (value, delay) => {
     }, [value, delay]);
     return debouncedValue;
 };
+
+export const useLock = () => {
+    const [lock, setLock] = useState(Promise.resolve());
+    return async () => {
+        await lock;
+        let unlock = () => {};
+        setLock(new Promise((resolve) => (unlock = resolve)));
+        return unlock;
+    };
+};
