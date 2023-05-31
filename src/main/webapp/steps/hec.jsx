@@ -1,5 +1,3 @@
-//! Queue mutations
-
 import Heading from "@splunk/react-ui/Heading";
 import Message from "@splunk/react-ui/Message";
 import P from "@splunk/react-ui/Paragraph";
@@ -21,7 +19,9 @@ const processApiHec = (data) =>
             .filter(({ name }) => name != "http")
             .map(({ name, content }) => [
                 name.replace("http://", ""),
-                Object.fromEntries(Object.entries(content).filter(([key]) => !key.startsWith("_") && !key.startsWith("eai:") && key != "run_only_one")),
+                Object.fromEntries(
+                    Object.entries(content).filter(([key]) => !key.startsWith("_") && !key.startsWith("eai:") && key != "run_only_one" && key != "host")
+                ),
             ])
     );
 /*const processAcsHec = (data) =>
@@ -57,7 +57,7 @@ const CopyHec = ({ config, name, content, exists, lock }) => {
             })
                 .then(handle)
                 .then(processApiHec)
-                .then((newdata) => queryClient.setQueryData(["dst", PATH], (olddata) => ({ ...olddata, ...newdata })))
+                .then((newdata) => queryClient.invalidateQueries(["dst", PATH])) // , (olddata) => ({ ...olddata, ...newdata })
                 .finally(unlock)
         );
     });
