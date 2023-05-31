@@ -8,7 +8,6 @@ import { handle, processConfs, useApps, useConfs, useDefaults } from "../shared/
 import MutateButton from "./mutateButton";
 
 // Splunk UI
-import Button from "@splunk/react-ui/Button";
 import Table from "@splunk/react-ui/Table";
 import Typography from "@splunk/react-ui/Typography";
 import WaitSpinner from "@splunk/react-ui/WaitSpinner";

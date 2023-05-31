@@ -79,8 +79,6 @@ export default () => {
         ((config.data && ("src" in config.data === false || "dst" in config.data === false)) || config.data === false) && step > 1 && setStep(1);
     }, [config.data]);
 
-    console.log(config.data);
-
     return (
         <div>
             <StepBar activeStepId={step}>

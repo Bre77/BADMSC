@@ -1,14 +1,14 @@
-//! Actually finish creating sourcetypes
-
-import Button from "@splunk/react-ui/Button";
 import Heading from "@splunk/react-ui/Heading";
 import P from "@splunk/react-ui/Paragraph";
 import Table from "@splunk/react-ui/Table";
 import Typography from "@splunk/react-ui/Typography";
 import { normalizeBoolean } from "@splunk/splunk-utils/boolean";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import React, { useMemo } from "react";
+import MutateButton from "../components/mutateButton";
 import { ATTR_BLACKLIST } from "../shared/const";
-import { useConfs, useDefaults } from "../shared/hooks";
+import { request } from "../shared/fetch";
+import { handle, processConfs, useConfs, useDefaults } from "../shared/hooks";
 
 const PARSING = [
     "priority",
@@ -63,14 +63,44 @@ const PARSING = [
 
 //const PARSING_STARTS_WITH = ["TRANSFORMS-", "SEDCMD-", "METRIC-SCHEMA-MEASURES-", "METRIC-SCHEMA-BLACKLIST-DIMS-", "METRIC-SCHEMA-WHITELIST-DIMS-"];
 
+const CopySourcetype = ({ config, stanza, attr, exists }) => {
+    const queryClient = useQueryClient();
+    const copy = useMutation(async () => {
+        let data = Object.fromEntries(attr); //.map(([a, src, dst]) => [a, src])
+        console.log("data", data);
+        let url = `${config.dst.api}/services/saved/sourcetypes/`;
+        exists ? (url += stanza) : (data["name"] = stanza);
+        return request({
+            url,
+            method: "POST",
+            data,
+            params: { output_mode: "json", count: 1 },
+            headers: {
+                Authorization: `Bearer ${config.dst.token}`,
+            },
+        })
+            .then(handle)
+            .then(processConfs)
+            .then((newdata) => {
+                queryClient.invalidateQueries(["dst", "config", "props"]);
+                /*queryClient.setQueryData(["dst", "config", "props"], (olddata) => ({
+                    ...olddata,
+                    "000-self-service": { ...olddata["000-self-service"], [stanza]: newdata["000-self-service"][stanza] },
+                }));*/
+            });
+    });
+
+    return <MutateButton mutation={copy} label={exists ? "Update" : "Create"} />;
+};
+
 const merge = (data) =>
     Object.entries(data)
         .sort((a, b) => (a[0] < b[0] ? 1 : -1))
         .reduce((x, [app, stanzas]) => {
-            return Object.entries(stanzas).reduce((x, [stanza, { content }]) => {
+            Object.entries(stanzas).forEach(([stanza, { content }]) => {
                 x[stanza] = { ...x[stanza], ...content };
-                return x;
-            }, x);
+            });
+            return x;
         }, {});
 
 export default ({ step, config }) => {
@@ -96,7 +126,7 @@ export default ({ step, config }) => {
                         PARSING.some((z) => k.startsWith(z))
                 )
                 .map(([k, v]) => [k, v, dst?.[stanza]?.[k]]);
-            required.length && x.push([stanza, required, !!dst?.[stanza]]);
+            required.length && x.push([stanza, required, !!dst?.[stanza]], { ...dst?.[stanza]?.[k], ...required });
             return x;
         }, []);
     }, [src_props.data, dst_props.data, def_props.data]);
@@ -169,7 +199,7 @@ export default ({ step, config }) => {
                                 )}
                             </Table.Cell>
                             <Table.Cell>
-                                <Button>Copy</Button>
+                                <CopySourcetype config={config} stanza={stanza} attr={content} exists={present} />
                             </Table.Cell>
                         </Table.Row>
                     ))}
@@ -209,9 +239,7 @@ export default ({ step, config }) => {
                                     </Typography>
                                 )}
                             </Table.Cell>
-                            <Table.Cell>
-                                <Button>Copy</Button>
-                            </Table.Cell>
+                            <Table.Cell>Not Possible Yet</Table.Cell>
                         </Table.Row>
                     ))}
                 </Table.Body>
