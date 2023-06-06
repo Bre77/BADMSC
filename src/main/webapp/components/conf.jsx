@@ -19,9 +19,9 @@ const CodeCell = styled(Table.Cell)`
 `;
 
 export default ({ config, scope = false, files = CONF_FILES }) => {
-    const def = useDefaults(config.src);
-    const src = useConfs(config.src);
-    const dst = useConfs(config.dst);
+    const def = useDefaults(config.src, files);
+    const src = useConfs(config.src, files);
+    const dst = useConfs(config.dst, files);
     const dst_apps = useApps(config.dst);
 
     const isLoading =

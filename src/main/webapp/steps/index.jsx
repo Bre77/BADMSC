@@ -20,6 +20,7 @@ import Data from "./data";
 import Finish from "./finish";
 import HEC from "./hec";
 import Indexes from "./indexes";
+import Inputs from "./inputs";
 import CSV from "./lookup_csv";
 import KV from "./lookup_kv";
 import Nav from "./nav";
@@ -38,7 +39,7 @@ const steps = [
     ["Roles", Roles],
     ["Sourcetypes", Sourcetypes],
     ["HEC", HEC],
-    ["Inputs", HEC],
+    ["Inputs", Inputs],
     ["System Config", ConfigSystem],
     ["Global Config", ConfigGlobal],
     ["App Config", ConfigApp],

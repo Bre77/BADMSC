@@ -100,7 +100,7 @@ export const processConfs = (data) =>
         return x;
     }, {});
 
-export const useConfs = (target, files = CONF_FILES) =>
+export const useConfs = (target, files) =>
     useQueries({
         queries: files.map((file) => ({
             queryKey: [target.key, "config", file],
@@ -121,7 +121,7 @@ export const useConfs = (target, files = CONF_FILES) =>
         })),
     });
 
-export const useDefaults = (target, files = CONF_FILES) =>
+export const useDefaults = (target, files) =>
     useQueries({
         queries: files.map((file) => ({
             queryKey: [target.key, "default", file],
