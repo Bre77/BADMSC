@@ -46,6 +46,7 @@ class Input(Script):
         # Set start to earliest days ago
         start = int(time.time()) - (int(input_items["earliest"]) * 86400)
         end = int(time.time()) - 10
+        span = 3600
 
         stored_password = [
             x
@@ -74,7 +75,7 @@ class Input(Script):
 
             # Do the logic
             while earliest < end:
-                latest = min(earliest + 86400, end)
+                latest = min(earliest + span, end)
                 ew.log(
                     EventWriter.INFO,
                     f"status=search name={name} earliest={earliest} latest={latest} start={start} end={end}",
