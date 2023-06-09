@@ -37,6 +37,8 @@ export default ({ step, config }) => {
     return (
         <div>
             <P>Modular Inputs</P>
+            <Heading level={2}>Step {step}.1 - Copy Accounts</Heading>
+            <Conf config={config} files={["inputs"]} />
             <Heading level={2}>Step {step}.1 - Copy Inputs</Heading>
             <Conf config={config} files={["inputs"]} />
             <Heading level={2}>Step {step}.2 - Copy Passwords</Heading>
