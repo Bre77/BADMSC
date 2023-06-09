@@ -33,6 +33,8 @@ class Input(Script):
         return scheme
 
     def stream_events(self, inputs, ew):
+        csv.field_size_limit(sys.maxsize)
+
         self.service.namespace["app"] = self.APP
         # Get Variables
         input_name, input_items = inputs.inputs.popitem()
@@ -44,7 +46,9 @@ class Input(Script):
         input = self.service.inputs.__getitem__((name, kind))
         
         # Set start to earliest days ago
-        start = int(time.time()) - (int(input_items["earliest"]) * 86400)
+        start = int(input_items["earliest"])
+        if start < 100000:
+            start = int(time.time()) - (start * 86400)
         end = int(time.time()) - 10
         span = 3600
 
@@ -57,7 +61,7 @@ class Input(Script):
 
         url = f"https://{config['src']['api']}/services/search/v2/jobs/export"
         auth = f"Splunk {config['src']['token']}"
-        MOD = 1000
+        MOD = 100000
 
         ew.log(
             EventWriter.INFO,
