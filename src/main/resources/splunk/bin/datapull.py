@@ -88,7 +88,7 @@ class Input(Script):
                     url,
                     stream=True,
                     data={
-                        "search": f"search index={name} | reverse",
+                        "search": f"search index={name} _time>${start} | reverse",
                         "index_earliest": earliest,
                         "index_latest": latest,
                         "enable_lookups": False,
