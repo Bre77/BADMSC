@@ -45,7 +45,7 @@ class Input(Script):
         
         # Set start to earliest days ago
         start = int(time.time()) - (int(input_items["earliest"]) * 86400)
-        end = int(time.time()) - 60
+        end = int(time.time()) - 10
 
         stored_password = [
             x
@@ -83,7 +83,7 @@ class Input(Script):
                     url,
                     stream=True,
                     data={
-                        "search": f"search index={name}",
+                        "search": f"search index={name} | reverse",
                         "index_earliest": earliest,
                         "index_latest": latest,
                         "enable_lookups": False,
