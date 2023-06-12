@@ -3,6 +3,7 @@ import Multiselect from "@splunk/react-ui/Multiselect";
 import P from "@splunk/react-ui/Paragraph";
 import Table from "@splunk/react-ui/Table";
 import WaitSpinner from "@splunk/react-ui/WaitSpinner";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import React, { useEffect, useMemo } from "react";
 import Conf from "../components/conf";
 import MutateButton from "../components/mutateButton";
@@ -181,20 +182,11 @@ const ModInputs = ({ config }) => {
     );
 };
 
-const Passwords = ({ config }) => {
-    const mutation = (contents, app, file) =>
-        request({
-            url: `${config.dst.api}/servicesNS/nobody/-/storage/passwords/data/${file}/batch_save`,
-            method: "POST",
-            headers: {
-                Authorization: `Bearer ${config.dst.token}`,
-                "Content-Type": "application/json",
-            },
-            json: contents.slice(1).map((row) => Object.fromEntries(contents[0].map((e, i) => [e, row[i]]))),
-        }).then(handle);
+const PASSWORD_PATH = "servicesNS/nobody/-/storage/passwords";
 
-    const src_passwords = useApi(config.src, "servicesNS/nobody/-/storage/passwords", processConfs);
-    const dst_passwords = useApi(config.dst, "servicesNS/nobody/-/storage/passwords", processConfs);
+const Passwords = ({ config }) => {
+    const src_passwords = useApi(config.src, PASSWORD_PATH, processConfs);
+    const dst_passwords = useApi(config.dst, PASSWORD_PATH, processConfs);
 
     const passwords = useMemo(() => {
         if (!src_passwords.data || !dst_passwords.data) return [];
@@ -202,7 +194,7 @@ const Passwords = ({ config }) => {
             .map(([app, stanzas]) => [
                 app,
                 Object.entries(stanzas)
-                    .filter(([stanza, { content }]) => content.clear_password != dst_passwords.data?.[app]?.[stanza].content.clear_password)
+                    .filter(([stanza, { content }]) => content && content.clear_password != dst_passwords.data?.[app]?.[stanza]?.content.clear_password)
                     .map(([stanza, x]) => [stanza, x, dst_passwords.data?.[app]?.[stanza]]),
             ])
             .filter(([app, stanzas]) => stanzas && stanzas.length);
@@ -233,7 +225,14 @@ const Passwords = ({ config }) => {
                             <Table.Cell>{src.content.clear_password}</Table.Cell>
                             <Table.Cell>{dst?.content.clear_password}</Table.Cell>
                             <Table.Cell>
-                                <MutateButton mutation={mutation} label={!dst ? "Create" : "Update"} />
+                                <PasswordButton
+                                    config={config}
+                                    app={app}
+                                    realm={src.content.realm || ""}
+                                    name={src.content.username || ""}
+                                    password={src.content.clear_password}
+                                    exists={!!dst}
+                                />
                             </Table.Cell>
                         </Table.Row>
                     )),
@@ -241,4 +240,25 @@ const Passwords = ({ config }) => {
             </Table.Body>
         </Table>
     );
+};
+
+const PasswordButton = ({ config, app, name, realm, password, exists }) => {
+    let queryClient = useQueryClient();
+    let data = [["password", password]];
+    let url = `${config.dst.api}/servicesNS/nobody/${app}/storage/passwords/`;
+    exists ? (url += encodeURIComponent(`${realm}:${name}:`)) : data.push(["realm", realm], ["name", name]);
+    const mutation = useMutation(() =>
+        request({
+            url,
+            method: "POST",
+            params: { output_mode: "json" },
+            headers: {
+                Authorization: `Bearer ${config.dst.token}`,
+            },
+            data,
+        })
+            .then(handle)
+            .then(queryClient.invalidateQueries(PASSWORD_PATH))
+    );
+    return <MutateButton mutation={mutation} label={exists ? "Update" : "Create"} />;
 };
