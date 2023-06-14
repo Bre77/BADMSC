@@ -9,7 +9,7 @@ import { ATTR_BLACKLIST, CONF_FILES } from "../shared/const";
 import { request } from "../shared/fetch";
 import { isort0, latest } from "../shared/helpers";
 import { handle, handleAcl, processConfs, useApps, useConfs, useDefaults } from "../shared/hooks";
-import MutateButton from "./mutateButton";
+import MutateButton from "./MutateButton";
 
 const CodeCell = styled(Table.Cell)`
     max-width: 40vw;

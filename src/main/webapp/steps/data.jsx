@@ -10,7 +10,7 @@ import { splunkdPath } from "@splunk/splunk-utils/config";
 import { useMutation } from "@tanstack/react-query";
 import moment from "moment";
 import React, { useEffect, useState } from "react";
-import MutateButton from "../components/mutateButton";
+import MutateButton from "../components/MutateButton";
 import { FETCH_INIT, request } from "../shared/fetch";
 import { wrapSetValue, wrapSetValues } from "../shared/helpers";
 import { handle, useApi, useLocal } from "../shared/hooks";

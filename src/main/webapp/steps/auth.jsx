@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import React, { useEffect, useReducer, useState } from "react";
 import styled from "styled-components";
-import MutateButton from "../components/mutateButton";
+import MutateButton from "../components/MutateButton";
 
 // Splunk UI
 import Error from "@splunk/react-icons/Error";

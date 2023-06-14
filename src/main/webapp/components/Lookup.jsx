@@ -9,7 +9,7 @@ import React, { useMemo, useRef, useState } from "react";
 import { request } from "../shared/fetch";
 import { isort0 } from "../shared/helpers";
 import { handle, useApi, useApps } from "../shared/hooks";
-import MutateButton from "./mutateButton";
+import MutateButton from "./MutateButton";
 
 const getLookup = async (target, app, file, type, signal) =>
     request(

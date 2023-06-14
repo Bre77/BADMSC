@@ -8,7 +8,7 @@ import Table from "@splunk/react-ui/Table";
 import { Typography } from "@splunk/react-ui/Typography";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import React, { useMemo } from "react";
-import MutateButton from "../components/mutateButton";
+import MutateButton from "../components/MutateButton";
 import { request } from "../shared/fetch";
 import { dedup } from "../shared/helpers";
 import { handle, useAcs, useApi, useApps } from "../shared/hooks";

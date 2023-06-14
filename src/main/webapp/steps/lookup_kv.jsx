@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import React, { useMemo } from "react";
-import Conf from "../components/conf";
-import Lookup, { LookupCompare, OpenLookup } from "../components/lookup";
+import Conf from "../components/Conf";
+import Lookup, { LookupCompare, OpenLookup } from "../components/Lookup";
 import { isort0, wrapSetValue } from "../shared/helpers";
 import { handle, useApi, useApps } from "../shared/hooks";
 

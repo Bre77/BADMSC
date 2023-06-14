@@ -10,7 +10,7 @@ import Text from "@splunk/react-ui/Text";
 import WaitSpinner from "@splunk/react-ui/WaitSpinner";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import React, { useEffect, useMemo, useState } from "react";
-import MutateButton from "../components/mutateButton";
+import MutateButton from "../components/MutateButton";
 import { APP_ID } from "../shared/const";
 import { FETCH_INIT, REQUEST_URL, request } from "../shared/fetch";
 import { isort0, wrapSetValue } from "../shared/helpers";

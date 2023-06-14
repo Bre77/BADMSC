@@ -1,7 +1,7 @@
 import Heading from "@splunk/react-ui/Heading";
 import P from "@splunk/react-ui/Paragraph";
 import React from "react";
-import Lookup from "../components/lookup";
+import Lookup from "../components/Lookup";
 import { request } from "../shared/fetch";
 import { handle } from "../shared/hooks";
 

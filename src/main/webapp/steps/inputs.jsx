@@ -5,8 +5,8 @@ import Table from "@splunk/react-ui/Table";
 import WaitSpinner from "@splunk/react-ui/WaitSpinner";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import React, { useEffect, useMemo } from "react";
-import Conf from "../components/conf";
-import MutateButton from "../components/mutateButton";
+import Conf from "../components/Conf";
+import MutateButton from "../components/MutateButton";
 import { request } from "../shared/fetch";
 import { handle, processConfs, useApi, useApps, useLocal } from "../shared/hooks";
 

@@ -7,7 +7,7 @@ import React, { useMemo } from "react";
 import { request } from "../shared/fetch";
 import { isort0 } from "../shared/helpers";
 import { handle, handleAcl, useApi, useApps } from "../shared/hooks";
-import MutateButton from "./mutateButton";
+import MutateButton from "./MutateButton";
 
 const handleUi = (data) =>
     data.entry.reduce((x, { name, acl, content }) => {
