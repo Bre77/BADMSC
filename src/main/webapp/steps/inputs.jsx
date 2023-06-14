@@ -8,9 +8,134 @@ import React, { useEffect, useMemo } from "react";
 import Conf from "../components/conf";
 import MutateButton from "../components/mutateButton";
 import { request } from "../shared/fetch";
-import { handle, processConfs, useApi, useLocal } from "../shared/hooks";
+import { handle, processConfs, useApi, useApps, useLocal } from "../shared/hooks";
+
+const trunc = (str, len = 256) => (str && str.length > len ? `${str.slice(0, len - 3)}...` : str);
+
+export default ({ step, config }) => {
+    return (
+        <>
+            <P>Modular Inputs</P>
+            <Heading level={2}>Step {step}.1 - Copy App Specific Account Configuration</Heading>
+            <P>Select any modular input configuration files that need to be migrated</P>
+            <ModInputs config={config} />
+            <Heading level={2}>Step {step}.2 - Copy Passwords</Heading>
+            <Passwords config={config} />
+            <Heading level={2}>Step {step}.3 - Copy Inputs</Heading>
+            <P>Be sure to ignore and SplunkTCP or HTTP inputs here, only modular inputs should be migrated.</P>
+            <Conf config={config} files={["inputs"]} />
+        </>
+    );
+};
+
+const ModInputs = ({ config }) => {
+    const [files, setFiles] = useLocal(`badmsc_extra_files-${config.src.api}`, MODINPUT_CONF_FILES);
+    const handleFiles = (e, { values }) => setFiles(values);
+    const src_files = useApi(config.src, "services/properties", (data) => data.entry.map((e) => e.name).filter((f) => !STANDARD_CONF_FILES.includes(f)));
+    useEffect(() => {
+        if (src_files.data) {
+            setFiles([...files.filter((f) => src_files.data.includes(f))]);
+        }
+    }, [src_files.data]);
+    return (
+        <>
+            <Multiselect values={files} onChange={handleFiles} options={src_files.data} disabled={src_files.isLoading}>
+                {src_files.data?.map((file) => (
+                    <Multiselect.Option key={file} label={file} value={file} />
+                ))}
+            </Multiselect>
+            <br />
+            {src_files.isLoading ? <WaitSpinner size="large" /> : <Conf config={config} files={files} />}
+        </>
+    );
+};
+
+const PASSWORD_PATH = "servicesNS/nobody/-/storage/passwords";
+
+const Passwords = ({ config }) => {
+    const src_passwords = useApi(config.src, PASSWORD_PATH, processConfs);
+    const dst_passwords = useApi(config.dst, PASSWORD_PATH, processConfs);
+    const dst_apps = useApps(config.dst);
+
+    const passwords = useMemo(() => {
+        if (!src_passwords.data || !dst_passwords.data || !dst_apps.data) return [];
+        return Object.entries(src_passwords.data)
+            .filter(([app, stanzas]) => app in dst_apps.data)
+            .map(([app, stanzas]) => [
+                app,
+                Object.entries(stanzas)
+                    .filter(([stanza, { content }]) => content && content.clear_password != dst_passwords.data?.[app]?.[stanza]?.content.clear_password)
+                    .map(([stanza, x]) => [stanza, x, dst_passwords.data?.[app]?.[stanza]]),
+            ])
+            .filter(([app, stanzas]) => stanzas && stanzas.length);
+    }, [src_passwords.data, dst_passwords.data, dst_apps.data]);
+    return src_passwords.isLoading || dst_passwords.isLoading ? (
+        <WaitSpinner size="large" />
+    ) : (
+        <Table stripeRows>
+            <Table.Head>
+                <Table.HeadCell>File</Table.HeadCell>
+                <Table.HeadCell>Local</Table.HeadCell>
+                <Table.HeadCell>Cloud</Table.HeadCell>
+                <Table.HeadCell>Action</Table.HeadCell>
+            </Table.Head>
+            <Table.Body>
+                {passwords.flatMap(([app, stanzas]) => [
+                    <Table.Row key={app}>
+                        <Table.Cell>
+                            <b>{app}</b>
+                        </Table.Cell>
+                        <Table.Cell></Table.Cell>
+                        <Table.Cell></Table.Cell>
+                        <Table.Cell></Table.Cell>
+                    </Table.Row>,
+                    ...stanzas.map(([stanza, src, dst]) => (
+                        <Table.Row key={`${app}/${stanza}`}>
+                            <Table.Cell>{stanza}</Table.Cell>
+                            <Table.Cell>{trunc(src.content.clear_password, 256)}</Table.Cell>
+                            <Table.Cell>{trunc(dst?.content.clear_password, 256)}</Table.Cell>
+                            <Table.Cell>
+                                <PasswordButton
+                                    config={config}
+                                    app={app}
+                                    realm={src.content.realm || ""}
+                                    name={src.content.username || ""}
+                                    password={src.content.clear_password}
+                                    exists={!!dst}
+                                />
+                            </Table.Cell>
+                        </Table.Row>
+                    )),
+                ])}
+            </Table.Body>
+        </Table>
+    );
+};
+
+const PasswordButton = ({ config, app, name, realm, password, exists }) => {
+    let queryClient = useQueryClient();
+    let data = [["password", password]];
+    let url = `${config.dst.api}/servicesNS/nobody/${app}/storage/passwords/`;
+    exists ? (url += encodeURIComponent(`${realm}:${name}:`)) : data.push(["realm", realm], ["name", name]);
+    const mutation = useMutation(() =>
+        request({
+            url,
+            method: "POST",
+            params: { output_mode: "json" },
+            headers: {
+                Authorization: `Bearer ${config.dst.token}`,
+            },
+            data,
+        })
+            .then(handle)
+            .then(queryClient.invalidateQueries(PASSWORD_PATH))
+    );
+    return <MutateButton mutation={mutation} label={exists ? "Update" : "Create"} />;
+};
 
 const STANDARD_CONF_FILES = [
+    "audit",
+    "analyticstories",
     "addon_builder",
     "alert_actions",
     "alerts",
@@ -22,6 +147,8 @@ const STANDARD_CONF_FILES = [
     "collections",
     "commands",
     "conf",
+    "cloud",
+    "cmc",
     "config_explorer",
     "datamodels",
     "datatypesbnf",
@@ -44,6 +171,25 @@ const STANDARD_CONF_FILES = [
     "limits",
     "livetail",
     "lookups",
+    "itsi_base_service_template",
+    "itsi_content_packs",
+    "itsi_correlation_search_template",
+    "itsi_data_integrations",
+    "itsi_entity_management_rules",
+    "itsi_entity_type",
+    "itsi_event_management",
+    "itsi_kpi_base_search",
+    "itsi_kpi_template",
+    "itsi_kpi_threshold_template",
+    "itsi_module_settings",
+    "itsi_module_viz",
+    "itsi_notable_event_retention",
+    "itsi_notable_event_severity",
+    "itsi_notable_event_status",
+    "itsi_service_analyzer",
+    "itsi_service_template",
+    "itsi_settings",
+    "itsi_team",
     "macros",
     "manager",
     "managed_configurations",
@@ -144,122 +290,3 @@ const MODINPUT_CONF_FILES = [
     "ta_zscaler_cim_settings",
     "virustotal",
 ];
-
-export default ({ step, config }) => {
-    return (
-        <>
-            <P>Modular Inputs</P>
-            <Heading level={2}>Step {step}.1 - Copy App Specific Account Configuration</Heading>
-            <P>Select any modular input configuration files that need to be migrated</P>
-            <ModInputs config={config} />
-            <Heading level={2}>Step {step}.2 - Copy Passwords</Heading>
-            <Passwords config={config} />
-            <Heading level={2}>Step {step}.3 - Copy Inputs</Heading>
-            <P>Be sure to ignore and SplunkTCP or HTTP inputs here, only modular inputs should be migrated.</P>
-            <Conf config={config} files={["inputs"]} />
-        </>
-    );
-};
-
-const ModInputs = ({ config }) => {
-    const [files, setFiles] = useLocal(`badmsc_extra_files-${config.src.api}`, MODINPUT_CONF_FILES);
-    const handleFiles = (e, { values }) => setFiles(values);
-    const src_files = useApi(config.src, "services/properties", (data) => data.entry.map((e) => e.name).filter((f) => !STANDARD_CONF_FILES.includes(f)));
-    useEffect(() => {
-        if (src_files.data) {
-            setFiles([...files.filter((f) => src_files.data.includes(f))]);
-        }
-    }, [src_files.data]);
-    return (
-        <>
-            <Multiselect values={files} onChange={handleFiles} options={src_files.data} disabled={src_files.isLoading}>
-                {src_files.data?.map((file) => (
-                    <Multiselect.Option key={file} label={file} value={file} />
-                ))}
-            </Multiselect>
-            <br />
-            {src_files.isLoading ? <WaitSpinner size="large" /> : <Conf config={config} files={files} />}
-        </>
-    );
-};
-
-const PASSWORD_PATH = "servicesNS/nobody/-/storage/passwords";
-
-const Passwords = ({ config }) => {
-    const src_passwords = useApi(config.src, PASSWORD_PATH, processConfs);
-    const dst_passwords = useApi(config.dst, PASSWORD_PATH, processConfs);
-
-    const passwords = useMemo(() => {
-        if (!src_passwords.data || !dst_passwords.data) return [];
-        return Object.entries(src_passwords.data)
-            .map(([app, stanzas]) => [
-                app,
-                Object.entries(stanzas)
-                    .filter(([stanza, { content }]) => content && content.clear_password != dst_passwords.data?.[app]?.[stanza]?.content.clear_password)
-                    .map(([stanza, x]) => [stanza, x, dst_passwords.data?.[app]?.[stanza]]),
-            ])
-            .filter(([app, stanzas]) => stanzas && stanzas.length);
-    }, [src_passwords.data, dst_passwords.data]);
-    return src_passwords.isLoading || dst_passwords.isLoading ? (
-        <WaitSpinner size="large" />
-    ) : (
-        <Table stripeRows>
-            <Table.Head>
-                <Table.HeadCell>File</Table.HeadCell>
-                <Table.HeadCell>Local</Table.HeadCell>
-                <Table.HeadCell>Cloud</Table.HeadCell>
-                <Table.HeadCell>Action</Table.HeadCell>
-            </Table.Head>
-            <Table.Body>
-                {passwords.flatMap(([app, stanzas]) => [
-                    <Table.Row key={app}>
-                        <Table.Cell>
-                            <b>{app}</b>
-                        </Table.Cell>
-                        <Table.Cell></Table.Cell>
-                        <Table.Cell></Table.Cell>
-                        <Table.Cell></Table.Cell>
-                    </Table.Row>,
-                    ...stanzas.map(([stanza, src, dst]) => (
-                        <Table.Row key={`${app}/${stanza}`}>
-                            <Table.Cell>{stanza}</Table.Cell>
-                            <Table.Cell>{src.content.clear_password}</Table.Cell>
-                            <Table.Cell>{dst?.content.clear_password}</Table.Cell>
-                            <Table.Cell>
-                                <PasswordButton
-                                    config={config}
-                                    app={app}
-                                    realm={src.content.realm || ""}
-                                    name={src.content.username || ""}
-                                    password={src.content.clear_password}
-                                    exists={!!dst}
-                                />
-                            </Table.Cell>
-                        </Table.Row>
-                    )),
-                ])}
-            </Table.Body>
-        </Table>
-    );
-};
-
-const PasswordButton = ({ config, app, name, realm, password, exists }) => {
-    let queryClient = useQueryClient();
-    let data = [["password", password]];
-    let url = `${config.dst.api}/servicesNS/nobody/${app}/storage/passwords/`;
-    exists ? (url += encodeURIComponent(`${realm}:${name}:`)) : data.push(["realm", realm], ["name", name]);
-    const mutation = useMutation(() =>
-        request({
-            url,
-            method: "POST",
-            params: { output_mode: "json" },
-            headers: {
-                Authorization: `Bearer ${config.dst.token}`,
-            },
-            data,
-        })
-            .then(handle)
-            .then(queryClient.invalidateQueries(PASSWORD_PATH))
-    );
-    return <MutateButton mutation={mutation} label={exists ? "Update" : "Create"} />;
-};
