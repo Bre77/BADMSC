@@ -8,7 +8,7 @@ import styled from "styled-components";
 import { ATTR_BLACKLIST, CONF_FILES } from "../shared/const";
 import { request } from "../shared/fetch";
 import { isort0, latest } from "../shared/helpers";
-import { handle, processConfs, useApps, useConfs, useDefaults } from "../shared/hooks";
+import { handle, handleAcl, processConfs, useApps, useConfs, useDefaults } from "../shared/hooks";
 import MutateButton from "./mutateButton";
 
 const CodeCell = styled(Table.Cell)`
@@ -63,6 +63,7 @@ export default ({ config, scope = false, files = CONF_FILES }) => {
                                             attr: {},
                                             exists,
                                             perms,
+                                            sharing,
                                             dst_sharing,
                                         };
                                         change[app][file][stanza].attr[attr] = {
@@ -117,7 +118,7 @@ export default ({ config, scope = false, files = CONF_FILES }) => {
                         <Table.Cell></Table.Cell>
                     </Table.Row>,
                     ...files.flatMap(([file, stanzas]) =>
-                        stanzas.map(([stanza, { attr, perms, exists, dst_sharing }]) => (
+                        stanzas.map(([stanza, { attr, perms, exists, sharing, dst_sharing }]) => (
                             <Table.Row key={app + file + stanza}>
                                 <Table.Cell>
                                     {app} / {file}.conf
@@ -144,7 +145,7 @@ export default ({ config, scope = false, files = CONF_FILES }) => {
                                     <CopyConfig
                                         {...{
                                             config,
-                                            scope,
+                                            sharing,
                                             file,
                                             app,
                                             stanza,
@@ -163,13 +164,13 @@ export default ({ config, scope = false, files = CONF_FILES }) => {
     );
 };
 
-const CopyConfig = ({ config, scope, file, app, stanza, attr, perms, exists }) => {
+const CopyConfig = ({ config, sharing, file, app, stanza, attr, perms, exists }) => {
     const queryClient = useQueryClient();
     const copy = useMutation(async () => {
         let data = Object.fromEntries(attr.map(([a, { src }]) => [a, src]));
         console.log("data", data);
-        let url = `${config.dst.api}/servicesNS/nobody/${app}/configs/conf-${file}/`;
-        exists ? (url += stanza) : (data["name"] = stanza);
+        let url = `${config.dst.api}/servicesNS/nobody/${app}/configs/conf-${file}`;
+        exists ? (url = `${url}/${stanza}`) : (data["name"] = stanza);
         return request({
             url,
             method: "POST",
@@ -180,6 +181,7 @@ const CopyConfig = ({ config, scope, file, app, stanza, attr, perms, exists }) =
             },
         })
             .then(handle)
+            .then(handleAcl(config, url, sharing, perms))
             .then(processConfs)
             .then((newdata) => {
                 let newapp = Object.keys(newdata)[0];

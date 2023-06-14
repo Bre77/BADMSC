@@ -177,6 +177,7 @@ const ModInputs = ({ config }) => {
                     <Multiselect.Option key={file} label={file} value={file} />
                 ))}
             </Multiselect>
+            <br />
             {src_files.isLoading ? <WaitSpinner size="large" /> : <Conf config={config} files={files} />}
         </>
     );

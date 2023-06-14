@@ -18,6 +18,35 @@ export const handle = (res) =>
 
 const entry = (data) => data.entry;
 
+export const handleAcl = (config, url, sharing, perms) => (data) => {
+    if (data.entry.length !== 1) {
+        console.warn("This isnt a single entry, aborting ACL fix");
+        return data;
+    }
+    const dst = data.entry[0].acl;
+    console.log(`Sharing is ${dst.sharing}, changing if not ${sharing}`);
+    if (sharing == dst.sharing) return data;
+
+    return request({
+        url: `${url}/acl`,
+        method: "POST",
+        params: { output_mode: "json" },
+        headers: {
+            Authorization: `Bearer ${config.dst.token}`,
+        },
+        data: [
+            ["sharing", sharing],
+            ["owner", dst.owner],
+        ],
+    })
+        .then(handle)
+        .then((newacls) => {
+            data.entry[0].acl = newacls.entry[0].acl;
+            return data;
+        })
+        .catch(() => console.error(`ACLs for ${url} could not be corrected`));
+};
+
 export const useConfig = () =>
     useQuery({
         queryKey: ["config"],

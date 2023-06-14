@@ -6,7 +6,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import React, { useMemo } from "react";
 import { request } from "../shared/fetch";
 import { isort0 } from "../shared/helpers";
-import { handle, useApi, useApps } from "../shared/hooks";
+import { handle, handleAcl, useApi, useApps } from "../shared/hooks";
 import MutateButton from "./mutateButton";
 
 const handleUi = (data) =>
@@ -22,13 +22,13 @@ const handleUi = (data) =>
         return x;
     }, {});
 
-const CopyUi = ({ config, app, folder, file, content, exists }) => {
+const CopyUi = ({ config, app, folder, file, content, exists, sharing, perms }) => {
     console.log(folder, file);
     const queryClient = useQueryClient();
     const mutation = useMutation(async () => {
         let data = { "eai:data": content };
-        let url = `${config.dst.api}/servicesNS/nobody/${app}/data/ui/${folder}/`;
-        exists ? (url += file) : (data["name"] = file);
+        let url = `${config.dst.api}/servicesNS/nobody/${app}/data/ui/${folder}`;
+        exists ? (url = `${url}/${file}`) : (data["name"] = file);
         return request({
             url,
             method: "POST",
@@ -39,6 +39,7 @@ const CopyUi = ({ config, app, folder, file, content, exists }) => {
             },
         })
             .then(handle)
+            .then(handleAcl(config, url, sharing, perms))
             .then(handleUi)
             .then((newdata) =>
                 queryClient.setQueryData(["dst", `servicesNS/nobody/-/data/ui/${folder}`], (olddata) => ({
@@ -115,7 +116,7 @@ export default ({ config, folder }) => {
                             <Table.Cell>{src && `${src.split("\n").length} Lines`}</Table.Cell>
                             <Table.Cell>{dst && `${dst.split("\n").length} Lines`}</Table.Cell>
                             <Table.Cell>
-                                <CopyUi config={config} app={app} folder={folder} file={file} content={src} exists={!!dst} />
+                                <CopyUi config={config} app={app} sharing={sharing} perms={perms} folder={folder} file={file} content={src} exists={!!dst} />
                             </Table.Cell>
                         </Table.Row>
                     ))
