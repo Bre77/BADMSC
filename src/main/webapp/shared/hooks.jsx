@@ -129,14 +129,14 @@ export const processConfs = (data) =>
         return x;
     }, {});
 
-export const useConfs = (target, files) =>
+export const useConfs = (target, files, user = "nobody") =>
     useQueries({
         queries: files.map((file) => ({
-            queryKey: [target.key, "config", file],
+            queryKey: [target.key, "config", file, user],
             queryFn: ({ signal }) =>
                 request(
                     {
-                        url: `${target.api}/servicesNS/nobody/-/configs/conf-${file}`,
+                        url: `${target.api}/servicesNS/${user}/-/configs/conf-${file}`,
                         method: "GET",
                         params: { output_mode: "json", count: -1 },
                         headers: {

@@ -1,15 +1,13 @@
+import Heading from "@splunk/react-ui/Heading";
+import P from "@splunk/react-ui/Paragraph";
+import WaitSpinner from "@splunk/react-ui/WaitSpinner";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import React, { useMemo } from "react";
 import Conf from "../components/Conf";
 import Lookup, { LookupCompare, OpenLookup } from "../components/Lookup";
+import { request } from "../shared/fetch";
 import { isort0, wrapSetValue } from "../shared/helpers";
 import { handle, useApi, useApps } from "../shared/hooks";
-
-// Splunk UI
-import Heading from "@splunk/react-ui/Heading";
-import P from "@splunk/react-ui/Paragraph";
-import WaitSpinner from "@splunk/react-ui/WaitSpinner";
-import { request } from "../shared/fetch";
 
 export default ({ step, config }) => {
     const mutation = (contents, app, file) =>

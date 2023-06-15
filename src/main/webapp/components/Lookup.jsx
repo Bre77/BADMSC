@@ -1,6 +1,6 @@
 import Button from "@splunk/react-ui/Button";
 import Link from "@splunk/react-ui/Link";
-import Message from "@splunk/react-ui/Message";
+import { default as Message, default as Message } from "@splunk/react-ui/Message";
 import Modal from "@splunk/react-ui/Modal";
 import Table from "@splunk/react-ui/Table";
 import WaitSpinner from "@splunk/react-ui/WaitSpinner";
@@ -155,7 +155,7 @@ export default ({ config, type, path, mutationFn }) => {
 
     return isLoading ? (
         <WaitSpinner size="large" />
-    ) : (
+    ) : lookups.length ? (
         <>
             {!hasEditor && (
                 <Message appearance="fill" type="error">
@@ -239,5 +239,7 @@ export default ({ config, type, path, mutationFn }) => {
                 </Table.Body>
             </Table>
         </>
+    ) : (
+        <Message>No modified {folder} found</Message>
     );
 };

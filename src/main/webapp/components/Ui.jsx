@@ -51,9 +51,9 @@ const CopyUi = ({ config, app, folder, file, content, exists, sharing, perms }) 
     return <MutateButton mutation={mutation} label={exists ? "Overwrite" : "Create"} />;
 };
 
-export default ({ config, folder }) => {
-    const src = useApi(config.src, `servicesNS/nobody/-/data/ui/${folder}`, handleUi);
-    const dst = useApi(config.dst, `servicesNS/nobody/-/data/ui/${folder}`, handleUi);
+export default ({ config, folder, scope = false, src_user = "nobody", dst_user = "nobody" }) => {
+    const src = useApi(config.src, `servicesNS/${src_user}/-/data/ui/${folder}`, handleUi);
+    const dst = useApi(config.dst, `servicesNS/${dst_user}/-/data/ui/${folder}`, handleUi);
     const dst_apps = useApps(config.dst);
 
     const isLoading = dst.isLoading || src.isLoading || dst_apps.isLoading;
@@ -65,6 +65,7 @@ export default ({ config, folder }) => {
         Object.entries(src.data).forEach(([app, files]) => {
             if (app in dst_apps.data) {
                 Object.entries(files).forEach(([file, { perms, sharing, data, digest }]) => {
+                    if (scope && !sharing != scope) return;
                     if (digest !== dst.data?.[app]?.[file]?.digest) {
                         Object.keys(perms).forEach((rw) => perms[rw].map((group) => (group === "admin" ? "sc_admin" : group)));
                         output[app] ||= {};

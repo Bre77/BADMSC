@@ -1,3 +1,4 @@
+import Message from "@splunk/react-ui/Message";
 import Table from "@splunk/react-ui/Table";
 import Typography from "@splunk/react-ui/Typography";
 import WaitSpinner from "@splunk/react-ui/WaitSpinner";
@@ -18,10 +19,10 @@ const CodeCell = styled(Table.Cell)`
     white-space: nowrap;
 `;
 
-export default ({ config, scope = false, files = CONF_FILES }) => {
+export default ({ config, scope = false, files = CONF_FILES, src_user = "nobody", dst_user = "nobody" }) => {
     const def = useDefaults(config.src, files);
-    const src = useConfs(config.src, files);
-    const dst = useConfs(config.dst, files);
+    const src = useConfs(config.src, files, src_user);
+    const dst = useConfs(config.dst, files, dst_user);
     const dst_apps = useApps(config.dst);
 
     const isLoading =
@@ -31,7 +32,7 @@ export default ({ config, scope = false, files = CONF_FILES }) => {
         if (isLoading) return [];
 
         const change = {};
-        const scopes = {};
+        //const scopes = {};
         files.forEach((file, f) => {
             if (dst[f].data && src[f].data) {
                 Object.entries(src[f].data || {}).forEach(([app, stanzas]) => {
@@ -41,13 +42,14 @@ export default ({ config, scope = false, files = CONF_FILES }) => {
                             if (scope && sharing != scope) return;
                             const dst_sharing = dst[f].data?.[app]?.[stanza]?.sharing !== scope && dst[f].data?.[app]?.[stanza]?.sharing;
 
-                            if (dst_sharing === "app") {
+                            console.log(scope, sharing, dst_sharing, perms, content);
+                            /*if (dst_sharing === "app") {
                                 scopes[app] ||= {};
                                 scopes[app][file] ||= {};
                                 scopes[app][file][stanza] ||= content;
-                            }
+                            }*/
 
-                            Object.keys(perms).forEach((rw) => perms[rw].map((group) => (group === "admin" ? "sc_admin" : group)));
+                            perms && Object.keys(perms).forEach((rw) => perms[rw].map((group) => (group === "admin" ? "sc_admin" : group)));
 
                             Object.entries(content).forEach(([attr, value]) => {
                                 if (!ATTR_BLACKLIST.includes(attr)) {
@@ -99,7 +101,7 @@ export default ({ config, scope = false, files = CONF_FILES }) => {
 
     return isLoading || !conf ? (
         <WaitSpinner size="large" />
-    ) : (
+    ) : files.length ? (
         <Table stripeRows>
             <Table.Head>
                 <Table.HeadCell>File</Table.HeadCell>
@@ -161,6 +163,8 @@ export default ({ config, scope = false, files = CONF_FILES }) => {
                 ])}
             </Table.Body>
         </Table>
+    ) : (
+        <Message>No modified {folder} found</Message>
     );
 };
 
