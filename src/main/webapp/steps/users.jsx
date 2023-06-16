@@ -11,9 +11,9 @@ import Ui from "../components/Ui";
 import { useApi } from "../shared/hooks";
 
 export default ({ step, config }) => {
-    const [src_user, setSrcUser] = useState("bretadams@deloitte.com.au");
+    const [src_user, setSrcUser] = useState("");
     const handleSrcUser = (e, { value }) => setSrcUser(value);
-    const [dst_user, setDstUser] = useState("brett_adams");
+    const [dst_user, setDstUser] = useState("");
     const handleDstUSer = (e, { value }) => setDstUser(value);
     const src_users = useApi(config.src, "services/authentication/users", (data) => data.entry.map((e) => e.name));
     const dst_users = useApi(config.dst, "services/authentication/users", (data) => data.entry.map((e) => e.name));

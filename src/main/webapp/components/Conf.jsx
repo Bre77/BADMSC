@@ -28,6 +28,7 @@ export default ({ config, scope = false, files = CONF_FILES, src_user = "nobody"
     const isLoading =
         def.some((query) => query.isLoading) || src.some((query) => query.isLoading) || dst.some((query) => query.isLoading) || dst_apps.isLoading;
 
+    //? This doesnt change when the data is changed
     const conf = useMemo(() => {
         if (isLoading) return [];
 
@@ -36,13 +37,12 @@ export default ({ config, scope = false, files = CONF_FILES, src_user = "nobody"
         files.forEach((file, f) => {
             if (dst[f].data && src[f].data) {
                 Object.entries(src[f].data || {}).forEach(([app, stanzas]) => {
-                    if (app === "learned") return;
+                    if (app === "learned" || app === "000-self-service") return;
                     if (scope === "system" || app in dst_apps.data) {
                         Object.entries(stanzas).forEach(([stanza, { sharing, perms, content }]) => {
                             if (scope && sharing != scope) return;
                             const dst_sharing = dst[f].data?.[app]?.[stanza]?.sharing !== scope && dst[f].data?.[app]?.[stanza]?.sharing;
 
-                            console.log(scope, sharing, dst_sharing, perms, content);
                             /*if (dst_sharing === "app") {
                                 scopes[app] ||= {};
                                 scopes[app][file] ||= {};
@@ -154,6 +154,7 @@ export default ({ config, scope = false, files = CONF_FILES, src_user = "nobody"
                                             attr,
                                             perms,
                                             exists,
+                                            dst_user,
                                         }}
                                     />
                                 </Table.Cell>
@@ -168,12 +169,12 @@ export default ({ config, scope = false, files = CONF_FILES, src_user = "nobody"
     );
 };
 
-const CopyConfig = ({ config, sharing, file, app, stanza, attr, perms, exists }) => {
+const CopyConfig = ({ config, sharing, file, app, stanza, attr, perms, exists, dst_user }) => {
     const queryClient = useQueryClient();
     const copy = useMutation(async () => {
         let data = Object.fromEntries(attr.map(([a, { src }]) => [a, src]));
         console.log("data", data);
-        let url = `${config.dst.api}/servicesNS/nobody/${app}/configs/conf-${file}`;
+        let url = `${config.dst.api}/servicesNS/${dst_user}/${app}/configs/conf-${file}`;
         exists ? (url = `${url}/${stanza}`) : (data["name"] = stanza);
         return request({
             url,
@@ -194,9 +195,10 @@ const CopyConfig = ({ config, sharing, file, app, stanza, attr, perms, exists })
                         `The new configuration for '${stanza}' was returned in the app '${newapp}' instead of '${app}'. This means it may not show up where you expect it to.`
                     );
                 }
-                queryClient.setQueryData(["dst", "config", file], (olddata) => ({
+                //? This wont actually trigger a redraw
+                queryClient.setQueryData(["dst", "config", file, dst_user], (olddata) => ({
                     ...olddata,
-                    [newapp]: { ...olddata[newapp], [stanza]: newdata[newapp][stanza] },
+                    [newapp]: { ...olddata?.[newapp], [stanza]: newdata[newapp][stanza] },
                 }));
             });
     });

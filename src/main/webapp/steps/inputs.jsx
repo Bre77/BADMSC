@@ -253,7 +253,6 @@ const MODINPUT_CONF_FILES = [
     "aws_metadata",
     "aws_settings",
     "aws_sqs",
-    "ep_aws_s3",
     "ta_pihole_dns_account",
     "ta_pihole_dns_settings",
     "ep_aws_s3",
