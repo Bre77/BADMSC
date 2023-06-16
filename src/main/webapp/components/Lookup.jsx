@@ -1,6 +1,6 @@
 import Button from "@splunk/react-ui/Button";
 import Link from "@splunk/react-ui/Link";
-import { default as Message, default as Message } from "@splunk/react-ui/Message";
+import { Message } from "@splunk/react-ui/Message";
 import Modal from "@splunk/react-ui/Modal";
 import Table from "@splunk/react-ui/Table";
 import WaitSpinner from "@splunk/react-ui/WaitSpinner";
@@ -14,6 +14,7 @@ import MutateButton from "./MutateButton";
 const getLookup = async (target, app, file, type, signal) =>
     request(
         {
+            //! This API is broken in the latest version of the Lookup Editor app
             url: `${target.api}/servicesNS/nobody/lookup_editor/data/lookup_edit/lookup_contents`,
             method: "GET",
             headers: {
