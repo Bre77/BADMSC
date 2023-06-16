@@ -104,7 +104,7 @@ const LookupCopy = ({ mutationFn, app, file, type, config, path, label }) => {
     const QueryClient = useQueryClient();
     const copy = useMutation(({ signal }) =>
         getLookup(config.src, app, file, type, signal) // I dont know how to make this use useLookup
-            .then((res) => res.text()) // Comes in as JSON, goes out as JSON, no need to parse
+            .then((res) => res.text().then((text) => (res.ok ? Promise.resolve(text) : Promise.reject(text)))) // Comes in as JSON, goes out as JSON, no need to parse
             .then((contents) => mutationFn(contents, app, file))
             .then(() => QueryClient.invalidateQueries([config.dst.key, path]))
     );
