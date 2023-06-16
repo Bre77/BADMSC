@@ -23,7 +23,6 @@ const handleUi = (data) =>
     }, {});
 
 const CopyUi = ({ config, app, folder, file, content, exists, sharing, perms }) => {
-    console.log(folder, file);
     const queryClient = useQueryClient();
     const mutation = useMutation(async () => {
         let data = { "eai:data": content };
@@ -77,7 +76,7 @@ export default ({ config, folder, scope = false, src_user = "nobody", dst_user =
                         };
                     }
                 });
-            } else console.log(`Skipping ${app} because its not in cloud`);
+            }
         });
         return Object.entries(output)
             .sort(isort0)
