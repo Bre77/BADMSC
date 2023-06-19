@@ -1,4 +1,6 @@
 stage/
+stage2/
+badmsc/
 temp
 .DS_Store
 .idea/
