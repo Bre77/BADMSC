@@ -104,9 +104,13 @@ export const LookupCompare = ({ config, app, file, type }) => {
 const LookupCopy = ({ mutationFn, app, file, type, config, path, label }) => {
     const QueryClient = useQueryClient();
     const copy = useMutation(({ signal }) =>
-        getLookup(config.src, app, file, type, signal) // I dont know how to make this use useLookup
-            .then((res) => res.text().then((text) => (res.ok ? Promise.resolve(text) : Promise.reject(text)))) // Comes in as JSON, goes out as JSON, no need to parse
-            .then((contents) => mutationFn(contents, app, file))
+        QueryClient.fetchQuery({
+            queryFn: () => getLookup(config.src, app, file, type, signal).then(handle),
+            queryKey: [config.src.key, type, app, file],
+        })
+            //getLookup(config.src, app, file, type, signal) // I dont know how to make this use useLookup
+            //.then((res) => res.text().then((text) => (res.ok ? Promise.resolve(text) : Promise.reject(text)))) // Comes in as JSON, goes out as JSON, no need to parse
+            .then((contents) => mutationFn(JSON.stringify(contents), app, file))
             .then(() => QueryClient.invalidateQueries([config.dst.key, path]))
     );
     return <MutateButton mutation={copy} label={label} />;
