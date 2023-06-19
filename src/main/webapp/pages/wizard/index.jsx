@@ -36,7 +36,10 @@ const queryClient = new QueryClient({
     defaultOptions: {
         queries: {
             cacheTime: 60000, // 1 minute
-            retry: 2,
+            retry: (failureCount, error) => {
+                console.log(failureCount, error);
+                return error !== 404 && failureCount < 3;
+            },
             refetchOnMount: true,
             staleTime: 600000, // 10 minutes,
         },

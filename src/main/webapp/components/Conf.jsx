@@ -3,7 +3,7 @@ import Table from "@splunk/react-ui/Table";
 import Typography from "@splunk/react-ui/Typography";
 import WaitSpinner from "@splunk/react-ui/WaitSpinner";
 import { normalizeBoolean } from "@splunk/splunk-utils/boolean";
-import { useMutation, useQueries, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import React, { useMemo } from "react";
 import styled from "styled-components";
 import { ATTR_BLACKLIST, CONF_FILES } from "../shared/const";
@@ -200,7 +200,7 @@ const CopyConfig = ({ config, sharing, file, app, stanza, attr, perms, exists, d
             },
         })
             .then(handle)
-            .then(handleAcl(config, exists ? url : `${url}/${stanza}`, sharing, perms))
+            .then(handleAcl(config, exists ? url : `${url}/${stanza}`, sharing, perms, queryClient))
             .then(processConfs)
             .then((newdata) => {
                 let newapp = Object.keys(newdata)[0];
@@ -210,7 +210,7 @@ const CopyConfig = ({ config, sharing, file, app, stanza, attr, perms, exists, d
                     );
                 }
                 //? This wont actually trigger a redraw
-                queryClient.setQueryData(["dst", "config", file, dst_user], (olddata) => ({
+                queryClient.setQueryData(["dst", `servicesNS/${dst_user}/-/configs/conf-${file}`], (olddata) => ({
                     ...olddata,
                     [newapp]: { ...olddata?.[newapp], [stanza]: newdata[newapp][stanza] },
                 }));

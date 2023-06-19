@@ -13,19 +13,45 @@ export const handle = (res) =>
         ? res.json()
         : res.text().then((text) => {
               console.error(text);
-              return Promise.reject(text);
+              return Promise.reject(res.status);
           });
 
 const entry = (data) => data.entry;
 
-export const handleAcl = (config, url, sharing, perms) => (data) => {
+const makeQuery = (target, path, postprocess = entry, staleTime) => ({
+    queryKey: [target.key, path],
+    queryFn: ({ signal }) =>
+        request(
+            {
+                url: `${target.api}/${path}`,
+                method: "GET",
+                params: { output_mode: "json", count: -1 },
+                headers: {
+                    Authorization: `Bearer ${target.token}`,
+                },
+            },
+            signal
+        )
+            .then(handle)
+            .then(postprocess),
+    enabled: !!target,
+    staleTime,
+});
+
+export const handleAcl = (config, url, sharing, perms, queryClient) => (data) => {
     if (data.entry.length !== 1) {
         console.warn("This isnt a single entry, aborting ACL fix");
         return data;
     }
     const dst = data.entry[0].acl;
+
+    //const users = queryClient.fetchQuery(makeQuery(config.dst, "services/authentication/users"));
+    //const roles = queryClient.fetchQuery(makeQuery(config.dst, "services/authorization/roles"));
+
     console.log(`Sharing is ${dst.sharing}, changing if not ${sharing}`);
     if (sharing == dst.sharing) return data;
+
+    data = [];
 
     return request({
         url: `${url}/acl`,
@@ -72,26 +98,7 @@ export const useConfig = () =>
         notifyOnChangeProps: ["data"],
     });
 
-export const useApi = (target, path, postprocess = entry, staleTime = Infinity) =>
-    useQuery({
-        queryKey: [target.key, path],
-        queryFn: ({ signal }) =>
-            request(
-                {
-                    url: `${target.api}/${path}`,
-                    method: "GET",
-                    params: { output_mode: "json", count: -1 },
-                    headers: {
-                        Authorization: `Bearer ${target.token}`,
-                    },
-                },
-                signal
-            )
-                .then(handle)
-                .then(postprocess),
-        enabled: !!target,
-        staleTime,
-    });
+export const useApi = (target, path, postprocess, staleTime) => useQuery(makeQuery(target, path, postprocess, staleTime));
 
 export const useApps = (target) =>
     // useApps is called in multiple steps, so is defined once for consistency
@@ -131,45 +138,14 @@ export const processConfs = (data) =>
 
 export const useConfs = (target, files, user = "nobody") =>
     useQueries({
-        queries: files.map((file) => ({
-            queryKey: [target.key, "config", file, user],
-            queryFn: ({ signal }) =>
-                request(
-                    {
-                        url: `${target.api}/servicesNS/${user}/-/configs/conf-${file}`,
-                        method: "GET",
-                        params: { output_mode: "json", count: -1 },
-                        headers: {
-                            Authorization: `Bearer ${target.token}`,
-                        },
-                    },
-                    signal
-                )
-                    .then(handle)
-                    .then(processConfs),
-        })),
+        queries: files.map((file) => makeQuery(target, `servicesNS/${user}/-/configs/conf-${file}`, processConfs)),
     });
+
+const handleDefaults = (data) => Object.fromEntries(data.entry.map(({ name, content }) => [name, content]));
 
 export const useDefaults = (target, files) =>
     useQueries({
-        queries: files.map((file) => ({
-            queryKey: [target.key, "default", file],
-            queryFn: ({ signal }) =>
-                request(
-                    {
-                        url: `${target.api}/services/properties/${file}/default`,
-                        method: "GET",
-                        params: { output_mode: "json", count: -1 },
-                        headers: {
-                            Authorization: `Bearer ${target.token}`,
-                        },
-                    },
-                    signal
-                )
-                    .then(handle)
-                    .then((data) => Object.fromEntries(data.entry.map(({ name, content }) => [name, content])))
-                    .catch(() => ({})),
-        })),
+        queries: files.map((file) => makeQuery(target, `services/properties/${file}/default`, handleDefaults)),
     });
 
 export const useLocal = (key, fallback) => {

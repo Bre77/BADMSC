@@ -87,7 +87,7 @@ export default ({ step, config }) => {
                     method: "POST",
                     data: { username, password },
                 })
-                    .then((res) => (res.ok ? res.text() : Promise.reject()))
+                    .then((res) => (res.ok ? res.text() : Promise.reject(res.status)))
                     .then((text) => extractSplunkbaseToken.exec(text)[1]),
                 request({
                     url: "https://api.splunk.com/2.0/rest/login/splunk",
@@ -96,7 +96,7 @@ export default ({ step, config }) => {
                         Authorization: `Basic ${btoa(`${username}:${password}`)}`,
                     },
                 })
-                    .then((res) => (res.ok ? res.json() : Promise.reject()))
+                    .then((res) => (res.ok ? res.json() : Promise.reject(res.status)))
                     .then((json) => json.data.token),
             ]).then(([splunkbaseToken, splunkToken]) => setToken({ splunkbaseToken, splunkToken })),
     });
@@ -116,7 +116,7 @@ export default ({ step, config }) => {
                               },
                               signal
                           )
-                              .then((res) => (res.ok ? res.json() : Promise.reject(res.json())))
+                              .then((res) => (res.ok ? res.json() : Promise.reject(res.status)))
                               .then((data) =>
                                   data.total
                                       ? {
@@ -316,7 +316,7 @@ const InstallSplunkbase = ({ config, token, splunkbase }) => {
                     "ACS-Licensing-Ack": splunkbase.license_url,
                 },
                 data: { splunkbaseID: splunkbase.uid },
-            }).then((res) => (res.status === 202 ? Promise.resolve() : Promise.reject())),
+            }).then((res) => (res.status === 202 ? Promise.resolve() : Promise.reject(res.status))),
     });
     return (
         <Button
@@ -348,7 +348,7 @@ const InstallPrivate = ({ config, token, app }) => {
                     //dsttoken: config.dst.token,
                 },
             })
-                .then((res) => (res.status === 200 ? res.json() : Promise.reject(res.text)))
+                .then((res) => (res.status === 200 ? res.json() : Promise.reject(res.status)))
                 .then((data) => ("request_id" in data ? Promise.resolve(data.request_id) : Promise.reject(data)))
                 .then((rid) => {
                     setStatus("Inspecting");
@@ -363,7 +363,7 @@ const InstallPrivate = ({ config, token, app }) => {
                                         Authorization: `Bearer ${token}`,
                                     },
                                 })
-                                    .then((res) => (res.status === 200 ? res.json() : Promise.reject()))
+                                    .then((res) => (res.status === 200 ? res.json() : Promise.reject(res.status)))
                                     .then((data) => {
                                         if (data.status === "SUCCESS") {
                                             setStatus("Retrieving");
@@ -387,7 +387,7 @@ const InstallPrivate = ({ config, token, app }) => {
                                 },
                             })
                         )
-                        .then((res) => (res.status === 200 ? res.json() : Promise.reject()))
+                        .then((res) => (res.status === 200 ? res.json() : Promise.reject(res.status)))
                         .then((data) => {
                             console.info(data);
                             if (data.summary.error > 0 || data.summary.failure > 0 || data.summary.manual_check > 0) {

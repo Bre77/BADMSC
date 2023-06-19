@@ -82,7 +82,7 @@ const CopySourcetype = ({ config, stanza, attr, exists }) => {
             .then(handle)
             .then(processConfs)
             .then((newdata) => {
-                queryClient.invalidateQueries(["dst", "config", "props"]);
+                queryClient.invalidateQueries(["dst", "servicesNS/nobody/-/configs/conf-props"]);
                 /*queryClient.setQueryData(["dst", "config", "props"], (olddata) => ({
                     ...olddata,
                     "000-self-service": { ...olddata["000-self-service"], [stanza]: newdata["000-self-service"][stanza] },
