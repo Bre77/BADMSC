@@ -38,7 +38,7 @@ const CopyUi = ({ config, app, folder, file, content, exists, sharing, perms }) 
             },
         })
             .then(handle)
-            .then(handleAcl(config, url, sharing, perms))
+            .then(handleAcl(config, exists ? url : `${url}/${file}`, sharing, perms))
             .then(handleUi)
             .then((newdata) =>
                 queryClient.setQueryData(["dst", `servicesNS/nobody/-/data/ui/${folder}`], (olddata) => ({

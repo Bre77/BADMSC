@@ -37,7 +37,8 @@ export default ({ config, scope = false, files = CONF_FILES, src_user = "nobody"
         files.forEach((file, f) => {
             if (dst[f].data && src[f].data) {
                 // Grab all the global content so we dont write it in an app scope
-                const dst_global = {};
+                const dst_global = dst[f].data?.system || {};
+                console.log(dst_global);
                 Object.entries(dst[f].data)
                     .sort(([appA], [appB]) => (appA < appB ? 1 : -1)) // Emulated Splunks lexographic sorting
                     .forEach(([app, stanzas]) => {
@@ -199,7 +200,7 @@ const CopyConfig = ({ config, sharing, file, app, stanza, attr, perms, exists, d
             },
         })
             .then(handle)
-            .then(handleAcl(config, url, sharing, perms))
+            .then(handleAcl(config, exists ? url : `${url}/${stanza}`, sharing, perms))
             .then(processConfs)
             .then((newdata) => {
                 let newapp = Object.keys(newdata)[0];
