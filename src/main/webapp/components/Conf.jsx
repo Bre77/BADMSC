@@ -47,7 +47,6 @@ export default ({ config, scope = false, files = CONF_FILES, src_user = "nobody"
                             }
                         });
                     });
-                console.log("global", dst_global);
 
                 Object.entries(src[f].data || {}).forEach(([app, stanzas]) => {
                     if (app === "learned" || app === "000-self-service") return;
