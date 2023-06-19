@@ -36,6 +36,19 @@ export default ({ config, scope = false, files = CONF_FILES, src_user = "nobody"
         //const scopes = {};
         files.forEach((file, f) => {
             if (dst[f].data && src[f].data) {
+                // Grab all the global content so we dont write it in an app scope
+                const dst_global = {};
+                Object.entries(dst[f].data)
+                    .sort(([appA], [appB]) => (appA < appB ? 1 : -1)) // Emulated Splunks lexographic sorting
+                    .forEach(([app, stanzas]) => {
+                        Object.entries(stanzas).forEach(([stanza, content]) => {
+                            if (content.sharing == "global") {
+                                dst_global[stanza] = content;
+                            }
+                        });
+                    });
+                console.log("global", dst_global);
+
                 Object.entries(src[f].data || {}).forEach(([app, stanzas]) => {
                     if (app === "learned" || app === "000-self-service") return;
                     if (scope === "system" || app in dst_apps.data) {
@@ -49,16 +62,17 @@ export default ({ config, scope = false, files = CONF_FILES, src_user = "nobody"
                                 scopes[app][file][stanza] ||= content;
                             }*/
 
-                            perms && Object.keys(perms).forEach((rw) => perms[rw].map((group) => (group === "admin" ? "sc_admin" : group)));
+                            //perms && Object.keys(perms).forEach((rw) => perms[rw].map((group) => (group === "admin" ? "sc_admin" : group)));
 
                             Object.entries(content).forEach(([attr, value]) => {
                                 if (!ATTR_BLACKLIST.includes(attr)) {
                                     const src_value = normalizeBoolean(value);
                                     const def_value = normalizeBoolean(def[f].data?.[attr]);
                                     const dst_value = normalizeBoolean(dst[f].data?.[app]?.[stanza]?.content?.[attr]);
+                                    const dst_global_value = normalizeBoolean(dst_global?.[stanza]?.content?.[attr]);
                                     const exists = !!dst[f].data?.[app]?.[stanza];
 
-                                    if (src_value !== def_value && src_value !== dst_value) {
+                                    if (src_value !== def_value && src_value !== dst_value && src_value !== dst_global_value) {
                                         change[app] ||= {};
                                         change[app][file] ||= {};
                                         change[app][file][stanza] ||= {
