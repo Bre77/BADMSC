@@ -17,6 +17,7 @@ export const handle = (res) =>
           });
 
 export const nameContent = (data) => Object.fromEntries(data.entry.map(({ name, content }) => [name, content]));
+export const entryNames = (data) => data.entry.map(({ name }) => name);
 
 const entry = (data) => data.entry;
 export const makeQuery = (target, path, postprocess = entry, staleTime) => ({
@@ -46,6 +47,11 @@ export const handleAcl = (config, url, src, queryClient) => async (dst_data) => 
     }
     const dst = dst_data.entry[0].acl;
 
+    if (src.sharing == "user" && dst.sharing == "user") {
+        console.info("Not touching private KO ACLs");
+        return dst_data;
+    }
+
     const [dst_users, dst_roles] = await Promise.all([
         queryClient.fetchQuery(makeQuery(config.dst, "services/authentication/users", nameContent)).then(Object.keys),
         queryClient.fetchQuery(makeQuery(config.dst, "services/authorization/roles", nameContent)).then(Object.keys),
@@ -59,21 +65,20 @@ export const handleAcl = (config, url, src, queryClient) => async (dst_data) => 
     const data = [
         ["sharing", src.sharing],
         ["owner", !dst_users.includes(src.owner) ? "nobody" : src.owner],
-        [
-            "perms.read",
-            src.perms.read
-                .map((x) => (x == "admin" ? "sc_admin" : x))
-                .filter((x) => dst_roles.includes(x))
-                .join(","),
-        ],
-        [
-            "perms.write",
-            src.perms.write
-                .map((x) => (x == "admin" ? "sc_admin" : x))
-                .filter((x) => dst_roles.includes(x))
-                .join(","),
-        ],
     ];
+
+    // Private KOs have no perms
+    Object.keys(src.perms || {}).forEach((perm) =>
+        data.push([
+            `perms.${perm}`,
+            src.perms[perm]
+                .map((x) => (x == "admin" ? "sc_admin" : x))
+                .filter((x) => dst_roles.includes(x))
+                .join(","),
+        ])
+    );
+
+    console.log(src.sharing, src.owner, dst.sharing, dst.owner);
 
     return request({
         url: `${url}/acl`,

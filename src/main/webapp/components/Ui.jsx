@@ -63,7 +63,7 @@ export default ({ config, folder, scope = false, src_user = "nobody", dst_user =
         Object.entries(src.data).forEach(([app, files]) => {
             if (app in dst_apps.data) {
                 Object.entries(files).forEach(([file, { acl, data, digest }]) => {
-                    if (scope && !sharing != scope) return;
+                    if (scope && !acl.sharing != scope) return;
                     if (digest !== dst.data?.[app]?.[file]?.digest) {
                         Object.keys(perms).forEach((rw) => perms[rw].map((group) => (group === "admin" ? "sc_admin" : group)));
                         output[app] ||= {};
