@@ -48,7 +48,6 @@ export const handleAcl = (config, url, src, queryClient) => async (dst_data) => 
     const dst = dst_data.entry[0].acl;
 
     if (src.sharing == "user" && dst.sharing == "user") {
-        console.info("Not touching private KO ACLs");
         return dst_data;
     }
 
@@ -77,8 +76,6 @@ export const handleAcl = (config, url, src, queryClient) => async (dst_data) => 
                 .join(","),
         ])
     );
-
-    console.log(src.sharing, src.owner, dst.sharing, dst.owner);
 
     return request({
         url: `${url}/acl`,

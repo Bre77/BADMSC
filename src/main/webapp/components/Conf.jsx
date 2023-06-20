@@ -118,9 +118,9 @@ export default ({ config, scope = false, files = CONF_FILES, src_user = "nobody"
             ]);
     }, [latest(def), latest(src), latest(dst), dst_apps.data]);
 
-    return isLoading || !conf ? (
+    return isLoading ? (
         <WaitSpinner size="large" />
-    ) : files.length ? (
+    ) : conf.length ? (
         <Table stripeRows>
             <Table.Head>
                 <Table.HeadCell>File</Table.HeadCell>
@@ -183,7 +183,7 @@ export default ({ config, scope = false, files = CONF_FILES, src_user = "nobody"
             </Table.Body>
         </Table>
     ) : (
-        <Message>No modified {folder} found</Message>
+        <Message>No modified conf files found</Message>
     );
 };
 
