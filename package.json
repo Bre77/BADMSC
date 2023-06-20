@@ -1,6 +1,6 @@
 {
     "name": "@splunk/badmsc",
-    "version": "2.0.1",
+    "version": "2.0.2",
     "splunkbaseid": 6844,
     "license": "UNLICENSED",
     "packer": "./make.sh",
