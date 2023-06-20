@@ -213,7 +213,6 @@ const CopyConfig = ({ config, acl, file, app, stanza, attr, exists, dst_user }) 
                         `The new configuration for '${stanza}' was returned in the app '${newapp}' instead of '${app}'. This means it may not show up where you expect it to.`
                     );
                 }
-                //? This wont actually trigger a redraw
                 queryClient.setQueryData(["dst", `servicesNS/${dst_user}/-/configs/conf-${file}`], (olddata) => ({
                     ...olddata,
                     [newapp]: { ...olddata?.[newapp], [stanza]: newdata[newapp][stanza] },

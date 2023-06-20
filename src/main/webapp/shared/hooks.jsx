@@ -45,7 +45,6 @@ export const handleAcl = (config, url, src, queryClient) => async (dst_data) => 
         return dst_data;
     }
     const dst = dst_data.entry[0].acl;
-    console.log("ACL", src, dst);
 
     const [dst_users, dst_roles] = await Promise.all([
         queryClient.fetchQuery(makeQuery(config.dst, "services/authentication/users", nameContent)).then(Object.keys),
@@ -54,7 +53,6 @@ export const handleAcl = (config, url, src, queryClient) => async (dst_data) => 
 
     dst_users.push("nobody");
     dst_roles.push("*");
-    console.log(dst_users, dst_roles);
 
     if (src.owner == "admin") src.owner = "sc_admin";
 
@@ -76,7 +74,6 @@ export const handleAcl = (config, url, src, queryClient) => async (dst_data) => 
                 .join(","),
         ],
     ];
-    console.log("Fixing ACLs", src, dst, data);
 
     return request({
         url: `${url}/acl`,
