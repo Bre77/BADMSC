@@ -191,7 +191,6 @@ const CopyConfig = ({ config, acl, file, app, stanza, attr, exists, dst_user }) 
     const queryClient = useQueryClient();
     const copy = useMutation(async () => {
         let data = Object.fromEntries(attr.map(([a, { src }]) => [a, src]));
-        console.log("data", data);
         let url = `${config.dst.api}/servicesNS/${dst_user}/${app}/configs/conf-${file}`;
         exists ? (url = `${url}/${stanza}`) : (data["name"] = stanza);
         return request({
