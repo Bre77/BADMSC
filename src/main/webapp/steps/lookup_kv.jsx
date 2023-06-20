@@ -7,7 +7,7 @@ import Conf from "../components/Conf";
 import Lookup, { LookupCompare, OpenLookup } from "../components/Lookup";
 import { request } from "../shared/fetch";
 import { isort0, wrapSetValue } from "../shared/helpers";
-import { handle, useApi, useApps } from "../shared/hooks";
+import { handle } from "../shared/hooks";
 
 export default ({ step, config }) => {
     const mutation = (contents, app, file) =>

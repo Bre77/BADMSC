@@ -59,7 +59,7 @@ const AddAllow = ({ suggestion, feature, config }) => {
                 });
                 if (feature == "search-api")
                     queryClient.invalidateQueries({
-                        queryKey: ["api", "services/admin/server-info"],
+                        queryKey: ["dst", "services/admin/server-info"],
                     });
                 setSubnet("");
             }),
@@ -75,7 +75,7 @@ const AddAllow = ({ suggestion, feature, config }) => {
 };
 
 export default ({ step, config }) => {
-    const test = useApi(config.dst, "services/admin/server-info");
+    const test = useApi(config.dst, "services/admin/server-info", () => true);
 
     const sh_ip = useQuery({
         queryKey: ["wanip", "sh"],

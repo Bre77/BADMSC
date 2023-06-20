@@ -16,9 +16,10 @@ export const handle = (res) =>
               return Promise.reject(res.status);
           });
 
-const entry = (data) => data.entry;
+export const nameContent = (data) => Object.fromEntries(data.entry.map(({ name, content }) => [name, content]));
 
-const makeQuery = (target, path, postprocess = entry, staleTime) => ({
+const entry = (data) => data.entry;
+export const makeQuery = (target, path, postprocess = entry, staleTime) => ({
     queryKey: [target.key, path],
     queryFn: ({ signal }) =>
         request(
@@ -38,20 +39,44 @@ const makeQuery = (target, path, postprocess = entry, staleTime) => ({
     staleTime,
 });
 
-export const handleAcl = (config, url, sharing, perms, queryClient) => (data) => {
-    if (data.entry.length !== 1) {
+export const handleAcl = (config, url, src, queryClient) => async (dst_data) => {
+    if (dst_data.entry.length !== 1) {
         console.warn("This isnt a single entry, aborting ACL fix");
-        return data;
+        return dst_data;
     }
-    const dst = data.entry[0].acl;
+    const dst = dst_data.entry[0].acl;
+    console.log("ACL", src, dst);
 
-    //const users = queryClient.fetchQuery(makeQuery(config.dst, "services/authentication/users"));
-    //const roles = queryClient.fetchQuery(makeQuery(config.dst, "services/authorization/roles"));
+    const [dst_users, dst_roles] = await Promise.all([
+        queryClient.fetchQuery(makeQuery(config.dst, "services/authentication/users", nameContent)).then(Object.keys),
+        queryClient.fetchQuery(makeQuery(config.dst, "services/authorization/roles", nameContent)).then(Object.keys),
+    ]);
 
-    console.log(`Sharing is ${dst.sharing}, changing if not ${sharing}`);
-    if (sharing == dst.sharing) return data;
+    dst_users.push("nobody");
+    dst_roles.push("*");
+    console.log(dst_users, dst_roles);
 
-    data = [];
+    if (src.owner == "admin") src.owner = "sc_admin";
+
+    const data = [
+        ["sharing", src.sharing],
+        ["owner", !dst_users.includes(src.owner) ? "nobody" : src.owner],
+        [
+            "perms.read",
+            src.perms.read
+                .map((x) => (x == "admin" ? "sc_admin" : x))
+                .filter((x) => dst_roles.includes(x))
+                .join(","),
+        ],
+        [
+            "perms.write",
+            src.perms.write
+                .map((x) => (x == "admin" ? "sc_admin" : x))
+                .filter((x) => dst_roles.includes(x))
+                .join(","),
+        ],
+    ];
+    console.log("Fixing ACLs", src, dst, data);
 
     return request({
         url: `${url}/acl`,
@@ -60,15 +85,12 @@ export const handleAcl = (config, url, sharing, perms, queryClient) => (data) =>
         headers: {
             Authorization: `Bearer ${config.dst.token}`,
         },
-        data: [
-            ["sharing", sharing],
-            ["owner", dst.owner],
-        ],
+        data,
     })
         .then(handle)
         .then((newacls) => {
-            data.entry[0].acl = newacls.entry[0].acl;
-            return data;
+            dst_data.entry[0].acl = newacls.entry[0].acl;
+            return dst_data;
         })
         .catch(() => console.error(`ACLs for ${url} could not be corrected`));
 };

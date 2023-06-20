@@ -11,7 +11,7 @@ import React, { useMemo } from "react";
 import MutateButton from "../components/MutateButton";
 import { request } from "../shared/fetch";
 import { dedup } from "../shared/helpers";
-import { handle, useAcs, useApi, useApps } from "../shared/hooks";
+import { handle, nameContent, useAcs, useApi, useApps } from "../shared/hooks";
 
 const ENDPOINT = "services/authorization/roles";
 const SYMBOLS = ["!", "+", "~", " "];
@@ -27,7 +27,7 @@ const FIELDS = [
     "srchTimeWin",
 ];
 
-const handleRoles = (data) => Object.fromEntries(data.entry.map(({ name, content }) => [name, content]));
+//const nameContent = (data) => Object.fromEntries(data.entry.map(({ name, content }) => [name, content]));
 
 const CreateButton = ({ config, role, data, exists }) => {
     if (exists && !data.length) {
@@ -47,7 +47,7 @@ const CreateButton = ({ config, role, data, exists }) => {
             },
         })
             .then(handle)
-            .then(handleRoles)
+            .then(nameContent)
             .then((newdata) =>
                 queryClient.setQueryData(["dst", ENDPOINT], (olddata) => ({
                     ...olddata,
@@ -61,8 +61,8 @@ const CreateButton = ({ config, role, data, exists }) => {
 
 export default ({ step, config }) => {
     const queryClient = useQueryClient();
-    const src = useApi(config.src, ENDPOINT, handleRoles);
-    const dst = useApi(config.dst, ENDPOINT, handleRoles);
+    const src = useApi(config.src, ENDPOINT, nameContent);
+    const dst = useApi(config.dst, ENDPOINT, nameContent);
     const dstCapabilities = useApi(config.dst, "services/authorization/capabilities", (data) => data.entry[0].content.capabilities);
     const dstIndexes = useAcs(config.dst, "indexes");
     const dstApps = useApps(config.dst);
@@ -145,7 +145,7 @@ export default ({ step, config }) => {
                         },
                     })
                         .then(handle)
-                        .then(handleRoles)
+                        .then(nameContent)
                         .then((newdata) =>
                             queryClient.setQueryData(["dst", ENDPOINT], (olddata) => ({
                                 ...olddata,

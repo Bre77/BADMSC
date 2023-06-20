@@ -14,7 +14,7 @@ import MutateButton from "../components/MutateButton";
 import { APP_ID } from "../shared/const";
 import { FETCH_INIT, REQUEST_URL, request } from "../shared/fetch";
 import { isort0, wrapSetValue } from "../shared/helpers";
-import { useApi, useApps } from "../shared/hooks";
+import { useApps } from "../shared/hooks";
 
 const IGNORED_APPS = [
     "000-self-service",

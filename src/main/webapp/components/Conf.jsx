@@ -3,13 +3,13 @@ import Table from "@splunk/react-ui/Table";
 import Typography from "@splunk/react-ui/Typography";
 import WaitSpinner from "@splunk/react-ui/WaitSpinner";
 import { normalizeBoolean } from "@splunk/splunk-utils/boolean";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import React, { useMemo } from "react";
 import styled from "styled-components";
 import { ATTR_BLACKLIST, CONF_FILES } from "../shared/const";
 import { request } from "../shared/fetch";
 import { isort0, latest } from "../shared/helpers";
-import { handle, handleAcl, processConfs, useApps, useConfs, useDefaults } from "../shared/hooks";
+import { handle, handleAcl, makeQuery, nameContent, processConfs, useApps, useConfs, useDefaults } from "../shared/hooks";
 import MutateButton from "./MutateButton";
 
 const CodeCell = styled(Table.Cell)`
@@ -25,6 +25,12 @@ export default ({ config, scope = false, files = CONF_FILES, src_user = "nobody"
     const dst = useConfs(config.dst, files, dst_user);
     const dst_apps = useApps(config.dst);
 
+    /* Prefetching for ACLs, however this can be wasteful
+    const queryClient = useQueryClient();
+    queryClient.prefetchQuery(makeQuery(config.dst, "services/authentication/users", nameContent));
+    queryClient.prefetchQuery(makeQuery(config.dst, "services/authorization/roles", nameContent));
+    */
+
     const isLoading =
         def.some((query) => query.isLoading) || src.some((query) => query.isLoading) || dst.some((query) => query.isLoading) || dst_apps.isLoading;
 
@@ -38,7 +44,7 @@ export default ({ config, scope = false, files = CONF_FILES, src_user = "nobody"
             if (dst[f].data && src[f].data) {
                 // Grab all the global content so we dont write it in an app scope
                 const dst_global = dst[f].data?.system || {};
-                console.log(dst_global);
+                //console.log(dst_global);
                 Object.entries(dst[f].data)
                     .sort(([appA], [appB]) => (appA < appB ? 1 : -1)) // Emulated Splunks lexographic sorting
                     .forEach(([app, stanzas]) => {
@@ -52,7 +58,7 @@ export default ({ config, scope = false, files = CONF_FILES, src_user = "nobody"
                 Object.entries(src[f].data || {}).forEach(([app, stanzas]) => {
                     if (app === "learned" || app === "000-self-service") return;
                     if (scope === "system" || app in dst_apps.data) {
-                        Object.entries(stanzas).forEach(([stanza, { sharing, perms, content }]) => {
+                        Object.entries(stanzas).forEach(([stanza, { sharing, perms, content, owner }]) => {
                             if (scope && sharing != scope) return;
                             const dst_sharing = dst[f].data?.[app]?.[stanza]?.sharing !== scope && dst[f].data?.[app]?.[stanza]?.sharing;
 
@@ -77,9 +83,8 @@ export default ({ config, scope = false, files = CONF_FILES, src_user = "nobody"
                                         change[app][file] ||= {};
                                         change[app][file][stanza] ||= {
                                             attr: {},
+                                            acl: { perms, sharing, owner },
                                             exists,
-                                            perms,
-                                            sharing,
                                             dst_sharing,
                                         };
                                         change[app][file][stanza].attr[attr] = {
@@ -134,7 +139,7 @@ export default ({ config, scope = false, files = CONF_FILES, src_user = "nobody"
                         <Table.Cell></Table.Cell>
                     </Table.Row>,
                     ...files.flatMap(([file, stanzas]) =>
-                        stanzas.map(([stanza, { attr, perms, exists, sharing, dst_sharing }]) => (
+                        stanzas.map(([stanza, { attr, acl, exists, dst_sharing }]) => (
                             <Table.Row key={app + file + stanza}>
                                 <Table.Cell>
                                     {app} / {file}.conf
@@ -161,12 +166,11 @@ export default ({ config, scope = false, files = CONF_FILES, src_user = "nobody"
                                     <CopyConfig
                                         {...{
                                             config,
-                                            sharing,
+                                            acl,
                                             file,
                                             app,
                                             stanza,
                                             attr,
-                                            perms,
                                             exists,
                                             dst_user,
                                         }}
@@ -183,7 +187,7 @@ export default ({ config, scope = false, files = CONF_FILES, src_user = "nobody"
     );
 };
 
-const CopyConfig = ({ config, sharing, file, app, stanza, attr, perms, exists, dst_user }) => {
+const CopyConfig = ({ config, acl, file, app, stanza, attr, exists, dst_user }) => {
     const queryClient = useQueryClient();
     const copy = useMutation(async () => {
         let data = Object.fromEntries(attr.map(([a, { src }]) => [a, src]));
@@ -200,7 +204,7 @@ const CopyConfig = ({ config, sharing, file, app, stanza, attr, perms, exists, d
             },
         })
             .then(handle)
-            .then(handleAcl(config, exists ? url : `${url}/${stanza}`, sharing, perms, queryClient))
+            .then(handleAcl(config, exists ? url : `${url}/${stanza}`, acl, queryClient))
             .then(processConfs)
             .then((newdata) => {
                 let newapp = Object.keys(newdata)[0];

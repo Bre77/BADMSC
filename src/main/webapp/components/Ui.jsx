@@ -13,8 +13,7 @@ const handleUi = (data) =>
     data.entry.reduce((x, { name, acl, content }) => {
         x[acl.app] ||= {};
         x[acl.app][name] = {
-            perms: acl.perms,
-            sharing: acl.sharing,
+            acl: { perms: acl.perms, sharing: acl.sharing, owner: acl.owner },
             data: content["eai:data"],
             digest: content["eai:digest"],
             description: content.description,
@@ -22,7 +21,7 @@ const handleUi = (data) =>
         return x;
     }, {});
 
-const CopyUi = ({ config, app, folder, file, content, exists, sharing, perms }) => {
+const CopyUi = ({ config, app, folder, file, content, exists, acl }) => {
     const queryClient = useQueryClient();
     const mutation = useMutation(async () => {
         let data = { "eai:data": content };
@@ -38,7 +37,7 @@ const CopyUi = ({ config, app, folder, file, content, exists, sharing, perms }) 
             },
         })
             .then(handle)
-            .then(handleAcl(config, exists ? url : `${url}/${file}`, sharing, perms, queryClient))
+            .then(handleAcl(config, exists ? url : `${url}/${file}`, acl, queryClient))
             .then(handleUi)
             .then((newdata) =>
                 queryClient.setQueryData(["dst", `servicesNS/nobody/-/data/ui/${folder}`], (olddata) => ({
@@ -63,14 +62,13 @@ export default ({ config, folder, scope = false, src_user = "nobody", dst_user =
         const output = {};
         Object.entries(src.data).forEach(([app, files]) => {
             if (app in dst_apps.data) {
-                Object.entries(files).forEach(([file, { perms, sharing, data, digest }]) => {
+                Object.entries(files).forEach(([file, { acl, data, digest }]) => {
                     if (scope && !sharing != scope) return;
                     if (digest !== dst.data?.[app]?.[file]?.digest) {
                         Object.keys(perms).forEach((rw) => perms[rw].map((group) => (group === "admin" ? "sc_admin" : group)));
                         output[app] ||= {};
                         output[app][file] = {
-                            perms,
-                            sharing,
+                            acl,
                             src: data,
                             dst: dst.data?.[app]?.[file]?.data,
                         };
@@ -108,7 +106,7 @@ export default ({ config, folder, scope = false, src_user = "nobody", dst_user =
             </Table.Head>
             <Table.Body>
                 {ui.flatMap(([app, files]) =>
-                    files.map(([file, { perms, sharing, src, dst }]) => (
+                    files.map(([file, { acl, src, dst }]) => (
                         <Table.Row key={app + "/" + file} expansionRow={detailRow(src, dst)}>
                             <Table.Cell>
                                 <b>{app}</b> / {file}.xml
@@ -116,7 +114,7 @@ export default ({ config, folder, scope = false, src_user = "nobody", dst_user =
                             <Table.Cell>{src && `${src.split("\n").length} Lines`}</Table.Cell>
                             <Table.Cell>{dst && `${dst.split("\n").length} Lines`}</Table.Cell>
                             <Table.Cell>
-                                <CopyUi config={config} app={app} sharing={sharing} perms={perms} folder={folder} file={file} content={src} exists={!!dst} />
+                                <CopyUi config={config} app={app} acl={acl} folder={folder} file={file} content={src} exists={!!dst} />
                             </Table.Cell>
                         </Table.Row>
                     ))
