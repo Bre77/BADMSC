@@ -20,7 +20,7 @@ export const nameContent = (data) => Object.fromEntries(data.entry.map(({ name, 
 export const entryNames = (data) => data.entry.map(({ name }) => name);
 
 const entry = (data) => data.entry;
-export const makeQuery = (target, path, postprocess = entry, staleTime) => ({
+export const makeQuery = (target, path, postprocess = entry) => ({
     queryKey: [target.key, path],
     queryFn: ({ signal }) =>
         request(
@@ -37,7 +37,6 @@ export const makeQuery = (target, path, postprocess = entry, staleTime) => ({
             .then(handle)
             .then(postprocess),
     enabled: !!target,
-    staleTime,
 });
 
 export const handleAcl = (config, url, src, queryClient) => async (dst_data) => {
@@ -119,7 +118,7 @@ export const useConfig = () =>
         notifyOnChangeProps: ["data"],
     });
 
-export const useApi = (target, path, postprocess, staleTime) => useQuery(makeQuery(target, path, postprocess, staleTime));
+export const useApi = (target, path, postprocess) => useQuery(makeQuery(target, path, postprocess));
 
 export const useApps = (target) =>
     // useApps is called in multiple steps, so is defined once for consistency

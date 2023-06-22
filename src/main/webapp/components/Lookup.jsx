@@ -8,7 +8,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import React, { useMemo, useRef, useState } from "react";
 import { request } from "../shared/fetch";
 import { isort0 } from "../shared/helpers";
-import { handle, useApi, useApps } from "../shared/hooks";
+import { handle, handleAcl, useApi, useApps } from "../shared/hooks";
 import MutateButton from "./MutateButton";
 
 const getLookup = async (target, app, file, type, signal) =>
@@ -101,17 +101,51 @@ export const LookupCompare = ({ config, app, file, type }) => {
     );
 };
 
-const LookupCopy = ({ mutationFn, app, file, type, config, path, label }) => {
+function rejectDelay(reason) {
+    return new Promise(function (resolve, reject) {
+        setTimeout(reject.bind(null, reason), 1000);
+    });
+}
+
+const LookupCopy = ({ mutationFn, app, file, type, config, path, label, src, dst }) => {
     const QueryClient = useQueryClient();
-    const copy = useMutation(({ signal }) =>
+    const dst_path = `${config.dst.api}/${path.replace("-", app)}/${file}`;
+    const copy = useMutation(async ({ signal }) =>
         QueryClient.fetchQuery({
             queryFn: () => getLookup(config.src, app, file, type, signal).then(handle),
             queryKey: [config.src.key, type, app, file],
         })
-            //getLookup(config.src, app, file, type, signal) // I dont know how to make this use useLookup
-            //.then((res) => res.text().then((text) => (res.ok ? Promise.resolve(text) : Promise.reject(text)))) // Comes in as JSON, goes out as JSON, no need to parse
             .then((contents) => mutationFn(contents, app, file))
-            .then(() => QueryClient.invalidateQueries([config.dst.key, path]))
+            .then(() => {
+                // If we already have the destination ACL, use that
+                if (dst) return { entry: [dst] };
+
+                // Get the ACL of the newly created lookup, but it might take some time
+                let p = Promise.reject();
+                for (var i = 0; i < 5; i++) {
+                    p.catch(() =>
+                        request({
+                            url: `${dst_path}/acl`,
+                            method: "GET",
+                            params: { output_mode: "json" },
+                            headers: {
+                                Authorization: `Bearer ${config.dst.token}`,
+                            },
+                        })
+                    ).catch(rejectDelay);
+                }
+                return p.then(handle);
+            })
+            .then((data) => {
+                console.log(data, src, dst);
+                return data;
+            })
+            .then(handleAcl(config, dst_path, src, QueryClient))
+            .then(lookupHandle)
+            .then((data) => {
+                QueryClient.setQueryData([config.dst.key, `${path}/${file}`], (prev) => ({ ...prev, app: { ...prev[app], ...data[app] } }));
+                QueryClient.setQueryData([config.dst.key, type, app, file], contents);
+            })
     );
     return <MutateButton mutation={copy} label={label} />;
 };
@@ -124,6 +158,7 @@ const lookupHandle = (data) =>
     }, {});
 
 export default ({ config, type, path, mutationFn }) => {
+    console.log("Lookup Redraw");
     const src = useApi(config.src, path, lookupHandle);
     const dst = useApi(config.dst, path, lookupHandle);
     const src_apps = useApps(config.src);
@@ -233,6 +268,8 @@ export default ({ config, type, path, mutationFn }) => {
                                             config={config}
                                             path={path}
                                             label={dst ? "Overwrite" : "Create"}
+                                            src={src}
+                                            dst={dst}
                                         />
                                     ) : (
                                         <Button disabled label={dst ? "Overwrite" : "Create"} />

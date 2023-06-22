@@ -1,13 +1,9 @@
 import Heading from "@splunk/react-ui/Heading";
 import P from "@splunk/react-ui/Paragraph";
-import WaitSpinner from "@splunk/react-ui/WaitSpinner";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import React, { useMemo } from "react";
+import React from "react";
 import Conf from "../components/Conf";
-import Lookup, { LookupCompare, OpenLookup } from "../components/Lookup";
+import Lookup from "../components/Lookup";
 import { request } from "../shared/fetch";
-import { isort0, wrapSetValue } from "../shared/helpers";
-import { handle } from "../shared/hooks";
 
 export default ({ step, config }) => {
     const mutation = (contents, app, file) =>
@@ -19,18 +15,7 @@ export default ({ step, config }) => {
                 "Content-Type": "application/json",
             },
             json: contents.slice(1).map((row) => Object.fromEntries(contents[0].map((e, i) => [e, row[i]]))),
-        })
-            .then(() =>
-                request({
-                    url: `${config.dst.api}/servicesNS/nobody/${app}/storage/collections/${file}/acl`,
-                    method: "GET",
-                    params: { output_mode: "json" },
-                    headers: {
-                        Authorization: `Bearer ${config.dst.token}`,
-                    },
-                })
-            )
-            .then(handle);
+        });
 
     return (
         <div>

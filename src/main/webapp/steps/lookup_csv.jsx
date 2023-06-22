@@ -3,7 +3,6 @@ import P from "@splunk/react-ui/Paragraph";
 import React from "react";
 import Lookup from "../components/Lookup";
 import { request } from "../shared/fetch";
-import { handle } from "../shared/hooks";
 
 export default ({ step, config }) => {
     const mutation = (contents, app, file) =>
@@ -18,21 +17,7 @@ export default ({ step, config }) => {
                 namespace: app,
                 contents: JSON.stringify(contents),
             },
-        })
-            .then(() =>
-                request({
-                    url: `${config.dst.api}/servicesNS/nobody/${app}/data/lookup-table-files/${file}/acl`,
-                    method: "GET",
-                    params: { output_mode: "json" },
-                    headers: {
-                        Authorization: `Bearer ${config.dst.token}`,
-                    },
-                })
-            )
-            .then(handle);
-    /*.then((data) => {
-            let acl = data.entry[0].acl;
-        })*/
+        });
 
     return (
         <div>
