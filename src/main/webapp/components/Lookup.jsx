@@ -103,12 +103,6 @@ export const LookupCompare = ({ config, app, file, type }) => {
     );
 };
 
-function rejectDelay(reason) {
-    return new Promise(function (resolve, reject) {
-        setTimeout(reject.bind(null, reason), 1000);
-    });
-}
-
 const LookupCopy = ({ mutationFn, app, file, type, config, path, label, src, dst, dst_user }) => {
     const QueryClient = useQueryClient();
     const dst_path = `${config.dst.api}/servicesNS/${dst_user}/${app}/${path}/${file}`;
@@ -120,35 +114,32 @@ const LookupCopy = ({ mutationFn, app, file, type, config, path, label, src, dst
             mutationFn(contents, app, file)
                 .then(() =>
                     // If we already have the destination ACL, use that
+                    // Otherwise fetch it safely (might not be required, originally saw 404s)
                     dst
                         ? { entry: [dst] }
                         : QueryClient.fetchQuery({
                               queryFn: () =>
                                   request({
-                                      url: `${dst_path}/acl`,
+                                      url: dst_path,
                                       method: "GET",
                                       params: { output_mode: "json" },
                                       headers: {
                                           Authorization: `Bearer ${config.dst.token}`,
                                       },
                                   }).then(handle),
-                              queryKey: [config.dst.key, type, app, file, "acl"],
-                              retry: 5,
+                              queryKey: [config.dst.key, dst_path],
+                              retry: 4,
                               cacheTime: 0,
                               staleTime: 0,
                           })
                 )
-                .then((data) => {
-                    console.log(data, src, dst);
-                    return data;
-                })
                 .then(handleAcl(config, dst_path, src, QueryClient))
-                //.then(lookupHandle)
+                .then(lookupHandle)
                 .then((data) => {
                     console.log(data);
-                    QueryClient.setQueryData([config.dst.key, `servicesNS/${dst_user}/-/${path}/${file}`], (prev) => ({
+                    QueryClient.setQueryData([config.dst.key, `servicesNS/${dst_user}/-/${path}`], (prev) => ({
                         ...prev,
-                        [app]: { ...prev?.[app], [data.entry[0].name]: data.entry[0].acl },
+                        [app]: { ...prev?.[app], ...data[app] },
                     }));
                     QueryClient.setQueryData([config.dst.key, type, app, file], contents);
                 })
