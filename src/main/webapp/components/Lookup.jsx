@@ -15,7 +15,7 @@ const getLookupQuery = (target, namespace, lookup_file, lookup_type, owner, enab
     queryFn: ({ signal }) =>
         request(
             {
-                url: `${target.api}/servicesNS/${owner}/lookup_editor/data/lookup_edit/lookup_contents`,
+                url: `${target.api}/services/data/lookup_edit/lookup_contents`,
                 method: "GET",
                 headers: {
                     Authorization: `Bearer ${target.token}`,
@@ -32,8 +32,6 @@ const getLookupQuery = (target, namespace, lookup_file, lookup_type, owner, enab
     queryKey: [target.key, lookup_type, namespace, lookup_file],
     enabled,
 });
-
-//const useLookup = (target, app, file, type, user, enabled) => useQuery(getLookupQuery(target, app, file, type, "nobody", enabled));
 
 export const OpenLookup = ({ target, app, file, type, user }) => {
     const modalToggle = useRef(null);
