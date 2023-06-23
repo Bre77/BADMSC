@@ -70,15 +70,17 @@ export default ({ config, scope = false, files = CONF_FILES, src_user = "nobody"
 
                             //perms && Object.keys(perms).forEach((rw) => perms[rw].map((group) => (group === "admin" ? "sc_admin" : group)));
 
-                            Object.entries(content).forEach(([attr, value]) => {
+                            Object.entries(content).forEach(([attr, src]) => {
                                 if (!ATTR_BLACKLIST.includes(attr)) {
-                                    const src_value = normalizeBoolean(value);
-                                    const def_value = normalizeBoolean(def[f].data?.[attr]);
-                                    const dst_value = normalizeBoolean(dst[f].data?.[app]?.[stanza]?.content?.[attr]);
-                                    const dst_global_value = normalizeBoolean(dst_global?.[stanza]?.content?.[attr]);
+                                    const dst = dst[f].data?.[app]?.[stanza]?.content?.[attr];
+                                    const norm_src = normalizeBoolean(src);
                                     const exists = !!dst[f].data?.[app]?.[stanza];
 
-                                    if (src_value !== def_value && src_value !== dst_value && src_value !== dst_global_value) {
+                                    if (
+                                        norm_src !== normalizeBoolean(def[f].data?.[attr]) && // Default
+                                        norm_src !== normalizeBoolean(dst) && // Destination
+                                        norm_src !== normalizeBoolean(dst_global?.[stanza]?.content?.[attr]) // Destination Global
+                                    ) {
                                         change[app] ||= {};
                                         change[app][file] ||= {};
                                         change[app][file][stanza] ||= {
@@ -88,8 +90,8 @@ export default ({ config, scope = false, files = CONF_FILES, src_user = "nobody"
                                             dst_sharing,
                                         };
                                         change[app][file][stanza].attr[attr] = {
-                                            src: src_value,
-                                            dst: dst_value,
+                                            src,
+                                            dst,
                                         };
                                     }
                                 }
