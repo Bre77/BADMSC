@@ -11,35 +11,34 @@ import { isort0 } from "../shared/helpers";
 import { handle, handleAcl, useApi, useApps } from "../shared/hooks";
 import MutateButton from "./MutateButton";
 
-const getLookup = async (target, app, file, type, signal) =>
-    request(
-        {
-            //! This API is broken in the latest version of the Lookup Editor app
-            url: `${target.api}/servicesNS/nobody/lookup_editor/data/lookup_edit/lookup_contents`,
-            method: "GET",
-            headers: {
-                Authorization: `Bearer ${target.token}`,
+const getLookupQuery = (target, namespace, lookup_file, lookup_type, owner, enabled = true) => ({
+    queryFn: ({ signal }) =>
+        request(
+            {
+                url: `${target.api}/servicesNS/${owner}/lookup_editor/data/lookup_edit/lookup_contents`,
+                method: "GET",
+                headers: {
+                    Authorization: `Bearer ${target.token}`,
+                },
+                params: {
+                    lookup_file,
+                    namespace,
+                    lookup_type,
+                    owner,
+                },
             },
-            params: {
-                lookup_file: file,
-                namespace: app,
-                lookup_type: type,
-            },
-        },
-        signal
-    );
+            signal
+        ).then(handle),
+    queryKey: [target.key, lookup_type, namespace, lookup_file],
+    enabled,
+});
 
-const useLookup = (target, app, file, type, enabled) =>
-    useQuery({
-        queryFn: ({ signal }) => getLookup(target, app, file, type, signal).then(handle),
-        queryKey: [target.key, type, app, file],
-        enabled,
-    });
+//const useLookup = (target, app, file, type, user, enabled) => useQuery(getLookupQuery(target, app, file, type, "nobody", enabled));
 
-export const OpenLookup = ({ target, app, file, type }) => {
+export const OpenLookup = ({ target, app, file, type, user }) => {
     const modalToggle = useRef(null);
     const [open, setOpen] = useState(false);
-    const lookup = useLookup(target, app, file, type, open);
+    const lookup = useQuery(getLookupQuery(target, app, file, type, user, open));
 
     const handleRequestOpen = () => {
         setOpen(true);
@@ -83,10 +82,10 @@ export const OpenLookup = ({ target, app, file, type }) => {
     );
 };
 
-export const LookupCompare = ({ config, app, file, type }) => {
+export const LookupCompare = ({ config, app, file, type, src_user, dst_user }) => {
     const [enabled, setEnabled] = useState(false);
-    const src = useLookup(config.src, app, file, type, enabled);
-    const dst = useLookup(config.dst, app, file, type, enabled);
+    const src = useQuery(getLookupQuery(config.src, app, file, type, src_user, enabled));
+    const dst = useQuery(getLookupQuery(config.dst, app, file, type, dst_user, enabled));
 
     const same = useMemo(() => (src.data && dst.data ? JSON.stringify(src.data) === JSON.stringify(dst.data) : null), [src.data, dst.data]);
 
@@ -106,11 +105,8 @@ export const LookupCompare = ({ config, app, file, type }) => {
 const LookupCopy = ({ mutationFn, app, file, type, config, path, label, src, dst, dst_user }) => {
     const QueryClient = useQueryClient();
     const dst_path = `${config.dst.api}/servicesNS/${dst_user}/${app}/${path}/${file}`;
-    const copy = useMutation(async ({ signal }) =>
-        QueryClient.fetchQuery({
-            queryFn: () => getLookup(config.src, app, file, type, signal).then(handle),
-            queryKey: [config.src.key, type, app, file],
-        }).then((contents) =>
+    const copy = useMutation(async () =>
+        QueryClient.fetchQuery(getLookupQuery(config.src, app, file, type, src.owner)).then((contents) =>
             mutationFn(contents, app, file)
                 .then(() =>
                     // If we already have the destination ACL, use that
@@ -231,6 +227,7 @@ export default ({ config, type, path, mutationFn, src_user = "nobody", dst_user 
                                                     app,
                                                     file,
                                                     type,
+                                                    user: src_user,
                                                 }}
                                             />
                                         ) : (
@@ -246,6 +243,7 @@ export default ({ config, type, path, mutationFn, src_user = "nobody", dst_user 
                                                     app,
                                                     file,
                                                     type,
+                                                    user: dst_user,
                                                 }}
                                             />
                                         ) : (
@@ -254,7 +252,11 @@ export default ({ config, type, path, mutationFn, src_user = "nobody", dst_user 
                                 </Table.Cell>
                                 <Table.Cell>
                                     {dst &&
-                                        (hasEditor ? <LookupCompare config={config} app={app} file={file} type={type} /> : <Button disabled label="Compare" />)}
+                                        (hasEditor ? (
+                                            <LookupCompare config={config} app={app} file={file} type={type} src_user={src_user} dst_user={dst_user} />
+                                        ) : (
+                                            <Button disabled label="Compare" />
+                                        ))}
                                 </Table.Cell>
                                 <Table.Cell>
                                     {hasEditor ? (
