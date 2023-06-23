@@ -26,7 +26,7 @@ export default ({ step, config }) => {
                 disgression.
             </P>
             <Heading level={2}>Step {step}.1 - Copy CSV Lookup Files</Heading>
-            <Lookup config={config} type="csv" path="servicesNS/nobody/-/data/lookup-table-files" mutationFn={mutation} />
+            <Lookup config={config} type="csv" path="data/lookup-table-files" mutationFn={mutation} />
         </div>
     );
 };

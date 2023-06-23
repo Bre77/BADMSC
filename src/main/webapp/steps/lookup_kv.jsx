@@ -26,7 +26,7 @@ export default ({ step, config }) => {
             <Heading level={2}>Step {step}.1 - Copy Collections</Heading>
             <Conf config={config} files={["collections"]} />
             <Heading level={2}>Step {step}.2 - Copy KV Store data</Heading>
-            <Lookup config={config} type="kv" path="servicesNS/nobody/-/storage/collections/config" mutationFn={mutation} />
+            <Lookup config={config} type="kv" path="storage/collections/config" mutationFn={mutation} />
         </div>
     );
 };

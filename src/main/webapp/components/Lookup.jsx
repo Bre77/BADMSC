@@ -43,10 +43,12 @@ export const OpenLookup = ({ target, app, file, type }) => {
 
     const handleRequestOpen = () => {
         setOpen(true);
+        console.log("open");
     };
 
     const handleRequestClose = () => {
         setOpen(false);
+        console.log("close");
         modalToggle?.current?.focus(); // Must return focus to the invoking element when the modal closes
     };
 
@@ -107,45 +109,50 @@ function rejectDelay(reason) {
     });
 }
 
-const LookupCopy = ({ mutationFn, app, file, type, config, path, label, src, dst }) => {
+const LookupCopy = ({ mutationFn, app, file, type, config, path, label, src, dst, dst_user }) => {
     const QueryClient = useQueryClient();
-    const dst_path = `${config.dst.api}/${path.replace("-", app)}/${file}`;
+    const dst_path = `${config.dst.api}/servicesNS/${dst_user}/${app}/${path}/${file}`;
     const copy = useMutation(async ({ signal }) =>
         QueryClient.fetchQuery({
             queryFn: () => getLookup(config.src, app, file, type, signal).then(handle),
             queryKey: [config.src.key, type, app, file],
-        })
-            .then((contents) => mutationFn(contents, app, file))
-            .then(() => {
-                // If we already have the destination ACL, use that
-                if (dst) return { entry: [dst] };
-
-                // Get the ACL of the newly created lookup, but it might take some time
-                let p = Promise.reject();
-                for (var i = 0; i < 5; i++) {
-                    p.catch(() =>
-                        request({
-                            url: `${dst_path}/acl`,
-                            method: "GET",
-                            params: { output_mode: "json" },
-                            headers: {
-                                Authorization: `Bearer ${config.dst.token}`,
-                            },
-                        })
-                    ).catch(rejectDelay);
-                }
-                return p.then(handle);
-            })
-            .then((data) => {
-                console.log(data, src, dst);
-                return data;
-            })
-            .then(handleAcl(config, dst_path, src, QueryClient))
-            .then(lookupHandle)
-            .then((data) => {
-                QueryClient.setQueryData([config.dst.key, `${path}/${file}`], (prev) => ({ ...prev, app: { ...prev[app], ...data[app] } }));
-                QueryClient.setQueryData([config.dst.key, type, app, file], contents);
-            })
+        }).then((contents) =>
+            mutationFn(contents, app, file)
+                .then(() =>
+                    // If we already have the destination ACL, use that
+                    dst
+                        ? { entry: [dst] }
+                        : QueryClient.fetchQuery({
+                              queryFn: () =>
+                                  request({
+                                      url: `${dst_path}/acl`,
+                                      method: "GET",
+                                      params: { output_mode: "json" },
+                                      headers: {
+                                          Authorization: `Bearer ${config.dst.token}`,
+                                      },
+                                  }).then(handle),
+                              queryKey: [config.dst.key, type, app, file, "acl"],
+                              retry: 5,
+                              cacheTime: 0,
+                              staleTime: 0,
+                          })
+                )
+                .then((data) => {
+                    console.log(data, src, dst);
+                    return data;
+                })
+                .then(handleAcl(config, dst_path, src, QueryClient))
+                //.then(lookupHandle)
+                .then((data) => {
+                    console.log(data);
+                    QueryClient.setQueryData([config.dst.key, `servicesNS/${dst_user}/-/${path}/${file}`], (prev) => ({
+                        ...prev,
+                        [app]: { ...prev?.[app], [data.entry[0].name]: data.entry[0].acl },
+                    }));
+                    QueryClient.setQueryData([config.dst.key, type, app, file], contents);
+                })
+        )
     );
     return <MutateButton mutation={copy} label={label} />;
 };
@@ -157,10 +164,10 @@ const lookupHandle = (data) =>
         return x;
     }, {});
 
-export default ({ config, type, path, mutationFn }) => {
+export default ({ config, type, path, mutationFn, src_user = "nobody", dst_user = "nobody" }) => {
     console.log("Lookup Redraw");
-    const src = useApi(config.src, path, lookupHandle);
-    const dst = useApi(config.dst, path, lookupHandle);
+    const src = useApi(config.src, `servicesNS/${src_user}/-/${path}`, lookupHandle);
+    const dst = useApi(config.dst, `servicesNS/${dst_user}/-/${path}`, lookupHandle);
     const src_apps = useApps(config.src);
     const dst_apps = useApps(config.dst);
 
@@ -270,6 +277,7 @@ export default ({ config, type, path, mutationFn }) => {
                                             label={dst ? "Overwrite" : "Create"}
                                             src={src}
                                             dst={dst}
+                                            dst_user={dst_user}
                                         />
                                     ) : (
                                         <Button disabled label={dst ? "Overwrite" : "Create"} />
