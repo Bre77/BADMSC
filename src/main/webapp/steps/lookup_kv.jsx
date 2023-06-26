@@ -6,17 +6,6 @@ import Lookup from "../components/Lookup";
 import { request } from "../shared/fetch";
 
 export default ({ step, config }) => {
-    const mutation = (contents, app, file) =>
-        request({
-            url: `${config.dst.api}/servicesNS/nobody/-/storage/collections/data/${file}/batch_save`,
-            method: "POST",
-            headers: {
-                Authorization: `Bearer ${config.dst.token}`,
-                "Content-Type": "application/json",
-            },
-            json: contents.slice(1).map((row) => Object.fromEntries(contents[0].map((e, i) => [e, row[i]]))),
-        });
-
     return (
         <div>
             <P>
@@ -26,7 +15,7 @@ export default ({ step, config }) => {
             <Heading level={2}>Step {step}.1 - Copy Collections</Heading>
             <Conf config={config} files={["collections"]} />
             <Heading level={2}>Step {step}.2 - Copy KV Store data</Heading>
-            <Lookup config={config} type="kv" path="storage/collections/config" mutationFn={mutation} />
+            <Lookup config={config} type="kv" />
         </div>
     );
 };

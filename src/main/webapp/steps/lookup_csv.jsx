@@ -5,20 +5,6 @@ import Lookup from "../components/Lookup";
 import { request } from "../shared/fetch";
 
 export default ({ step, config }) => {
-    const mutation = (contents, app, file) =>
-        request({
-            url: `${config.dst.api}/servicesNS/nobody/lookup_editor/data/lookup_edit/lookup_contents`,
-            method: "POST",
-            headers: {
-                Authorization: `Bearer ${config.dst.token}`,
-            },
-            data: {
-                lookup_file: file,
-                namespace: app,
-                contents: JSON.stringify(contents),
-            },
-        });
-
     return (
         <div>
             <P>
@@ -26,7 +12,7 @@ export default ({ step, config }) => {
                 disgression.
             </P>
             <Heading level={2}>Step {step}.1 - Copy CSV Lookup Files</Heading>
-            <Lookup config={config} type="csv" path="data/lookup-table-files" mutationFn={mutation} />
+            <Lookup config={config} type="csv" mutationFn={mutation} />
         </div>
     );
 };
