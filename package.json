@@ -1,9 +1,8 @@
 {
-    "name": "@splunk/badmsc",
+    "name": "badmsc",
     "version": "2.0.2",
-    "splunkbaseid": 6844,
+    "splunkbaseid": false,
     "license": "UNLICENSED",
-    "packer": "./make.sh",
     "scripts": {
         "build": "node bin/build.js build",
         "eslint": "eslint src --ext \".js,.jsx\"",
