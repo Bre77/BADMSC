@@ -11,6 +11,34 @@ import { isort0 } from "../shared/helpers";
 import { handle, handleAcl, useApi, useApps } from "../shared/hooks";
 import MutateButton from "./MutateButton";
 
+const mutationKv = (target, contents, app, file) =>
+    request({
+        url: `${target.api}/servicesNS/nobody/-/storage/collections/data/${file}/batch_save`,
+        method: "POST",
+        headers: {
+            Authorization: `Bearer ${target.token}`,
+            "Content-Type": "application/json",
+        },
+        json: contents.slice(1).map((row) => Object.fromEntries(contents[0].map((e, i) => [e, row[i]]))),
+    });
+
+const mutationCsv = (target, contents, app, file) =>
+    request({
+        url: `${target.api}/servicesNS/nobody/lookup_editor/data/lookup_edit/lookup_contents`,
+        method: "POST",
+        headers: {
+            Authorization: `Bearer ${target.token}`,
+        },
+        data: {
+            lookup_file: file,
+            namespace: app,
+            contents: JSON.stringify(contents),
+        },
+    });
+
+const PATHS = { csv: "data/lookup-table-files", kv: "storage/collections/config" };
+const MUTATIONS = { csv: mutationCsv, kv: mutationKv };
+
 const getLookupQuery = (target, namespace, lookup_file, lookup_type, owner, enabled = true) => ({
     queryFn: ({ signal }) =>
         request(
@@ -100,12 +128,12 @@ export const LookupCompare = ({ config, app, file, type, src_user, dst_user }) =
     );
 };
 
-const LookupCopy = ({ mutationFn, app, file, type, config, path, label, src, dst, dst_user }) => {
+const LookupCopy = ({ app, file, type, config, label, src, dst, dst_user }) => {
     const QueryClient = useQueryClient();
-    const dst_path = `${config.dst.api}/servicesNS/${dst_user}/${app}/${path}/${file}`;
+    const dst_path = `${config.dst.api}/servicesNS/${dst_user}/${app}/${PATHS[type]}/${file}`;
     const copy = useMutation(async () =>
         QueryClient.fetchQuery(getLookupQuery(config.src, app, file, type, src.owner)).then((contents) =>
-            mutationFn(contents, app, file)
+            MUTATIONS[type](config.dst, contents, app, file)
                 .then(() =>
                     // If we already have the destination ACL, use that
                     // Otherwise fetch it safely (might not be required, originally saw 404s)
@@ -131,7 +159,7 @@ const LookupCopy = ({ mutationFn, app, file, type, config, path, label, src, dst
                 .then(lookupHandle)
                 .then((data) => {
                     console.log(data);
-                    QueryClient.setQueryData([config.dst.key, `servicesNS/${dst_user}/-/${path}`], (prev) => ({
+                    QueryClient.setQueryData([config.dst.key, `servicesNS/${dst_user}/-/${PATHS[type]}`], (prev) => ({
                         ...prev,
                         [app]: { ...prev?.[app], ...data[app] },
                     }));
@@ -149,10 +177,9 @@ const lookupHandle = (data) =>
         return x;
     }, {});
 
-export default ({ config, type, path, mutationFn, src_user = "nobody", dst_user = "nobody" }) => {
-    console.log("Lookup Redraw");
-    const src = useApi(config.src, `servicesNS/${src_user}/-/${path}`, lookupHandle);
-    const dst = useApi(config.dst, `servicesNS/${dst_user}/-/${path}`, lookupHandle);
+export default ({ config, type, scope, src_user = "nobody", dst_user = "nobody" }) => {
+    const src = useApi(config.src, `servicesNS/${src_user}/-/${PATHS[type]}`, lookupHandle);
+    const dst = useApi(config.dst, `servicesNS/${dst_user}/-/${PATHS[type]}`, lookupHandle);
     const src_apps = useApps(config.src);
     const dst_apps = useApps(config.dst);
 
@@ -259,12 +286,10 @@ export default ({ config, type, path, mutationFn, src_user = "nobody", dst_user 
                                 <Table.Cell>
                                     {hasEditor ? (
                                         <LookupCopy
-                                            mutationFn={mutationFn}
                                             app={app}
                                             file={file}
                                             type={type}
                                             config={config}
-                                            path={path}
                                             label={dst ? "Overwrite" : "Create"}
                                             src={src}
                                             dst={dst}

@@ -8,6 +8,7 @@ import Select from "@splunk/react-ui/Select";
 import Conf from "../components/Conf";
 import Lookup from "../components/Lookup";
 import Ui from "../components/Ui";
+import { CONF_FILES } from "../shared/const";
 import { nameContent, useApi } from "../shared/hooks";
 
 export default ({ step, config }) => {
@@ -41,11 +42,15 @@ export default ({ step, config }) => {
             {src_user && dst_user && (
                 <>
                     <Heading level={2}>Step {step}.2 - Copy Private Knowledge Objects</Heading>
-                    <Conf config={config} scope="user" src_user={src_user} dst_user={dst_user} />
+                    <Conf config={config} scope="user" src_user={src_user} dst_user={dst_user} files={[...CONF_FILES, "collections"]} />
                     <Heading level={2}>Step {step}.3 - Copy Private Dashboards</Heading>
                     <Ui config={config} scope="user" folder="views" src_user={src_user} dst_user={dst_user} />
                     <Heading level={2}>Step {step}.4 - Copy Private Nav</Heading>
                     <Ui config={config} scope="user" folder="nav" src_user={src_user} dst_user={dst_user} />
+                    <Heading level={2}>Step {step}.5 - Copy Private CSV Lookups</Heading>
+                    <Lookup config={config} scope="user" type="csv" src_user={src_user} dst_user={dst_user} />
+                    <Heading level={2}>Step {step}.5 - Copy Private CSV Lookups</Heading>
+                    <Lookup config={config} scope="user" type="csv" src_user={src_user} dst_user={dst_user} />
                 </>
             )}
         </>
