@@ -108,7 +108,7 @@ export default () => {
                     </Button>
                 </Steper>
             </Top>
-            {config.data === undefined ? <WaitSpinner /> : <Step step={step} config={config.data} />}
+            {config.data ? <Step step={step} config={config.data} /> : <WaitSpinner />}
         </div>
     );
 };
