@@ -26,6 +26,7 @@ import KV from "./lookup_kv";
 import Nav from "./nav";
 import Owners from "./owners";
 import Roles from "./roles";
+import Searches from "./searches";
 import Sourcetypes from "./sourcetypes";
 import Start from "./start";
 import Users from "./users";
@@ -46,6 +47,7 @@ const steps = [
     ["App Config", ConfigApp],
     ["Private Config", Users],
     ["Owners", Owners],
+    ["Searches", Searches],
     ["Navigation", Nav],
     ["Views", Views],
     ["CSV Files", CSV],
