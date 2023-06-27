@@ -158,7 +158,7 @@ export const processConfs = (data) =>
 
 export const useConfs = (target, files, user = "nobody") =>
     useQueries({
-        queries: files.map((file) => makeQuery(target, `servicesNS/${user}/-/configs/conf-${file}`, processConfs)),
+        queries: files.map((file) => makeQuery(target, `servicesNS/${encodeURIComponent(user)}/-/configs/conf-${file}`, processConfs)),
     });
 
 const handleDefaults = (data) => Object.fromEntries(data.entry.map(({ name, content }) => [name, content]));

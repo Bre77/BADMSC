@@ -193,8 +193,8 @@ const CopyConfig = ({ config, acl, file, app, stanza, attr, exists, dst_user }) 
     const queryClient = useQueryClient();
     const copy = useMutation(async () => {
         let data = Object.fromEntries(attr.map(([a, { src }]) => [a, src]));
-        let url = `${config.dst.api}/servicesNS/${dst_user}/${app}/configs/conf-${file}`;
-        exists ? (url = `${url}/${stanza}`) : (data["name"] = stanza);
+        let url = `${config.dst.api}/servicesNS/${encodeURIComponent(dst_user)}/${encodeURIComponent(app)}/configs/conf-${file}`;
+        exists ? (url = `${url}/${encodeURIComponent(stanza)}`) : (data["name"] = stanza);
         return request({
             url,
             method: "POST",
@@ -214,7 +214,7 @@ const CopyConfig = ({ config, acl, file, app, stanza, attr, exists, dst_user }) 
                         `The new configuration for '${stanza}' was returned in the app '${newapp}' instead of '${app}'. This means it may not show up where you expect it to.`
                     );
                 }
-                queryClient.setQueryData(["dst", `servicesNS/${dst_user}/-/configs/conf-${file}`], (olddata) => ({
+                queryClient.setQueryData(["dst", `servicesNS/${encodeURIComponent(dst_user)}/-/configs/conf-${file}`], (olddata) => ({
                     ...olddata,
                     [newapp]: { ...olddata?.[newapp], [stanza]: newdata[newapp][stanza] },
                 }));
