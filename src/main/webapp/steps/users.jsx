@@ -48,11 +48,12 @@ export default ({ step, config }) => {
                     <Heading level={2}>Step {step}.4 - Copy Private Nav</Heading>
                     <Ui config={config} scope="user" folder="nav" src_user={src_user} dst_user={dst_user} />
                     <Heading level={2}>Step {step}.5 - Copy Private CSV Lookups</Heading>
-                    <Lookup config={config} scope="user" type="csv" src_user={src_user} dst_user={dst_user} />
+
                     <Heading level={2}>Step {step}.5 - Copy Private CSV Lookups</Heading>
-                    <Lookup config={config} scope="user" type="csv" src_user={src_user} dst_user={dst_user} />
                 </>
             )}
         </>
     );
 };
+//<Lookup config={config} scope="user" type="csv" src_user={src_user} dst_user={dst_user} />
+//<Lookup config={config} scope="user" type="csv" src_user={src_user} dst_user={dst_user} />

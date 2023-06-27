@@ -24,6 +24,7 @@ import Inputs from "./inputs";
 import CSV from "./lookup_csv";
 import KV from "./lookup_kv";
 import Nav from "./nav";
+import Owners from "./owners";
 import Roles from "./roles";
 import Sourcetypes from "./sourcetypes";
 import Start from "./start";
@@ -44,10 +45,11 @@ const steps = [
     ["Global Config", ConfigGlobal],
     ["App Config", ConfigApp],
     ["Private Config", Users],
+    ["Owners", Owners],
     ["Navigation", Nav],
     ["Views", Views],
-    ["CSV Lookups", CSV],
-    ["KV Lookups", KV],
+    ["CSV Files", CSV],
+    ["KV Data", KV],
     //['Data', Data],
     ["Finish", Finish],
 ];
