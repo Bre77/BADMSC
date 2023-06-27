@@ -146,8 +146,10 @@ export const useAcs = (target, endpoint, postprocess = (x) => x) =>
 
 export const processConfs = (data) =>
     data.entry.reduce((x, { name, acl, content }) => {
-        x[acl.app] ||= {};
-        x[acl.app][name] = {
+        // Figure out how to decode URI values here
+        let app = acl.app;
+        x[app] ||= {};
+        x[app][name] = {
             sharing: acl.sharing,
             perms: acl.perms,
             owner: acl.owner,
