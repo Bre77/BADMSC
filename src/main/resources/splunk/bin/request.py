@@ -28,8 +28,6 @@ class request(PersistentServerConnectionApplication):
             self.logger.info(f"Invalid payload. {e}")
             return {"payload": "Invalid JSON payload", "status": 400}
 
-        self.logger.info(args["payload"])
-
         # Handle local requests by adding FQDN and auth token
         if options["url"].startswith("/services"):
             options["verify"] = False
