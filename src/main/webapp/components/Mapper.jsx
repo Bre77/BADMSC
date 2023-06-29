@@ -14,12 +14,11 @@ const handleMap = (res) => {
 };
 
 export default ({ type, value, options, fallback }) => {
-    console.log("RENDERED");
     const url = `${splunkdPath}/servicesNS/${username}/badmsc/configs/conf-msc/${type}?output_mode=json`;
     const queryClient = useQueryClient();
     const map =
         useQuery({
-            queryKey: ["usermap"],
+            queryKey: ["map", type],
             queryFn: ({ signal }) => fetch(url, { ...defaultFetchInit, signal }).then(handleMap),
         }).data || {};
 
@@ -30,7 +29,7 @@ export default ({ type, value, options, fallback }) => {
             body: makeBody({ [from]: to }),
         })
             .then(handleMap)
-            .then((data) => queryClient.setQueryData(["usermap"], data))
+            .then((data) => queryClient.setQueryData(["map", type], data))
     );
 
     const change = (e, { name, value }) => {

@@ -191,7 +191,7 @@ export default ({ config, scope = false, files = CONF_FILES, src_user = "nobody"
 
 const CopyConfig = ({ config, acl, file, app, stanza, attr, exists, dst_user }) => {
     const queryClient = useQueryClient();
-    const copy = useMutation(async () => {
+    const copy = useMutation(() => {
         let data = Object.fromEntries(attr.map(([a, { src }]) => [a, src]));
         let url = `${config.dst.api}/servicesNS/${encodeURIComponent(dst_user)}/${encodeURIComponent(app)}/configs/conf-${file}`;
         exists ? (url = `${url}/${encodeURIComponent(stanza)}`) : (data["name"] = stanza);
