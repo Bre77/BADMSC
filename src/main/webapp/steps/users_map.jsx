@@ -9,25 +9,22 @@ import MutateButton from "../components/MutateButton";
 import { request } from "../shared/fetch";
 import { keyContent, useApi, useConfig, useMap } from "../shared/hooks";
 
-const ENDPOINT = "services/authorization/roles";
-const DEFAULT = "user";
-const FILTER = ["splunk-system-role"];
+const ENDPOINT = "services/authentication/users";
+const DEFAULT = "nobody";
 
 export default ({ step, config }) => {
     const queryClient = useQueryClient();
     const src = useApi(config.src, ENDPOINT, keyContent).data || [];
     const dst = useApi(config.dst, ENDPOINT, keyContent).data || [];
-    const map = useMap("roles").data || {};
+    const map = useMap("users") || {};
 
     const options = useMemo(() => dst.map((x) => <Select.Option key={x} value={x} label={x} />), [dst]);
-    const roles = useMemo(() => src.filter((x) => !FILTER.includes(x) && !dst.includes(x)), [src, dst]);
+    const users = useMemo(() => src.filter((x) => !dst.includes(x)), [src, dst]);
 
-    console.log(src, dst, map, roles);
-
-    return roles.length ? (
-        roles.map((role) => (
-            <ControlGroup key={role} label={role} labelWidth={300}>
-                <Select value={map[role] || DEFAULT} onChange={() => {}}>
+    return users.length ? (
+        users.map((user) => (
+            <ControlGroup key={user} label={user} labelWidth={300}>
+                <Select value={map[user] || DEFAULT} onChange={() => {}}>
                     <Select.Option key={DEFAULT} value={DEFAULT} label={DEFAULT} />
                     {options}
                 </Select>

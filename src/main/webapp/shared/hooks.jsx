@@ -2,7 +2,7 @@ import { splunkdPath, username } from "@splunk/splunk-utils/config";
 import { defaultFetchInit } from "@splunk/splunk-utils/fetch";
 import { useQueries, useQuery } from "@tanstack/react-query";
 import { useEffect, useReducer, useState } from "react";
-import { CONF_FILES } from "./const";
+import { ATTR_BLACKLIST } from "../shared/const";
 import { request } from "./fetch";
 import { localLoad } from "./helpers";
 
@@ -17,6 +17,7 @@ export const handle = (res) =>
           });
 
 export const nameContent = (data) => Object.fromEntries(data.entry.map(({ name, content }) => [name, content]));
+export const keyContent = (data) => data.entry.map(({ name }) => name);
 export const entryNames = (data) => data.entry.map(({ name }) => name);
 
 const entry = (data) => data.entry;
@@ -86,11 +87,16 @@ export const handleAcl = (config, url, src, queryClient) => async (dst_data) => 
         data,
     })
         .then(handle)
-        .then((newacls) => {
-            dst_data.entry[0].acl = newacls.entry[0].acl;
-            return dst_data;
-        })
-        .catch(() => console.error(`ACLs for ${url} could not be corrected`));
+        .then(
+            (newacls) => {
+                dst_data.entry[0].acl = newacls.entry[0].acl;
+                return dst_data;
+            },
+            (e) => {
+                console.error(`ACLs for ${url} could not be corrected, ${e}`);
+                return dst_data;
+            }
+        );
 };
 
 export const useConfig = () =>
@@ -116,6 +122,18 @@ export const useConfig = () =>
             }),
 
         notifyOnChangeProps: ["data"],
+    }).data;
+
+const FILTER = ["eai:acl", "eai:appName", "eai:userName", "disabled"];
+export const useMap = (type) =>
+    useQuery({
+        queryKey: ["usermap"],
+        queryFn: ({ signal }) =>
+            fetch(`${LOCAL_URL}/configs/conf-msc/${type}?output_mode=json`, { ...defaultFetchInit, signal }).then((res) => {
+                if (res.status == 404) return {};
+                if (!res.ok) return res.text().then(Promise.reject);
+                return res.json().then((data) => Object.fromEntries(Object.entries(data.entry[0].content).filter(([k]) => !FILTER.includes(k))));
+            }),
     });
 
 export const useApi = (target, path, postprocess) => useQuery(makeQuery(target, path, postprocess));

@@ -27,9 +27,12 @@ import KV from "./lookup_kv";
 import Nav from "./nav";
 import Owners from "./owners";
 import Roles from "./roles_create";
+import MapRoles from "./roles_map";
 import Searches from "./searches";
 import Sourcetypes from "./sourcetypes";
 import Start from "./start";
+import Users from "./users_create";
+import MapUsers from "./users_map";
 import Views from "./views";
 
 const steps = [
@@ -39,6 +42,9 @@ const steps = [
     ["Indexes", Indexes],
     ["Apps", Apps],
     ["Roles", Roles],
+    ["Map Roles", MapRoles],
+    ["Users", Users],
+    ["Map Users", MapUsers],
     ["Sourcetypes", Sourcetypes],
     ["HEC", HEC],
     ["Inputs", Inputs],
@@ -82,8 +88,8 @@ export default () => {
     const config = useConfig();
 
     useEffect(() => {
-        ((config.data && ("src" in config.data === false || "dst" in config.data === false)) || config.data === false) && step > 1 && setStep(1);
-    }, [config.data]);
+        ((config && ("src" in config === false || "dst" in config === false)) || config === false) && step > 1 && setStep(1);
+    }, [config]);
 
     return (
         <div>
@@ -103,12 +109,12 @@ export default () => {
                 )}
                 <Steper>
                     <Button icon={<ChevronLeft />} label=" Previous" appearance="primary" onClick={handlePrevious} disabled={step <= 0} />
-                    <Button label="Next " appearance="primary" onClick={handleNext} disabled={step >= steps.length - 1 || (!config.data && step > 0)}>
+                    <Button label="Next " appearance="primary" onClick={handleNext} disabled={step >= steps.length - 1 || (!config && step > 0)}>
                         <ChevronRight />
                     </Button>
                 </Steper>
             </Top>
-            {config.data || step <= 1 ? <Step step={step} config={config.data} /> : <WaitSpinner />}
+            {config || step <= 1 ? <Step step={step} config={config} /> : <WaitSpinner />}
         </div>
     );
 };
