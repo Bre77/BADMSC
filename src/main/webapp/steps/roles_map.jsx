@@ -1,39 +1,17 @@
-import ControlGroup from "@splunk/react-ui/ControlGroup";
-import Heading from "@splunk/react-ui/Heading";
 import Select from "@splunk/react-ui/Select";
 import WaitSpinner from "@splunk/react-ui/WaitSpinner";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
 import React, { useMemo } from "react";
-import Map from "../components/Map";
-import MutateButton from "../components/MutateButton";
-import { request } from "../shared/fetch";
-import { keyContent, useApi, useConfig, useMap } from "../shared/hooks";
+import Mapper from "../components/Mapper";
+import { keyContent, useApi } from "../shared/hooks";
 
-const ENDPOINT = "services/authorization/roles";
-const DEFAULT = "user";
+const ENDPOINT = "services/authorization/roles#";
 const FILTER = ["splunk-system-role"];
 
 export default ({ step, config }) => {
-    const queryClient = useQueryClient();
     const src = useApi(config.src, ENDPOINT, keyContent).data || [];
     const dst = useApi(config.dst, ENDPOINT, keyContent).data || [];
-    const map = useMap("roles").data || {};
 
-    const options = useMemo(() => dst.map((x) => <Select.Option key={x} value={x} label={x} />), [dst]);
-    const roles = useMemo(() => src.filter((x) => !FILTER.includes(x) && !dst.includes(x)), [src, dst]);
+    const roles = useMemo(() => (src.length && dst.length ? src.filter((x) => !FILTER.includes(x) && !dst.includes(x)) : []), [src, dst]);
 
-    console.log(src, dst, map, roles);
-
-    return roles.length ? (
-        roles.map((role) => (
-            <ControlGroup key={role} label={role} labelWidth={300}>
-                <Select value={map[role] || DEFAULT} onChange={() => {}}>
-                    <Select.Option key={DEFAULT} value={DEFAULT} label={DEFAULT} />
-                    {options}
-                </Select>
-            </ControlGroup>
-        ))
-    ) : (
-        <WaitSpinner size="large" />
-    );
+    return roles.length ? roles.map((role) => <Mapper type="roles" fallback="user" value={role} options={dst} />) : <WaitSpinner size="large" />;
 };

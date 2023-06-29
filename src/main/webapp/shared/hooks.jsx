@@ -1,9 +1,8 @@
 import { splunkdPath, username } from "@splunk/splunk-utils/config";
 import { defaultFetchInit } from "@splunk/splunk-utils/fetch";
-import { useQueries, useQuery } from "@tanstack/react-query";
+import { useMutation, useQueries, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useReducer, useState } from "react";
-import { ATTR_BLACKLIST } from "../shared/const";
-import { request } from "./fetch";
+import { makeBody, request } from "./fetch";
 import { localLoad } from "./helpers";
 
 export const LOCAL_URL = `${splunkdPath}/servicesNS/${username}/badmsc`;
@@ -124,17 +123,7 @@ export const useConfig = () =>
         notifyOnChangeProps: ["data"],
     }).data;
 
-const FILTER = ["eai:acl", "eai:appName", "eai:userName", "disabled"];
-export const useMap = (type) =>
-    useQuery({
-        queryKey: ["usermap"],
-        queryFn: ({ signal }) =>
-            fetch(`${LOCAL_URL}/configs/conf-msc/${type}?output_mode=json`, { ...defaultFetchInit, signal }).then((res) => {
-                if (res.status == 404) return {};
-                if (!res.ok) return res.text().then(Promise.reject);
-                return res.json().then((data) => Object.fromEntries(Object.entries(data.entry[0].content).filter(([k]) => !FILTER.includes(k))));
-            }),
-    });
+
 
 export const useApi = (target, path, postprocess) => useQuery(makeQuery(target, path, postprocess));
 
