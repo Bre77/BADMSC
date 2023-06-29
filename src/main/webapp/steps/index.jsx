@@ -13,6 +13,7 @@ import { Steper, Top } from "./styles";
 import Allowlist from "./allowlist";
 import Apps from "./apps";
 import Auth from "./auth";
+import ConfigUser from "./conf_user";
 import ConfigApp from "./config_app";
 import ConfigGlobal from "./config_global";
 import ConfigSystem from "./config_system";
@@ -25,11 +26,10 @@ import CSV from "./lookup_csv";
 import KV from "./lookup_kv";
 import Nav from "./nav";
 import Owners from "./owners";
-import Roles from "./roles";
+import Roles from "./roles_create";
 import Searches from "./searches";
 import Sourcetypes from "./sourcetypes";
 import Start from "./start";
-import Users from "./users";
 import Views from "./views";
 
 const steps = [
@@ -45,8 +45,8 @@ const steps = [
     ["System Config", ConfigSystem],
     ["Global Config", ConfigGlobal],
     ["App Config", ConfigApp],
-    ["Private Config", Users],
-    ["Owners", Owners],
+    ["User Config", ConfigUser],
+    ["RBAC Check", Owners],
     ["Searches", Searches],
     ["Navigation", Nav],
     ["Views", Views],

@@ -242,6 +242,11 @@ export default ({ step, config }) => {
                     ))}
                 </Table.Body>
             </Table>
+            <Heading level={2}>Step {step}.3 - Modify Roles</Heading>
+            <P>
+                Items marked with a plus (+) only exist on the source, while items marked with a tilde (~) only exist in Splunk Cloud. Nothing will be remove
+                from Splunk Cloud to avoid breaking functionality, so this section will merge the two together.
+            </P>
         </div>
     );
 };
