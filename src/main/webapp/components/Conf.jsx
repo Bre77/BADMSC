@@ -19,6 +19,12 @@ const CodeCell = styled(Table.Cell)`
     white-space: nowrap;
 `;
 
+// Override certain config files to use specific endpoints
+const ENDPOINTS = {
+    savedsearchs: "saved/searches",
+};
+const endpoint = (file) => ENDPOINTS[file] ?? `configs/conf-${file}`;
+
 export default ({ config, scope = false, files = CONF_FILES, src_user = "nobody", dst_user = "nobody" }) => {
     const def = useDefaults(config.src, files);
     const src = useConfs(config.src, files, src_user);
@@ -154,7 +160,14 @@ export default ({ config, scope = false, files = CONF_FILES, src_user = "nobody"
                                 </Table.Cell>
                                 <CodeCell>
                                     <Typography as="pre" variant="monoSmallBody">
-                                        {[`[${stanza}]`, ...attr.map(([a, { src }]) => (src !== undefined ? `${a} = ${src}` : ""))].join("\n")}
+                                        {[
+                                            `[${stanza}]`,
+                                            ...attr.map(([a, { src }]) => (src !== undefined ? `${a} = ${src}` : "")),
+                                            /*`(owner = ${acl.owner})`,
+                                            `(sharing = ${acl.sharing})`,
+                                            `(read = ${acl.perms.read})`,
+                                            `(write = ${acl.perms.write})`,*/
+                                        ].join("\n")}
                                     </Typography>
                                 </CodeCell>
                                 <CodeCell>
@@ -193,7 +206,7 @@ const CopyConfig = ({ config, acl, file, app, stanza, attr, exists, dst_user }) 
     const queryClient = useQueryClient();
     const copy = useMutation(() => {
         let data = Object.fromEntries(attr.map(([a, { src }]) => [a, src]));
-        let url = `${config.dst.api}/servicesNS/${encodeURIComponent(dst_user)}/${encodeURIComponent(app)}/configs/conf-${file}`;
+        let url = `${config.dst.api}/servicesNS/${encodeURIComponent(dst_user)}/${encodeURIComponent(app)}/-${endpoint(file)}`;
         exists ? (url = `${url}/${encodeURIComponent(stanza)}`) : (data["name"] = stanza);
         return request({
             url,
@@ -214,7 +227,7 @@ const CopyConfig = ({ config, acl, file, app, stanza, attr, exists, dst_user }) 
                         `The new configuration for '${stanza}' was returned in the app '${newapp}' instead of '${app}'. This means it may not show up where you expect it to.`
                     );
                 }
-                queryClient.setQueryData(["dst", `servicesNS/${encodeURIComponent(dst_user)}/-/configs/conf-${file}`], (olddata) => ({
+                queryClient.setQueryData(["dst", `servicesNS/${encodeURIComponent(dst_user)}/-/${endpoint(file)}`], (olddata) => ({
                     ...olddata,
                     [newapp]: { ...olddata?.[newapp], [stanza]: newdata[newapp][stanza] },
                 }));
