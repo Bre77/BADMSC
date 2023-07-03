@@ -18,7 +18,7 @@ import ConfigUser from "./conf_user";
 import ConfigApp from "./config_app";
 import ConfigGlobal from "./config_global";
 import ConfigSystem from "./config_system";
-import Data from "./data";
+//import Data from "./data";
 import Finish from "./finish";
 import HEC from "./hec";
 import Indexes from "./indexes";
@@ -26,10 +26,8 @@ import Inputs from "./inputs";
 import CSV from "./lookup_csv";
 import KV from "./lookup_kv";
 import Nav from "./nav";
-import Owners from "./owners";
 import Roles from "./roles_create";
 import MapRoles from "./roles_map";
-import Searches from "./searches";
 import Sourcetypes from "./sourcetypes";
 import Start from "./start";
 import Users from "./users_create";
@@ -53,8 +51,6 @@ const steps = [
     ["Global Config", ConfigGlobal],
     ["App Config", ConfigApp],
     ["User Config", ConfigUser],
-    ["RBAC Check", Owners],
-    ["Searches", Searches],
     ["Navigation", Nav],
     ["Views", Views],
     ["CSV Files", CSV],
