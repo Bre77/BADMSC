@@ -35,7 +35,7 @@ export const makeQuery = (target, path, postprocess = entry) => ({
             signal
         )
             .then(handle)
-            .then(postprocess),
+            .then(postprocess, (e) => (e == 404 ? [] : Promise.reject(e))),
     enabled: !!target,
 });
 
@@ -75,8 +75,6 @@ export const handleAcl = (config, url, src, queryClient) => async (dst_data) => 
                 ),
     });
 
-    console.log(users, roles);
-
     const data = [
         ["sharing", src.sharing],
         ["owner", users[src.owner] ?? src.owner],
@@ -84,6 +82,8 @@ export const handleAcl = (config, url, src, queryClient) => async (dst_data) => 
 
     // Private KOs have no perms
     Object.keys(src.perms || {}).forEach((perm) => data.push([`perms.${perm}`, dedup(src.perms[perm].map((x) => roles[x] ?? x)).join(",")]));
+
+    console.log(users, roles, data);
 
     return request({
         url: `${url}/acl`,
