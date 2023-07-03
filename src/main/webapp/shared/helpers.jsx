@@ -1,7 +1,4 @@
-import React, { useReducer } from "react";
-
-// Splunk UI
-
+// Data
 export const isort = (a, b) => a.localeCompare(b, undefined, { sensitivity: "base" }); // Case insensitive sort
 export const isort0 = (a, b) => a[0].localeCompare(b[0], undefined, { sensitivity: "base" });
 export const isort1 = (a, b) => a[1].localeCompare(b[1], undefined, { sensitivity: "base" });
@@ -19,6 +16,7 @@ export const localLoad = (key, fallback = null) => {
     }
 };
 
+// Splunk UI onChange
 export const wrapSetValue =
     (f) =>
     (_, { value }) =>
@@ -29,4 +27,5 @@ export const wrapSetValues =
     (_, { values }) =>
         f(values);
 
+// React Query
 export const latest = (results) => results.reduce((x, { dataUpdatedAt }) => Math.max(x, dataUpdatedAt), 0);

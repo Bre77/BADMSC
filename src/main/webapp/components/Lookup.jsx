@@ -172,7 +172,7 @@ const LookupCopy = ({ app, file, type, config, label, src, dst, dst_user }) => {
 
 const lookupHandle = (data) =>
     data.entry.reduce((x, { name, acl }) => {
-        x[acl.app] ||= {};
+        x[acl.app] ??= {};
         x[acl.app][name] = acl;
         return x;
     }, {});
@@ -199,7 +199,7 @@ export default ({ config, type, scope, src_user = "nobody", dst_user = "nobody" 
                                 group === 'admin' ? 'sc_admin' : group
                             ))
                     );*/
-                    output[app] ||= {};
+                    output[app] ??= {};
                     output[app][file] = {
                         src: acl,
                         dst: dst.data?.[app]?.[file],

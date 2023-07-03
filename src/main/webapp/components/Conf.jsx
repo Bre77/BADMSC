@@ -3,13 +3,13 @@ import Table from "@splunk/react-ui/Table";
 import Typography from "@splunk/react-ui/Typography";
 import WaitSpinner from "@splunk/react-ui/WaitSpinner";
 import { normalizeBoolean } from "@splunk/splunk-utils/boolean";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import React, { useMemo } from "react";
 import styled from "styled-components";
 import { ATTR_BLACKLIST, CONF_FILES } from "../shared/const";
 import { request } from "../shared/fetch";
 import { isort0, latest } from "../shared/helpers";
-import { handle, handleAcl, makeQuery, nameContent, processConfs, useApps, useConfs, useDefaults } from "../shared/hooks";
+import { handle, handleAcl, processConfs, useApps, useConfs, useDefaults } from "../shared/hooks";
 import MutateButton from "./MutateButton";
 
 const CodeCell = styled(Table.Cell)`
@@ -63,9 +63,9 @@ export default ({ config, scope = false, files = CONF_FILES, src_user = "nobody"
                             const dst_sharing = dst[f].data?.[app]?.[stanza]?.sharing !== scope && dst[f].data?.[app]?.[stanza]?.sharing;
 
                             /*if (dst_sharing === "app") {
-                                scopes[app] ||= {};
-                                scopes[app][file] ||= {};
-                                scopes[app][file][stanza] ||= content;
+                                scopes[app] ??= {};
+                                scopes[app][file] ??= {};
+                                scopes[app][file][stanza] ??= content;
                             }*/
 
                             //perms && Object.keys(perms).forEach((rw) => perms[rw].map((group) => (group === "admin" ? "sc_admin" : group)));
@@ -81,9 +81,9 @@ export default ({ config, scope = false, files = CONF_FILES, src_user = "nobody"
                                         src_value !== dst_value && //normalizeBoolean(dst_value) && // Destination (Maybe these should be identical, not equal)
                                         src_norm !== normalizeBoolean(dst_global?.[stanza]?.content?.[attr]) // Destination Global
                                     ) {
-                                        change[app] ||= {};
-                                        change[app][file] ||= {};
-                                        change[app][file][stanza] ||= {
+                                        change[app] ??= {};
+                                        change[app][file] ??= {};
+                                        change[app][file][stanza] ??= {
                                             attr: {},
                                             acl: { perms, sharing, owner },
                                             exists,

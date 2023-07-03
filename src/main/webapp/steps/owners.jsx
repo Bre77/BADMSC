@@ -20,7 +20,7 @@ const MAPPING = {
 
 const handleUi = (data) =>
     data.entry.reduce((x, { name, acl, content }) => {
-        x[acl.app] ||= {};
+        x[acl.app] ??= {};
         x[acl.app][name] = {
             acl: { perms: acl.perms, sharing: acl.sharing, owner: acl.owner },
             data: content["eai:data"],

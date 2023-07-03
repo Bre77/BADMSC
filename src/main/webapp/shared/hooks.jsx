@@ -2,9 +2,9 @@ import { splunkdPath, username } from "@splunk/splunk-utils/config";
 import { defaultFetchInit } from "@splunk/splunk-utils/fetch";
 import { useMutation, useQueries, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useReducer, useState } from "react";
+import { MAP_BLACKLIST } from "./const";
 import { makeBody, request } from "./fetch";
-import { localLoad } from "./helpers";
-
+import { dedup, localLoad } from "./helpers";
 export const LOCAL_URL = `${splunkdPath}/servicesNS/${username}/badmsc`;
 
 export const handle = (res) =>
@@ -18,8 +18,8 @@ export const handle = (res) =>
 export const nameContent = (data) => Object.fromEntries(data.entry.map(({ name, content }) => [name, content]));
 export const keyContent = (data) => data.entry.map(({ name }) => name);
 export const entryNames = (data) => data.entry.map(({ name }) => name);
-
 const entry = (data) => data.entry;
+
 export const makeQuery = (target, path, postprocess = entry) => ({
     queryKey: [target.key, path],
     queryFn: ({ signal }) =>
@@ -50,7 +50,7 @@ export const handleAcl = (config, url, src, queryClient) => async (dst_data) => 
         return dst_data;
     }
 
-    const [dst_users, dst_roles] = await Promise.all([
+    /*const [dst_users, dst_roles] = await Promise.all([
         queryClient.fetchQuery(makeQuery(config.dst, "services/authentication/users", nameContent)).then(Object.keys),
         queryClient.fetchQuery(makeQuery(config.dst, "services/authorization/roles", nameContent)).then(Object.keys),
     ]);
@@ -58,23 +58,32 @@ export const handleAcl = (config, url, src, queryClient) => async (dst_data) => 
     dst_users.push("nobody");
     dst_roles.push("*");
 
-    if (src.owner == "admin") src.owner = "sc_admin";
+    if (src.owner == "admin") src.owner = "sc_admin";*/
+
+    const { users, roles } = await queryClient.fetchQuery({
+        queryKey: ["maps"],
+        queryFn: ({ signal }) =>
+            fetch(`${splunkdPath}/servicesNS/nobody/badmsc/configs/conf-msc?output_mode=json&summarize=true`, { ...defaultFetchInit, signal })
+                .then(handle)
+                .then((data) =>
+                    Object.fromEntries(
+                        data.entry.map(({ name, content }) => [
+                            name,
+                            Object.fromEntries(Object.entries(content).filter(([k, v]) => !MAP_BLACKLIST.includes(k))),
+                        ])
+                    )
+                ),
+    });
+
+    console.log(users, roles);
 
     const data = [
         ["sharing", src.sharing],
-        ["owner", !dst_users.includes(src.owner) ? "nobody" : src.owner],
+        ["owner", users[src.owner] ?? src.owner],
     ];
 
     // Private KOs have no perms
-    Object.keys(src.perms || {}).forEach((perm) =>
-        data.push([
-            `perms.${perm}`,
-            src.perms[perm]
-                .map((x) => (x == "admin" ? "sc_admin" : x))
-                .filter((x) => dst_roles.includes(x))
-                .join(","),
-        ])
-    );
+    Object.keys(src.perms || {}).forEach((perm) => data.push([`perms.${perm}`, dedup(src.perms[perm].map((x) => roles[x] ?? x)).join(",")]));
 
     return request({
         url: `${url}/acl`,
@@ -123,8 +132,6 @@ export const useConfig = () =>
         notifyOnChangeProps: ["data"],
     }).data;
 
-
-
 export const useApi = (target, path, postprocess) => useQuery(makeQuery(target, path, postprocess));
 
 export const useApps = (target) =>
@@ -155,7 +162,7 @@ export const processConfs = (data) =>
     data.entry.reduce((x, { name, acl, content }) => {
         // Figure out how to decode URI values here
         let app = acl.app;
-        x[app] ||= {};
+        x[app] ??= {};
         x[app][name] = {
             sharing: acl.sharing,
             perms: acl.perms,
@@ -206,3 +213,11 @@ export const useLock = () => {
         return unlock;
     };
 };
+
+/*export const queryMaps = () => ({
+    queryKey: ["maps"],
+    queryFn: ({ signal }) =>
+        fetch(`${splunkdPath}/servicesNS/nobody/badmsc/configs/conf-msc`, { ...defaultFetchInit, signal })
+            .then(handle)
+            .then(nameContent),
+});*/

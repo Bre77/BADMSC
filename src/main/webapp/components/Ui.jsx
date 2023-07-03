@@ -11,7 +11,7 @@ import MutateButton from "./MutateButton";
 
 const handleUi = (data) =>
     data.entry.reduce((x, { name, acl, content }) => {
-        x[acl.app] ||= {};
+        x[acl.app] ??= {};
         x[acl.app][name] = {
             acl: { perms: acl.perms, sharing: acl.sharing, owner: acl.owner },
             data: content["eai:data"],
@@ -65,7 +65,7 @@ export default ({ config, folder, scope = false, src_user = "nobody", dst_user =
                 Object.entries(files).forEach(([file, { acl, data, digest }]) => {
                     if (scope && !acl.sharing != scope) return;
                     if (digest !== dst.data?.[app]?.[file]?.digest) {
-                        output[app] ||= {};
+                        output[app] ??= {};
                         output[app][file] = {
                             acl,
                             src: data,

@@ -3,24 +3,24 @@ import Select from "@splunk/react-ui/Select";
 import { splunkdPath, username } from "@splunk/splunk-utils/config";
 import { defaultFetchInit } from "@splunk/splunk-utils/fetch";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import React from "react";
+import React, { memo } from "react";
+import { MAP_BLACKLIST } from "../shared/const";
 import { makeBody } from "../shared/fetch";
 
-const FILTER = ["eai:acl", "eai:appName", "eai:userName", "disabled"];
 const handleMap = (res) => {
     if (res.status == 404) return {};
     if (!res.ok) return res.text().then(Promise.reject);
-    return res.json().then((data) => Object.fromEntries(Object.entries(data.entry[0].content).filter(([k]) => !FILTER.includes(k))));
+    return res.json().then((data) => Object.fromEntries(Object.entries(data.entry[0].content).filter(([k]) => !MAP_BLACKLIST.includes(k))));
 };
 
-export default ({ type, value, options, fallback }) => {
-    const url = `${splunkdPath}/servicesNS/${username}/badmsc/configs/conf-msc/${type}?output_mode=json`;
+export default memo(({ type, value, options }) => {
+    const url = `${splunkdPath}/servicesNS/nobody/badmsc/configs/conf-msc/${type}?output_mode=json`;
     const queryClient = useQueryClient();
     const map =
         useQuery({
             queryKey: ["map", type],
             queryFn: ({ signal }) => fetch(url, { ...defaultFetchInit, signal }).then(handleMap),
-        }).data || {};
+        }).data ?? {};
 
     const mutation = useMutation(([from, to]) =>
         fetch(url, {
@@ -36,13 +36,12 @@ export default ({ type, value, options, fallback }) => {
         mutation.mutate([name, value]);
     };
     return (
-        <ControlGroup key={value} label={value} labelWidth={300}>
-            <Select value={map[value] || fallback} name={value} onChange={change} error={mutation.isError}>
-                <Select.Option key={fallback} value={fallback} label={fallback} />
-                {options.map((x) => (
-                    <Select.Option key={x} value={x} label={x} />
+        <ControlGroup key={value} label={value} labelWidth={300} error={mutation.isError} help={mutation.error}>
+            <Select value={map[value]} name={value} onChange={change} error={!options.includes(map[value])}>
+                {options.map((x, i) => (
+                    <Select.Option key={i} value={x} label={x} />
                 ))}
             </Select>
         </ControlGroup>
     );
-};
+});

@@ -125,14 +125,14 @@ export default ({ step, config }) => {
             });
             return (
                 config
-                    ? fetch(`${splunkdPath}/servicesNS/${username}/badmsc/storage/passwords/badmsc%3Aauth%3A?output_mode=json`, {
+                    ? fetch(`${splunkdPath}/servicesNS/nobody/badmsc/storage/passwords/badmsc%3Aauth%3A?output_mode=json`, {
                           ...defaultFetchInit,
                           method: "POST",
                           body: makeBody({
                               password: payload,
                           }),
                       })
-                    : fetch(`${splunkdPath}/servicesNS/${username}/badmsc/storage/passwords?output_mode=json`, {
+                    : fetch(`${splunkdPath}/servicesNS/nobody/badmsc/storage/passwords?output_mode=json`, {
                           ...defaultFetchInit,
                           method: "POST",
                           body: makeBody({

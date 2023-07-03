@@ -8,10 +8,10 @@ const ENDPOINT = "services/authorization/roles#";
 const FILTER = ["splunk-system-role"];
 
 export default ({ step, config }) => {
-    const src = useApi(config.src, ENDPOINT, keyContent).data || [];
-    const dst = useApi(config.dst, ENDPOINT, keyContent).data || [];
+    const src = useApi(config.src, ENDPOINT, keyContent).data ?? [];
+    const dst = useApi(config.dst, ENDPOINT, keyContent).data ?? [];
 
     const roles = useMemo(() => (src.length && dst.length ? src.filter((x) => !FILTER.includes(x) && !dst.includes(x)) : []), [src, dst]);
 
-    return roles.length ? roles.map((role) => <Mapper type="roles" fallback="user" value={role} options={dst} />) : <WaitSpinner size="large" />;
+    return roles.length ? roles.map((role) => <Mapper type="roles" value={role} options={dst} />) : <WaitSpinner size="large" />;
 };

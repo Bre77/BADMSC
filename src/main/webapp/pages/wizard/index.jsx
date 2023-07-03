@@ -1,11 +1,10 @@
 __webpack_public_path__ = window.resourceBasePath;
 
 import layout from "@splunk/react-page";
-import ToastMessages from "@splunk/react-toast-notifications/ToastMessages";
 import Progress from "@splunk/react-ui/Progress";
 import { getUserTheme } from "@splunk/splunk-utils/themes";
 import { mixins, variables } from "@splunk/themes";
-import { QueryClient, QueryClientProvider, useIsFetching } from "@tanstack/react-query";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 import React from "react";
 import styled, { createGlobalStyle } from "styled-components";
@@ -26,11 +25,6 @@ const GlobalStyle = createGlobalStyle`
     }
 `;
 
-const Loading = () => {
-    const isFetching = useIsFetching();
-    return isFetching ? <Progress percentage={100} /> : <div style={{ height: "3px" }} />;
-};
-
 // Setup the query client with defaults
 const queryClient = new QueryClient({
     defaultOptions: {
@@ -49,12 +43,10 @@ getUserTheme()
         return layout(
             <QueryClientProvider client={queryClient}>
                 <GlobalStyle />
-                <Loading />
                 <StyledContainer>
                     <Steps />
                 </StyledContainer>
                 <ReactQueryDevtools />
-                <ToastMessages />
             </QueryClientProvider>,
             { theme }
         );
