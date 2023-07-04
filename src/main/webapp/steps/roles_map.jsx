@@ -13,5 +13,5 @@ export default ({ step, config }) => {
 
     const roles = useMemo(() => (src.length && dst.length ? src.filter((x) => !FILTER.includes(x) && !dst.includes(x)) : []), [src, dst]);
 
-    return roles.length ? roles.map((role) => <Mapper type="roles" value={role} options={dst} />) : <WaitSpinner size="large" />;
+    return roles.length ? roles.map((role) => <Mapper key={role} type="roles" value={role} options={dst} />) : <WaitSpinner size="large" />;
 };

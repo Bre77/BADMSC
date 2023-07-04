@@ -60,20 +60,7 @@ export const handleAcl = (config, url, src, queryClient) => async (dst_data) => 
 
     if (src.owner == "admin") src.owner = "sc_admin";*/
 
-    const { users, roles } = await queryClient.fetchQuery({
-        queryKey: ["maps"],
-        queryFn: ({ signal }) =>
-            fetch(`${splunkdPath}/servicesNS/nobody/badmsc/configs/conf-msc?output_mode=json&summarize=true`, { ...defaultFetchInit, signal })
-                .then(handle)
-                .then((data) =>
-                    Object.fromEntries(
-                        data.entry.map(({ name, content }) => [
-                            name,
-                            Object.fromEntries(Object.entries(content).filter(([k, v]) => !MAP_BLACKLIST.includes(k))),
-                        ])
-                    )
-                ),
-    });
+    const { users, roles } = await queryClient.fetchQuery(queryMaps);
 
     const data = [
         ["sharing", src.sharing],
@@ -214,10 +201,17 @@ export const useLock = () => {
     };
 };
 
-/*export const queryMaps = () => ({
+export const queryMaps = {
     queryKey: ["maps"],
     queryFn: ({ signal }) =>
-        fetch(`${splunkdPath}/servicesNS/nobody/badmsc/configs/conf-msc`, { ...defaultFetchInit, signal })
+        fetch(`${splunkdPath}/servicesNS/nobody/badmsc/configs/conf-msc?output_mode=json&summarize=true`, { ...defaultFetchInit, signal })
             .then(handle)
-            .then(nameContent),
-});*/
+            .then((data) =>
+                Object.fromEntries(
+                    data.entry.map(({ name, content }) => [name, Object.fromEntries(Object.entries(content).filter(([k, v]) => !MAP_BLACKLIST.includes(k)))])
+                )
+            ),
+    placeholderData: {},
+    notifyOnChangeProps: ["data"],
+};
+export const useMaps = () => useQuery(queryMaps);
