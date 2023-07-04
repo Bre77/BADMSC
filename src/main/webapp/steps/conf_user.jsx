@@ -34,12 +34,15 @@ export default ({ step, config }) => {
                 have logged in once.
             </P>
             <Heading level={2}>Step {step}.1 - Select User</Heading>
-            <ControlGroup label="Source User" inline style={{ width: "30em" }}>
+            <ControlGroup label="Source User" style={{ width: "30em" }}>
                 <Select inline value={src_user} onChange={handleSrcUser} options={src_users.data} disabled={src_users.isLoading}>
                     {src_users.data?.map((user) => (
                         <Select.Option key={user} label={user} value={user} />
                     ))}
                 </Select>
+            </ControlGroup>
+            <ControlGroup label="Destination User" style={{ width: "30em" }}>
+                <P>{dst_user}</P>
             </ControlGroup>
             {map && src_user && dst_user && (
                 <>
@@ -51,8 +54,6 @@ export default ({ step, config }) => {
                     <Ui config={config} scope="user" folder="nav" src_user={src_user} dst_user={dst_user} />
                     <Heading level={2}>Step {step}.5 - Copy Private CSV Lookups</Heading>
                     <Lookup config={config} scope="user" type="csv" src_user={src_user} dst_user={dst_user} />
-                    <Heading level={2}>Step {step}.5 - Copy Private KVStore Lookups</Heading>
-                    <Lookup config={config} scope="user" type="kv" src_user={src_user} dst_user={dst_user} />
                 </>
             )}
         </>

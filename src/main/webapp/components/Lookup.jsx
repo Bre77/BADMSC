@@ -11,33 +11,32 @@ import { isort0 } from "../shared/helpers";
 import { handle, handleAcl, useApi, useApps } from "../shared/hooks";
 import MutateButton from "./MutateButton";
 
-const mutationKv = (target, contents, app, file) =>
-    request({
-        url: `${target.api}/servicesNS/nobody/-/storage/collections/data/${file}/batch_save`,
-        method: "POST",
-        headers: {
-            Authorization: `Bearer ${target.token}`,
-            "Content-Type": "application/json",
-        },
-        json: contents.slice(1).map((row) => Object.fromEntries(contents[0].map((e, i) => [e, row[i]]))),
-    });
-
-const mutationCsv = (target, contents, app, file) =>
-    request({
-        url: `${target.api}/servicesNS/nobody/lookup_editor/data/lookup_edit/lookup_contents`,
-        method: "POST",
-        headers: {
-            Authorization: `Bearer ${target.token}`,
-        },
-        data: {
-            lookup_file: file,
-            namespace: app,
-            contents: JSON.stringify(contents),
-        },
-    });
-
 const PATHS = { csv: "data/lookup-table-files", kv: "storage/collections/config" };
-const MUTATIONS = { csv: mutationCsv, kv: mutationKv };
+const MUTATIONS = {
+    csv: (target, contents, app, file) =>
+        request({
+            url: `${target.api}/servicesNS/nobody/lookup_editor/data/lookup_edit/lookup_contents`,
+            method: "POST",
+            headers: {
+                Authorization: `Bearer ${target.token}`,
+            },
+            data: {
+                lookup_file: file,
+                namespace: app,
+                contents: JSON.stringify(contents),
+            },
+        }),
+    kv: (target, contents, app, file) =>
+        request({
+            url: `${target.api}/servicesNS/nobody/${app}/storage/collections/data/${file}/batch_save`,
+            method: "POST",
+            headers: {
+                Authorization: `Bearer ${target.token}`,
+                "Content-Type": "application/json",
+            },
+            json: contents.slice(1).map((row) => Object.fromEntries(contents[0].map((e, i) => [e, row[i]]))),
+        }),
+};
 
 const getLookupQuery = (target, namespace, lookup_file, lookup_type, owner, enabled = true) => ({
     queryFn: ({ signal }) =>
@@ -135,10 +134,10 @@ const LookupCopy = ({ app, file, type, config, label, src, dst, dst_user }) => {
         QueryClient.fetchQuery(getLookupQuery(config.src, app, file, type, src.owner)).then((contents) =>
             MUTATIONS[type](config.dst, contents, app, file)
                 .then(() =>
-                    // If we already have the destination ACL, use that
+                    // If we already have the destination ACL, make that look like a response
                     // Otherwise fetch it safely (might not be required, originally saw 404s)
                     dst
-                        ? { entry: [dst] }
+                        ? { entry: [{ acl: dst, name: file }] }
                         : QueryClient.fetchQuery({
                               queryFn: () =>
                                   request({
@@ -177,7 +176,7 @@ const lookupHandle = (data) =>
         return x;
     }, {});
 
-export default ({ config, type, scope, src_user = "nobody", dst_user = "nobody" }) => {
+export default ({ config, type, scope = false, src_user = "nobody", dst_user = "nobody" }) => {
     const src = useApi(config.src, `servicesNS/${src_user}/-/${PATHS[type]}`, lookupHandle);
     const dst = useApi(config.dst, `servicesNS/${dst_user}/-/${PATHS[type]}`, lookupHandle);
     const src_apps = useApps(config.src);
@@ -192,16 +191,12 @@ export default ({ config, type, scope, src_user = "nobody", dst_user = "nobody" 
         const output = {};
         Object.entries(src.data).forEach(([app, files]) => {
             if (app in dst_apps.data) {
-                Object.entries(files).forEach(([file, acl]) => {
-                    /*Object.keys(acl.perms).forEach(
-                        (rw) =>
-                            (acl.perms[rw] = acl.perms[rw].map((group) =>
-                                group === 'admin' ? 'sc_admin' : group
-                            ))
-                    );*/
+                Object.entries(files).forEach(([file, { sharing }]) => {
+                    console.log(src_user, scope, sharing, app, file);
+                    if (scope && sharing != scope) return;
                     output[app] ??= {};
                     output[app][file] = {
-                        src: acl,
+                        src: src.data?.[app]?.[file],
                         dst: dst.data?.[app]?.[file],
                     };
                 });
