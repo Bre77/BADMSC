@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 
 // Splunk UI
+import Button from "@splunk/react-ui/Button";
 import ControlGroup from "@splunk/react-ui/ControlGroup";
 import Heading from "@splunk/react-ui/Heading";
 import P from "@splunk/react-ui/Paragraph";
@@ -9,15 +10,23 @@ import Conf from "../components/Conf";
 import Lookup from "../components/Lookup";
 import Ui from "../components/Ui";
 import { CONF_FILES } from "../shared/const";
-import { nameContent, useApi } from "../shared/hooks";
+import { keyContent, useApi, useMaps } from "../shared/hooks";
 
 export default ({ step, config }) => {
+    const src_users = useApi(config.src, "services/authentication/users", keyContent);
+    const map = useMaps().data?.users;
+
     const [src_user, setSrcUser] = useState("");
     const handleSrcUser = (e, { value }) => setSrcUser(value);
-    const [dst_user, setDstUser] = useState("");
-    const handleDstUSer = (e, { value }) => setDstUser(value);
-    const src_users = useApi(config.src, "services/authentication/users", nameContent);
-    const dst_users = useApi(config.dst, "services/authentication/users", nameContent);
+    const dst_user = map?.[src_user] ?? src_user;
+    console.log(src_user, dst_user);
+
+    /*const nextUser = () => {
+        src_users.data.indexOf(src_user) + 1 < src_users.data.length
+            ? setSrcUser(src_users.data[src_users.data.indexOf(src_user) + 1])
+            : setSrcUser(src_users.data[0]);
+    };*/
+
     return (
         <>
             <P>
@@ -26,20 +35,13 @@ export default ({ step, config }) => {
             </P>
             <Heading level={2}>Step {step}.1 - Select User</Heading>
             <ControlGroup label="Source User" inline style={{ width: "30em" }}>
-                <Select value={src_user} onChange={handleSrcUser} options={src_users.data} disabled={src_users.isLoading}>
-                    {Object.keys(src_users.data || {}).map((user) => (
+                <Select inline value={src_user} onChange={handleSrcUser} options={src_users.data} disabled={src_users.isLoading}>
+                    {src_users.data?.map((user) => (
                         <Select.Option key={user} label={user} value={user} />
                     ))}
                 </Select>
             </ControlGroup>
-            <ControlGroup label="Destination User" inline style={{ width: "30em" }}>
-                <Select value={dst_user} onChange={handleDstUSer} options={dst_users.data} disabled={dst_users.isLoading}>
-                    {Object.keys(dst_users.data || {}).map((user) => (
-                        <Select.Option key={user} label={user} value={user} />
-                    ))}
-                </Select>
-            </ControlGroup>
-            {src_user && dst_user && (
+            {map && src_user && dst_user && (
                 <>
                     <Heading level={2}>Step {step}.2 - Copy Private Knowledge Objects</Heading>
                     <Conf config={config} scope="user" src_user={src_user} dst_user={dst_user} files={[...CONF_FILES, "collections"]} />
@@ -48,8 +50,9 @@ export default ({ step, config }) => {
                     <Heading level={2}>Step {step}.4 - Copy Private Nav</Heading>
                     <Ui config={config} scope="user" folder="nav" src_user={src_user} dst_user={dst_user} />
                     <Heading level={2}>Step {step}.5 - Copy Private CSV Lookups</Heading>
-
-                    <Heading level={2}>Step {step}.5 - Copy Private CSV Lookups</Heading>
+                    <Lookup config={config} scope="user" type="csv" src_user={src_user} dst_user={dst_user} />
+                    <Heading level={2}>Step {step}.5 - Copy Private KVStore Lookups</Heading>
+                    <Lookup config={config} scope="user" type="kv" src_user={src_user} dst_user={dst_user} />
                 </>
             )}
         </>
