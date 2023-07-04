@@ -1,7 +1,6 @@
 __webpack_public_path__ = window.resourceBasePath;
 
 import layout from "@splunk/react-page";
-import Progress from "@splunk/react-ui/Progress";
 import { getUserTheme } from "@splunk/splunk-utils/themes";
 import { mixins, variables } from "@splunk/themes";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
