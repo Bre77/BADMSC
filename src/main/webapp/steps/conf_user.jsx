@@ -14,11 +14,11 @@ import { keyContent, useApi, useMaps } from "../shared/hooks";
 
 export default ({ step, config }) => {
     const src_users = useApi(config.src, "services/authentication/users", keyContent);
-    const map = useMaps().data?.users;
+    const users = useMaps()?.users;
 
     const [src_user, setSrcUser] = useState("");
     const handleSrcUser = (e, { value }) => setSrcUser(value);
-    const dst_user = map?.[src_user] ?? src_user;
+    const dst_user = users?.[src_user] ?? src_user;
     console.log(src_user, dst_user);
 
     /*const nextUser = () => {
@@ -44,7 +44,7 @@ export default ({ step, config }) => {
             <ControlGroup label="Destination User" style={{ width: "30em" }}>
                 <P>{dst_user}</P>
             </ControlGroup>
-            {map && src_user && dst_user && (
+            {users && src_user && dst_user && (
                 <>
                     <Heading level={2}>Step {step}.2 - Copy Private Knowledge Objects</Heading>
                     <Conf config={config} scope="user" src_user={src_user} dst_user={dst_user} files={[...CONF_FILES, "collections"]} />

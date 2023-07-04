@@ -211,7 +211,7 @@ export const queryMaps = {
                     data.entry.map(({ name, content }) => [name, Object.fromEntries(Object.entries(content).filter(([k, v]) => !MAP_BLACKLIST.includes(k)))])
                 )
             ),
-    placeholderData: {},
+    placeholderData: { roles: false, users: false },
     notifyOnChangeProps: ["data"],
 };
-export const useMaps = () => useQuery(queryMaps);
+export const useMaps = () => useQuery(queryMaps).data;

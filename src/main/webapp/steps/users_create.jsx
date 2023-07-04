@@ -1,5 +1,3 @@
-//! Figure out what capabilities/roles are assignable and only attempt to assign those.
-
 import Button from "@splunk/react-ui/Button";
 import Heading from "@splunk/react-ui/Heading";
 import Message from "@splunk/react-ui/Message";
@@ -9,234 +7,86 @@ import { Typography } from "@splunk/react-ui/Typography";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import React, { useMemo } from "react";
 import MutateButton from "../components/MutateButton";
-import { request } from "../shared/fetch";
+import { makeBody, request } from "../shared/fetch";
 import { dedup } from "../shared/helpers";
-import { handle, nameContent, useAcs, useApi, useApps } from "../shared/hooks";
+import { handle, keyContent, nameContent, useAcs, useApi, useApps, useConfig, useMaps } from "../shared/hooks";
 
-const ENDPOINT = "services/authorization/roles";
-const SYMBOLS = ["!", "+", "~", " "];
-const FIELDS = [
-    "cumulativeRTSrchJobsQuota",
-    "cumulativeSrchJobsQuota",
-    "defaultApp",
-    "rtSrchJobsQuota",
-    "srchDiskQuota",
-    "srchFilter",
-    "srchJobsQuota",
-    "srchTimeEarliest",
-    "srchTimeWin",
-];
-
-//const nameContent = (data) => Object.fromEntries(data.entry.map(({ name, content }) => [name, content]));
-
-const CreateButton = ({ config, role, data, exists }) => {
-    if (exists && !data.length) {
-        return <Button label="Empty" disabled />;
-    }
+const CreateButton = ({ data }) => {
     const queryClient = useQueryClient();
-    let url = `${config.dst.api}/${ENDPOINT}/`;
-    exists ? (url += role) : data.push(["name", role]);
-    const mutation = useMutation(() =>
-        request({
-            url,
+    const config = useConfig();
+    const mutation = useMutation(async () => {
+        let x = [
+            ["name", data.name],
+            ["realname", data.realname],
+            ["email", data.email],
+            ["restart_background_jobs", data.restart_background_jobs],
+            ["password", "changeme"],
+            ["force-change-pass", true],
+            ["tz", data.tz],["defaultApp", data.defaultApp],
+            ...data.roles.map((x) => x[1]),
+        ];
+        return request({
+            url: `${config.dst.api}/services/authentication/users`,
             method: "POST",
-            data,
+            data: x,
             params: { output_mode: "json" },
             headers: {
                 Authorization: `Bearer ${config.dst.token}`,
             },
         })
             .then(handle)
-            .then(nameContent)
-            .then((newdata) =>
-                queryClient.setQueryData(["dst", ENDPOINT], (olddata) => ({
-                    ...olddata,
-                    [role]: newdata[role],
-                }))
-            )
-    );
-
-    return <MutateButton mutation={mutation} label={exists ? "Modify" : "Create"} />;
+            .then(() => queryClient.invalidateQueries(["dst", "services/authentication/users"]));
+    });
+    return <MutateButton mutation={mutation} label="Create" />;
 };
 
 export default ({ step, config }) => {
-    const queryClient = useQueryClient();
-    const src = useApi(config.src, ENDPOINT, nameContent);
-    const dst = useApi(config.dst, ENDPOINT, nameContent);
-    const dstCapabilities = useApi(config.dst, "services/authorization/capabilities", (data) => data.entry[0].content.capabilities);
-    const dstIndexes = useAcs(config.dst, "indexes");
-    const dstApps = useApps(config.dst);
+    const src = useApi(config.src, "services/authentication/users", nameContent);
+    const dst = useApi(config.dst, "services/authentication/users", nameContent);
+    const { roles } = useMaps();
+    const dstApps = useApi(config.dst, "services/apps/local", keyContent);
 
-    const isLoading = src.isLoading || dst.isLoading || dstCapabilities.isLoading || dstIndexes.isLoading || dstApps.isLoading;
+    const isLoading = src.isLoading || dst.isLoading || dstApps.isLoading || !roles;
 
-    const missingRoles = useMemo(() => {
-        if (src.isLoading || dst.isLoading) return [];
-        return Object.keys(src.data).filter((role) => !dst.data.hasOwnProperty(role) && !["admin", "sc_admin", "splunk-system-role"].includes(role));
-    }, [src.data, dst.data]);
-
-    const roles = useMemo(() => {
+    const users = useMemo(() => {
         if (isLoading) return [];
-
-        const allowedIndexes = dstIndexes.data.map((i) => i.name);
-        allowedIndexes.push("*");
-        const allowedApps = Object.keys(dstApps.data);
-
         return Object.entries(src.data)
-            .filter(([name]) => !["admin", "sc_admin", "splunk-system-role"].includes(name))
-            .map(([name, srcContent]) => {
-                const dstContent = dst.data?.[name] || {
-                    capabilities: [],
-                    imported_roles: [],
-                    srchIndexesAllowed: [],
-                    srchIndexesDefault: [],
-                    srchIndexesDisallowed: [],
-                };
+            .filter(([name]) => !dst.data[name] && name !== "admin")
+            .map(([name, data]) => ({
+                ...data,
+                roles: data.roles.map((x) => [x, roles[x] ?? x]),
+                defaultApp: data.defaultAppIsUserOverride && dstApps.data.includes(data.defaultApp) ? data.defaultApp : null,
+                name: name,
+            }));
+    }, [src.data, dst.data, roles, dstApps.data]);
 
-                const others = FIELDS.map((field) => [field, srcContent[field], dstContent[field]]).filter(
-                    ([field, src, dst]) =>
-                        src &&
-                        src !== dst &&
-                        (field !== "defaultApp" || allowedApps.includes(src) || console.info(`Ignoring default app '${src}' on role '${name}'`))
-                );
-
-                return [
-                    name,
-                    dedup([...srcContent.capabilities, ...dstContent.capabilities])
-                        .filter((cap) => dstCapabilities.data.includes(cap) || console.info(`Ignoring capability '${cap}' on role '${name}'`))
-                        .sort()
-                        .map((cap) => [cap, SYMBOLS[srcContent.capabilities.includes(cap) + 2 * dstContent.capabilities.includes(cap)]]),
-                    dedup([...srcContent.imported_roles, ...dstContent.imported_roles])
-                        .sort()
-                        .map((role) => [
-                            role,
-                            SYMBOLS[dst.data.hasOwnProperty(role) * (srcContent.imported_roles.includes(role) + 2 * dstContent.imported_roles.includes(role))],
-                        ]),
-                    dedup([...srcContent.srchIndexesAllowed, ...dstContent.srchIndexesAllowed])
-                        .filter((index) => allowedIndexes.includes(index) || console.info(`Ignoring allowed index '${index}' on role '${name}'`))
-                        .sort()
-                        .map((index) => [index, SYMBOLS[srcContent.srchIndexesAllowed.includes(index) + 2 * dstContent.srchIndexesAllowed.includes(index)]]),
-                    dedup([...srcContent.srchIndexesDefault, ...dstContent.srchIndexesDefault])
-                        .filter((index) => allowedIndexes.includes(index) || console.info(`Ignoring default index '${index}' on role '${name}'`))
-                        .sort()
-                        .map((index) => [index, SYMBOLS[srcContent.srchIndexesDefault.includes(index) + 2 * dstContent.srchIndexesDefault.includes(index)]]),
-                    dedup([...srcContent.srchIndexesDisallowed, ...dstContent.srchIndexesDisallowed])
-                        .filter((index) => allowedIndexes.includes(index) || console.info(`Ignoring disallowed index '${index}' on role '${name}'`))
-                        .sort()
-                        .map((index) => [
-                            index,
-                            SYMBOLS[srcContent.srchIndexesDisallowed.includes(index) + 2 * dstContent.srchIndexesDisallowed.includes(index)],
-                        ]),
-                    others,
-                ];
-            });
-    }, [src.data, dst.data, dstCapabilities.data, dstIndexes.data, dstApps.data]);
-
-    const createRoles = useMutation(() => {
-        return missingRoles.reduce(
-            (chain, role) =>
-                chain.then(() =>
-                    request({
-                        url: `${config.dst.api}/${ENDPOINT}/`,
-                        method: "POST",
-                        data: { name: role },
-                        params: { output_mode: "json" },
-                        headers: {
-                            Authorization: `Bearer ${config.dst.token}`,
-                        },
-                    })
-                        .then(handle)
-                        .then(nameContent)
-                        .then((newdata) =>
-                            queryClient.setQueryData(["dst", ENDPOINT], (olddata) => ({
-                                ...olddata,
-                                [role]: newdata[role],
-                            }))
-                        )
-                        .catch()
-                ),
-            Promise.resolve()
-        );
-    });
+    console.log(users);
 
     return (
         <div>
-            <P>
-                KNOWN ISSUES: If a inherited role doesnt exist, you will need to migrate it first. If a capability still has a plus sign after migration, its
-                inherited.
-            </P>
-            <Heading level={2}>Step {step}.1 - Create Roles</Heading>
-            <P>
-                If a roles dont exist, then we cannot set it as inherited. So we can create all new roles first to avoid this issue. If this fails, you may not
-                have permission to create certain roles in Splunk Cloud.
-            </P>
-            {missingRoles.length > 0 ? (
-                <MutateButton mutation={createRoles} label={`Create the ${missingRoles.length} Missing Role${missingRoles.length > 1 ? "s" : ""}`} />
-            ) : (
-                <Message appearance="fill" type="success">
-                    All roles exist
-                </Message>
-            )}
-            <Heading level={2}>Step {step}.2 - Modify Roles</Heading>
-            <P>
-                Items marked with a plus (+) only exist on the source, while items marked with a tilde (~) only exist in Splunk Cloud. Nothing will be remove
-                from Splunk Cloud to avoid breaking functionality, so this section will merge the two together.
-            </P>
-            <P>Items marked with an exclamation mark (!) have an issue and will fail. For example an inherited roled or a default app doesnt exist.</P>
-            <Message appearance="fill" type="warning">
-                If you did not migrate all apps and indexes, they will be filtered out on this page. See console for a list of ignored items.
-            </Message>
+            <Heading level={2}>Step {step}.1 - Create Users</Heading>
+            <P>Ideally customers would use SAML, however if they want to use local accounts, we can copy them over.</P>
             <Table stripeRows>
                 <Table.Head>
-                    <Table.HeadCell>Role</Table.HeadCell>
-                    <Table.HeadCell>Capabilities</Table.HeadCell>
-                    <Table.HeadCell>Role Inheritance</Table.HeadCell>
-                    <Table.HeadCell>Indexes Allowed</Table.HeadCell>
-                    <Table.HeadCell>Indexes Default</Table.HeadCell>
-                    <Table.HeadCell>Resources and Restrictions</Table.HeadCell>
-                    <Table.HeadCell>Action</Table.HeadCell>
+                    <Table.HeadCell>User</Table.HeadCell>
+                    <Table.HeadCell>Name</Table.HeadCell>
+                    <Table.HeadCell>Email</Table.HeadCell>
+                    <Table.HeadCell>Default App</Table.HeadCell>
+                    <Table.HeadCell>Roles</Table.HeadCell>
+                    <Table.HeadCell>Timezone</Table.HeadCell>
+                    <Table.HeadCell>Create</Table.HeadCell>
                 </Table.Head>
                 <Table.Body>
-                    {roles.map(([name, capabilities, imported_roles, srchIndexesAllowed, srchIndexesDefault, srchIndexesDisallowed, others]) => (
-                        <Table.Row key={name}>
-                            <Table.Cell>{name}</Table.Cell>
+                    {users.map((user) => (
+                        <Table.Row key={user.name}>
+                            <Table.Cell>{user.name}</Table.Cell>
+                            <Table.Cell>{user.realname}</Table.Cell>
+                            <Table.Cell>{user.email}</Table.Cell>
+                            <Table.Cell>{user.defaultApp}</Table.Cell>
+                            <Table.Cell>{user.roles.map(([a, b]) => (a == b ? a : `${a} > ${b}`)).join(", ")}</Table.Cell>
+                            <Table.Cell>{user.tz}</Table.Cell>
                             <Table.Cell>
-                                <Typography as="pre" variant="monoSmallBody">
-                                    {capabilities.map(([cap, x]) => `${x} ${cap}`).join("\n")}
-                                </Typography>
-                            </Table.Cell>
-                            <Table.Cell>
-                                <Typography as="pre" variant="monoSmallBody">
-                                    {imported_roles.map(([cap, x]) => `${x} ${cap}`).join("\n")}
-                                </Typography>
-                            </Table.Cell>
-                            <Table.Cell>
-                                <Typography as="pre" variant="monoSmallBody">
-                                    {srchIndexesAllowed.map(([cap, x]) => `${x} ${cap}`).join("\n")}
-                                </Typography>
-                            </Table.Cell>
-                            <Table.Cell>
-                                <Typography as="pre" variant="monoSmallBody">
-                                    {srchIndexesDefault.map(([cap, x]) => `${x} ${cap}`).join("\n")}
-                                </Typography>
-                            </Table.Cell>
-                            <Table.Cell>
-                                <Typography as="pre" variant="monoSmallBody">
-                                    {others.map(([cap, s, d]) => `${cap} = ${d || "none"} -> ${s}`).join("\n")}
-                                </Typography>
-                            </Table.Cell>
-                            <Table.Cell>
-                                <CreateButton
-                                    config={config}
-                                    role={name}
-                                    data={[
-                                        ...capabilities.map(([value]) => ["capabilities", value]),
-                                        ...imported_roles.map(([value]) => ["imported_roles", value]),
-                                        ...srchIndexesAllowed.map(([value]) => ["srchIndexesAllowed", value]),
-                                        ...srchIndexesDefault.map(([value]) => ["srchIndexesDefault", value]),
-                                        ...others.map(([attr, src]) => [attr, src]),
-                                    ]}
-                                    exists={!!dst.data[name]}
-                                />
+                                <CreateButton data={user} />
                             </Table.Cell>
                         </Table.Row>
                     ))}
