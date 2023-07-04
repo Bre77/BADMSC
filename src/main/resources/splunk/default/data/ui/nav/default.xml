@@ -1,3 +1,21 @@
 <nav>
-    <view name="wizard" default="true"/>
+    <view name="start" default="true"/>
+    <view name="auth"/>
+    <view name="ipallow"/>
+    <view name="indexes"/>
+    <view name="apps"/>
+    <view name="roles"/>
+    <view name="rolesmap"/>
+    <view name="users"/>
+    <view name="usersmap"/>
+    <view name="parsing"/>
+    <view name="hec"/>
+    <view name="inputs"/>
+    <view name="config"/>
+    <view name="nav"/>
+    <view name="views"/>
+    <view name="lookupscsv"/>
+    <view name="lookupskv"/>
+    <view name="data"/>
+    <view name="asbuilt"/>
 </nav>

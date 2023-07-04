@@ -1,0 +1,4 @@
+<?xml version="1.0"?>
+<view template="badmsc:/templates/parsing.html" type="html">
+	<label>Parsing</label>
+</view>

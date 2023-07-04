@@ -7,7 +7,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 import React from "react";
 import styled, { createGlobalStyle } from "styled-components";
-import Steps from "../../steps";
+import Steps from "../steps";
 
 const StyledContainer = styled.div`
     ${mixins.reset("inline")};

@@ -1,0 +1,4 @@
+<?xml version="1.0"?>
+<view template="badmsc:/templates/data.html" type="html">
+	<label>Data</label>
+</view>

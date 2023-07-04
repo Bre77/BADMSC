@@ -1,0 +1,4 @@
+<?xml version="1.0"?>
+<view template="badmsc:/templates/roles.html" type="html">
+	<label>Roles</label>
+</view>

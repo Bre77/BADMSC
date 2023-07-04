@@ -1,0 +1,4 @@
+<?xml version="1.0"?>
+<view template="badmsc:/templates/usersmap.html" type="html">
+	<label>Map Users</label>
+</view>

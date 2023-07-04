@@ -1,0 +1,4 @@
+<?xml version="1.0"?>
+<view template="badmsc:/templates/auth.html" type="html">
+	<label>Auth</label>
+</view>

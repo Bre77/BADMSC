@@ -1,0 +1,29 @@
+import Heading from "@splunk/react-ui/Heading";
+import List from "@splunk/react-ui/List";
+import P from "@splunk/react-ui/Paragraph";
+import React, { useContext } from "react";
+import Header from "../components/Header";
+import { Config, Page } from "../shared/page";
+
+const Start = () => {
+    return (
+        <>
+            <Header title="Introduction" next="auth" />
+            <P>
+                This app will help guide you through a like for like Splunk Cloud Migration. This app needs to be installed on the each Splunk role you need to
+                migrate. If your environment has multiple search heads/clusters, which is typical for ES and ITSI, then you will need to install this app on
+                each of them and migrate to the relevant Splunk Cloud search heads. You may also need to run this tool on an indexer or heavy forwarders to
+                capture parsing configuration.
+            </P>
+            <P>Use the buttons in the top right of the page to move between each step. It's recommended you perform each step in order.</P>
+            <Heading level={2}>Requirements and Limitations</Heading>
+            <List>
+                <List.Item>Splunk App for Lookup File Editing is required on the source and destination system to migrate Lookups</List.Item>
+                <List.Item>Authentication to a user in Splunk Cloud with the sc_admin role is required</List.Item>
+                <List.Item>Config modifications in app default directories will be migrated into local (except for private apps)</List.Item>
+            </List>
+        </>
+    );
+};
+
+Page(<Start />);

@@ -1,0 +1,4 @@
+<?xml version="1.0"?>
+<view template="badmsc:/templates/ipallow.html" type="html">
+	<label>IP Allow</label>
+</view>

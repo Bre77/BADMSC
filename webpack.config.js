@@ -12,7 +12,7 @@ const entries = fs
     .readdirSync(path.join(__dirname, 'src/main/webapp/pages'))
     .filter((pageFile) => !/^\./.test(pageFile))
     .reduce((accum, page) => {
-        accum[page] = path.join(__dirname, 'src/main/webapp/pages', page);
+        accum[page.replace(".jsx", "")] = path.join(__dirname, 'src/main/webapp/pages', page);
         return accum;
     }, {});
 
@@ -36,5 +36,15 @@ module.exports = webpackMerge(baseConfig, {
     optimization: {
         minimize: PROD,
         minimizer: [new TerserPlugin()],
+        splitChunks: {
+            cacheGroups: {
+                commons: {
+                    name: 'shared',
+                    filename: '[name].js',
+                    chunks: 'initial',
+                    minChunks: 2
+                }
+            }
+        }
     },
 });
