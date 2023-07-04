@@ -21,7 +21,7 @@ const CodeCell = styled(Table.Cell)`
 
 // Override certain config files to use specific endpoints
 const ENDPOINTS = {
-    savedsearchs: "saved/searches",
+    savedsearches: "saved/searches",
 };
 const endpoint = (file) => ENDPOINTS[file] ?? `configs/conf-${file}`;
 
@@ -206,7 +206,7 @@ const CopyConfig = ({ config, acl, file, app, stanza, attr, exists, dst_user }) 
     const queryClient = useQueryClient();
     const copy = useMutation(() => {
         let data = Object.fromEntries(attr.map(([a, { src }]) => [a, src]));
-        let url = `${config.dst.api}/servicesNS/${encodeURIComponent(dst_user)}/${encodeURIComponent(app)}/-${endpoint(file)}`;
+        let url = `${config.dst.api}/servicesNS/${encodeURIComponent(dst_user)}/${encodeURIComponent(app)}/-/${endpoint(file)}`;
         exists ? (url = `${url}/${encodeURIComponent(stanza)}`) : (data["name"] = stanza);
         return request({
             url,

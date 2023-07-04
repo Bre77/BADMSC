@@ -1,6 +1,6 @@
 import Button from "@splunk/react-ui/Button";
 import Link from "@splunk/react-ui/Link";
-import { Message } from "@splunk/react-ui/Message";
+import Message from "@splunk/react-ui/Message";
 import Modal from "@splunk/react-ui/Modal";
 import Table from "@splunk/react-ui/Table";
 import WaitSpinner from "@splunk/react-ui/WaitSpinner";
@@ -306,6 +306,6 @@ export default ({ config, type, scope, src_user = "nobody", dst_user = "nobody" 
             </Table>
         </>
     ) : (
-        <Message>No modified {folder} found</Message>
+        <Message>No modified {type} lookups found</Message>
     );
 };
