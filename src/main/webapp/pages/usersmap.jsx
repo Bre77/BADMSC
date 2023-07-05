@@ -1,10 +1,10 @@
 import P from "@splunk/react-ui/Paragraph";
 import WaitSpinner from "@splunk/react-ui/WaitSpinner";
-import React, { useContext, useMemo } from "react";
+import React, { useMemo } from "react";
 import Header from "../components/Header";
 import Mapper from "../components/Mapper";
 import { keyContent, useApi, useConfig } from "../shared/hooks";
-import { Config, Page } from "../shared/page";
+import { Page } from "../shared/page";
 
 const Root = () => {
     const config = useConfig();

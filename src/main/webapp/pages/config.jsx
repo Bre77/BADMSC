@@ -1,7 +1,7 @@
 import P from "@splunk/react-ui/Paragraph";
 import Select from "@splunk/react-ui/Select";
 import WaitSpinner from "@splunk/react-ui/WaitSpinner";
-import React, { useContext, useMemo, useState } from "react";
+import React, { useMemo, useState } from "react";
 import { GlobalConf, ScopedConf } from "../components/Conf";
 import Header from "../components/Header";
 import { CONF_FILES } from "../shared/const";

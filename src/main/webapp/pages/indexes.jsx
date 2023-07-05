@@ -13,12 +13,12 @@ import Switch from "@splunk/react-ui/Switch";
 import Table from "@splunk/react-ui/Table";
 import WaitSpinner from "@splunk/react-ui/WaitSpinner";
 import { useCallback, useQuery, useQueryClient } from "@tanstack/react-query";
-import React, { useContext, useMemo, useState } from "react";
+import React, { useMemo, useState } from "react";
 import Header from "../components/Header";
 import { request } from "../shared/fetch";
 import { isort0, wrapSetValue } from "../shared/helpers";
 import { handle, useAcs, useConfig, useDebounce } from "../shared/hooks";
-import { Config, Page } from "../shared/page";
+import { Page } from "../shared/page";
 
 const Root = () => {
     const config = useConfig();

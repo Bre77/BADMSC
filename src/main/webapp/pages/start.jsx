@@ -1,9 +1,9 @@
 import Heading from "@splunk/react-ui/Heading";
 import List from "@splunk/react-ui/List";
 import P from "@splunk/react-ui/Paragraph";
-import React, { useContext } from "react";
+import React from "react";
 import Header from "../components/Header";
-import { Config, Page } from "../shared/page";
+import { Page } from "../shared/page";
 
 const Root = () => {
     return (

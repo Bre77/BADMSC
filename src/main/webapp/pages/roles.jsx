@@ -7,13 +7,13 @@ import P from "@splunk/react-ui/Paragraph";
 import Table from "@splunk/react-ui/Table";
 import { Typography } from "@splunk/react-ui/Typography";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import React, { useContext, useMemo } from "react";
+import React, { useMemo } from "react";
 import Header from "../components/Header";
 import MutateButton from "../components/MutateButton";
 import { request } from "../shared/fetch";
 import { dedup } from "../shared/helpers";
 import { handle, nameContent, useAcs, useApi, useApps, useConfig } from "../shared/hooks";
-import { Config, Page } from "../shared/page";
+import { Page } from "../shared/page";
 
 const ENDPOINT = "services/authorization/roles";
 const SYMBOLS = ["!", "+", "~", " "];

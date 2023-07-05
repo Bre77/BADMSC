@@ -8,12 +8,12 @@ import P from "@splunk/react-ui/Paragraph";
 import Text from "@splunk/react-ui/Text";
 import WaitSpinner from "@splunk/react-ui/WaitSpinner";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import React, { useContext, useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import Header from "../components/Header";
 import { request } from "../shared/fetch";
 import { wrapSetValue } from "../shared/helpers";
 import { useAcs, useApi, useConfig } from "../shared/hooks";
-import { Config, Page } from "../shared/page";
+import { Page } from "../shared/page";
 
 const Allowlist = ({ feature }) => {
     const config = useConfig();

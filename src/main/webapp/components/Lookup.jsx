@@ -5,11 +5,10 @@ import Modal from "@splunk/react-ui/Modal";
 import Table from "@splunk/react-ui/Table";
 import WaitSpinner from "@splunk/react-ui/WaitSpinner";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import React, { useContext, useMemo, useRef, useState } from "react";
+import React, { useMemo, useRef, useState } from "react";
 import { request } from "../shared/fetch";
 import { isort0 } from "../shared/helpers";
 import { handle, handleAcl, useApi, useApps, useConfig } from "../shared/hooks";
-import { Config } from "../shared/page";
 import MutateButton from "./MutateButton";
 
 const PATHS = { csv: "data/lookup-table-files", kv: "storage/collections/config" };

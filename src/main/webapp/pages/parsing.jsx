@@ -4,13 +4,13 @@ import Table from "@splunk/react-ui/Table";
 import Typography from "@splunk/react-ui/Typography";
 import { normalizeBoolean } from "@splunk/splunk-utils/boolean";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import React, { Fragment, useContext, useMemo } from "react";
+import React, { Fragment, useMemo } from "react";
 import Header from "../components/Header";
 import MutateButton from "../components/MutateButton";
 import { ATTR_BLACKLIST } from "../shared/const";
 import { request } from "../shared/fetch";
 import { handle, processConfs, useConfig, useConfs, useDefaults } from "../shared/hooks";
-import { Config, Page } from "../shared/page";
+import { Page } from "../shared/page";
 
 const PARSING = [
     "priority",

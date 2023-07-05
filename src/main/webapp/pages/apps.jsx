@@ -9,14 +9,14 @@ import Table from "@splunk/react-ui/Table";
 import Text from "@splunk/react-ui/Text";
 import WaitSpinner from "@splunk/react-ui/WaitSpinner";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import React, { useContext, useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import Header from "../components/Header";
 import MutateButton from "../components/MutateButton";
 import { APP_ID } from "../shared/const";
 import { request } from "../shared/fetch";
 import { wrapSetValue } from "../shared/helpers";
 import { useApps, useConfig } from "../shared/hooks";
-import { Config, Page } from "../shared/page";
+import { Page } from "../shared/page";
 
 const IGNORED_APPS = [
     "000-self-service",

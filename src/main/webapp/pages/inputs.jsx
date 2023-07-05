@@ -4,13 +4,13 @@ import P from "@splunk/react-ui/Paragraph";
 import Table from "@splunk/react-ui/Table";
 import WaitSpinner from "@splunk/react-ui/WaitSpinner";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import React, { useContext, useEffect, useMemo } from "react";
+import React, { useEffect, useMemo } from "react";
 import Conf from "../components/Confs";
 import Header from "../components/Header";
 import MutateButton from "../components/MutateButton";
 import { request } from "../shared/fetch";
 import { handle, processConfs, useApi, useApps, useConfig, useLocal } from "../shared/hooks";
-import { Config, Page } from "../shared/page";
+import { Page } from "../shared/page";
 
 const trunc = (str, len = 256) => (str && str.length > len ? `${str.slice(0, len - 3)}...` : str);
 

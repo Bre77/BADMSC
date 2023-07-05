@@ -9,13 +9,13 @@ import Text from "@splunk/react-ui/Text";
 import { splunkdPath } from "@splunk/splunk-utils/config";
 import { useMutation } from "@tanstack/react-query";
 import moment from "moment";
-import React, { useContext, useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import Header from "../components/Header";
 import MutateButton from "../components/MutateButton";
 import { FETCH_INIT, request } from "../shared/fetch";
 import { wrapSetValue, wrapSetValues } from "../shared/helpers";
 import { handle, useApi, useConfig, useLocal } from "../shared/hooks";
-import { Config, Page } from "../shared/page";
+import { Page } from "../shared/page";
 
 const Root = () => {
     const config = useConfig();

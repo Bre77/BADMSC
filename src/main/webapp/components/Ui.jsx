@@ -3,11 +3,10 @@ import Message from "@splunk/react-ui/Message";
 import Table from "@splunk/react-ui/Table";
 import WaitSpinner from "@splunk/react-ui/WaitSpinner";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import React, { useContext, useMemo } from "react";
+import React, { useMemo } from "react";
 import { request } from "../shared/fetch";
 import { isort0 } from "../shared/helpers";
 import { handle, handleAcl, useApi, useApps, useConfig } from "../shared/hooks";
-import { Config } from "../shared/page";
 import MutateButton from "./MutateButton";
 
 const handleUi = (data) =>

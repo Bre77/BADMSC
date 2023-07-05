@@ -6,7 +6,7 @@ import { defaultFetchInit } from "@splunk/splunk-utils/fetch";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import React, { useEffect, useState } from "react";
 import { makeBody } from "../shared/fetch";
-import { useConfig, useMaps } from "../shared/hooks";
+import { useMaps } from "../shared/hooks";
 
 export default ({ type, value, options }) => {
     const url = `${splunkdPath}/servicesNS/nobody/badmsc/configs/conf-msc/${type}?output_mode=json`;

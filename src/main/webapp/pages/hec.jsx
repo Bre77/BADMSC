@@ -4,12 +4,12 @@ import Table from "@splunk/react-ui/Table";
 import Typography from "@splunk/react-ui/Typography";
 import WaitSpinner from "@splunk/react-ui/WaitSpinner";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import React, { useContext, useMemo } from "react";
+import React, { useMemo } from "react";
 import Header from "../components/Header";
 import MutateButton from "../components/MutateButton";
 import { request } from "../shared/fetch";
 import { handle, useApi, useConfig, useLock } from "../shared/hooks";
-import { Config, Page } from "../shared/page";
+import { Page } from "../shared/page";
 
 const IDX_LIMIT = 8;
 
