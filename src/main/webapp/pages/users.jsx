@@ -1,4 +1,5 @@
 import Heading from "@splunk/react-ui/Heading";
+import Message from "@splunk/react-ui/Message";
 import P from "@splunk/react-ui/Paragraph";
 import Table from "@splunk/react-ui/Table";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
@@ -66,33 +67,42 @@ const Root = () => {
         <>
             <Header title="Users" prev="rolemap" next="usersmap" />
             <Heading level={2}>Create Users</Heading>
-            <P>Ideally customers would use SAML, however if they want to use local accounts, we can copy them over.</P>
-            <Table stripeRows>
-                <Table.Head>
-                    <Table.HeadCell>User</Table.HeadCell>
-                    <Table.HeadCell>Name</Table.HeadCell>
-                    <Table.HeadCell>Email</Table.HeadCell>
-                    <Table.HeadCell>Default App</Table.HeadCell>
-                    <Table.HeadCell>Roles</Table.HeadCell>
-                    <Table.HeadCell>Timezone</Table.HeadCell>
-                    <Table.HeadCell>Create</Table.HeadCell>
-                </Table.Head>
-                <Table.Body>
-                    {users.map((user) => (
-                        <Table.Row key={user.name}>
-                            <Table.Cell>{user.name}</Table.Cell>
-                            <Table.Cell>{user.realname}</Table.Cell>
-                            <Table.Cell>{user.email}</Table.Cell>
-                            <Table.Cell>{user.defaultApp}</Table.Cell>
-                            <Table.Cell>{user.roles.map(([a, b]) => (a == b ? a : `${a} > ${b}`)).join(", ")}</Table.Cell>
-                            <Table.Cell>{user.tz}</Table.Cell>
-                            <Table.Cell>
-                                <CreateButton data={user} />
-                            </Table.Cell>
-                        </Table.Row>
-                    ))}
-                </Table.Body>
-            </Table>
+            <P>
+                If you want to preserve knowledge object ownership, or migrate all private knowledge objects, then you need to migrate all user accounts. This
+                can be problematic if Splunk Cloud is going to use SSO/SAML, as it would require every use to login before you perform migration. Alternatively
+                you can create every user here, and then delete them (leaving orphaned knowledge objects) post migration. Any users that are not created here
+                must be mapped on the next page.
+            </P>
+            {users.length ? (
+                <Table stripeRows>
+                    <Table.Head>
+                        <Table.HeadCell>User</Table.HeadCell>
+                        <Table.HeadCell>Name</Table.HeadCell>
+                        <Table.HeadCell>Email</Table.HeadCell>
+                        <Table.HeadCell>Default App</Table.HeadCell>
+                        <Table.HeadCell>Roles</Table.HeadCell>
+                        <Table.HeadCell>Timezone</Table.HeadCell>
+                        <Table.HeadCell>Create</Table.HeadCell>
+                    </Table.Head>
+                    <Table.Body>
+                        {users.map((user) => (
+                            <Table.Row key={user.name}>
+                                <Table.Cell>{user.name}</Table.Cell>
+                                <Table.Cell>{user.realname}</Table.Cell>
+                                <Table.Cell>{user.email}</Table.Cell>
+                                <Table.Cell>{user.defaultApp}</Table.Cell>
+                                <Table.Cell>{user.roles.map(([a, b]) => (a == b ? a : `${a} > ${b}`)).join(", ")}</Table.Cell>
+                                <Table.Cell>{user.tz}</Table.Cell>
+                                <Table.Cell>
+                                    <CreateButton data={user} />
+                                </Table.Cell>
+                            </Table.Row>
+                        ))}
+                    </Table.Body>
+                </Table>
+            ) : (
+                <Message type="success">All users have been created</Message>
+            )}
         </>
     );
 };
