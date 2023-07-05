@@ -3,10 +3,11 @@ import Message from "@splunk/react-ui/Message";
 import Table from "@splunk/react-ui/Table";
 import WaitSpinner from "@splunk/react-ui/WaitSpinner";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import React, { useMemo } from "react";
+import React, { useContext, useMemo } from "react";
 import { request } from "../shared/fetch";
 import { isort0 } from "../shared/helpers";
 import { handle, handleAcl, useApi, useApps } from "../shared/hooks";
+import { Config } from "../shared/page";
 import MutateButton from "./MutateButton";
 
 const handleUi = (data) =>
@@ -21,7 +22,8 @@ const handleUi = (data) =>
         return x;
     }, {});
 
-const CopyUi = ({ config, app, folder, file, content, exists, acl }) => {
+const CopyUi = ({ app, folder, file, content, exists, acl }) => {
+    const config = useContext(Config);
     const queryClient = useQueryClient();
     const mutation = useMutation(async () => {
         let data = { "eai:data": content };
@@ -49,7 +51,8 @@ const CopyUi = ({ config, app, folder, file, content, exists, acl }) => {
     return <MutateButton mutation={mutation} label={exists ? "Overwrite" : "Create"} />;
 };
 
-export default ({ config, folder, scope = false, src_user = "nobody", dst_user = "nobody" }) => {
+export default ({ folder, scope = false, src_user = "nobody", dst_user = "nobody" }) => {
+    const config = useContext(Config);
     const src = useApi(config.src, `servicesNS/${src_user}/-/data/ui/${folder}`, handleUi);
     const dst = useApi(config.dst, `servicesNS/${dst_user}/-/data/ui/${folder}`, handleUi);
     const dst_apps = useApps(config.dst);
@@ -113,7 +116,7 @@ export default ({ config, folder, scope = false, src_user = "nobody", dst_user =
                             <Table.Cell>{src && `${src.split("\n").length} Lines`}</Table.Cell>
                             <Table.Cell>{dst && `${dst.split("\n").length} Lines`}</Table.Cell>
                             <Table.Cell>
-                                <CopyUi config={config} app={app} acl={acl} folder={folder} file={file} content={src} exists={!!dst} />
+                                <CopyUi app={app} acl={acl} folder={folder} file={file} content={src} exists={!!dst} />
                             </Table.Cell>
                         </Table.Row>
                     ))

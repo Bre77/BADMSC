@@ -9,12 +9,14 @@ import Table from "@splunk/react-ui/Table";
 import Text from "@splunk/react-ui/Text";
 import WaitSpinner from "@splunk/react-ui/WaitSpinner";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useContext, useEffect, useMemo, useState } from "react";
+import Header from "../components/Header";
 import MutateButton from "../components/MutateButton";
 import { APP_ID } from "../shared/const";
-import { FETCH_INIT, REQUEST_URL, request } from "../shared/fetch";
-import { isort0, wrapSetValue } from "../shared/helpers";
+import { request } from "../shared/fetch";
+import { wrapSetValue } from "../shared/helpers";
 import { useApps } from "../shared/hooks";
+import { Config, Page } from "../shared/page";
 
 const IGNORED_APPS = [
     "000-self-service",
@@ -59,7 +61,8 @@ const IGNORED_APPS = [
 
 const extractSplunkbaseToken = /<id>([^<]+)/;
 
-export default ({ step, config }) => {
+const Root = () => {
+    const config = useContext(Config);
     const queryClient = useQueryClient();
 
     // Refresh critical data for this step on mount and unmount
@@ -187,10 +190,11 @@ export default ({ step, config }) => {
     const ENABLE_PRIVATE = !!src?.data?.[APP_ID];
 
     return (
-        <div>
-            <P>Install Splunkbase Apps or migrate .</P>
-            <Heading level={2}>Step {step}.1 - Splunkbase Login</Heading>
-            <P>To automatically install Splunkbase apps, a Splunk.com login is required. This will not be stored and only used during this session.</P>
+        <>
+            <Header title="Apps" prev="indexes" next="roles" />
+            <P>Install Splunkbase Apps or migrate private apps.</P>
+            <Heading level={2}>Splunkbase Login</Heading>
+            <P>A Splunk.com login is required. This will not be stored and only used during this session.</P>
             {token ? (
                 <Message appearance="fill" type="success">
                     Authenticated to Splunk and Splunkbase as '{username}' successfully
@@ -215,7 +219,7 @@ export default ({ step, config }) => {
                 </>
             )}
 
-            <Heading level={2}>Step {step}.2 - Splunkbase Apps</Heading>
+            <Heading level={2}>Splunkbase Apps</Heading>
             <P>These apps can be installed into Splunk Cloud from Splunkbase. The Splunk Cloud compatible version is shown.</P>
             {apps ? (
                 <Table stripeRows>
@@ -247,7 +251,7 @@ export default ({ step, config }) => {
             ) : (
                 <WaitSpinner size="large" />
             )}
-            <Heading level={2}>Step {step}.3 - Private Apps</Heading>
+            <Heading level={2}>Private Apps</Heading>
             <P>
                 These apps do not exist in Splunkbase so will need to be installed as private apps. Any configuration in their local directory will not be
                 included in this step. This process runs on the source system, even if its remote.
@@ -283,7 +287,7 @@ export default ({ step, config }) => {
             ) : (
                 <WaitSpinner size="large" />
             )}
-            <Heading level={2}>Step {step}.4 - Unsupported Splunkbase Apps</Heading>
+            <Heading level={2}>Unsupported Splunkbase Apps</Heading>
             <P>These apps do not have a version avaliable on Splunkbase which has been vetted for Splunk Cloud.</P>
             <List>
                 {apps.unsupported.map(({ name, local, splunkbase }) => (
@@ -294,12 +298,12 @@ export default ({ step, config }) => {
                     </List.Item>
                 ))}
             </List>
-            <Heading level={2}>Step {step}.5 - Matching Apps</Heading>
+            <Heading level={2}>Matching Apps</Heading>
             <P>These apps already exist in the Splunk Cloud instance.</P>
             <List>
                 {apps.done.length ? apps.done.map(({ name }) => <List.Item key={name}>{name}</List.Item>) : <List.Item>There are no matching apps</List.Item>}
             </List>
-        </div>
+        </>
     );
 };
 
@@ -439,3 +443,5 @@ const InstallPrivate = ({ config, token, app }) => {
     });
     return <MutateButton mutation={install} disabled={!token || install.isLoading || install.isSuccess || !config} label={status} />;
 };
+
+Page(<Root />);

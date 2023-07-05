@@ -1,4 +1,0 @@
-<?xml version="1.0"?>
-<view template="badmsc:/templates/lookupscsv.html" type="html">
-	<label>CSV Files</label>
-</view>

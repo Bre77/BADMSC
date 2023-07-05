@@ -5,7 +5,7 @@ import React, { useContext } from "react";
 import Header from "../components/Header";
 import { Config, Page } from "../shared/page";
 
-const Start = () => {
+const Root = () => {
     return (
         <>
             <Header title="Introduction" next="auth" />
@@ -26,4 +26,4 @@ const Start = () => {
     );
 };
 
-Page(<Start />);
+Page(<Root />);

@@ -30,7 +30,8 @@ const handleUi = (data) =>
         return x;
     }, {});
 
-export default ({ step, config }) => {
+export default () => {
+    const config = useContext(Config);
     const files = CONF_FILES;
     const src_conf = useConfs(config.src, files);
     const dst_conf = useConfs(config.dst, files);
@@ -81,7 +82,7 @@ export default ({ step, config }) => {
 
     return (
         <div>
-            <Heading level={2}>Step {step}.1 - KO Owners</Heading>
+            <Heading level={2}>KO Owners</Heading>
             <Table stripedRows>
                 <Table.Head>
                     <Table.HeadCell>App</Table.HeadCell>
@@ -116,7 +117,7 @@ export default ({ step, config }) => {
                     ))}
                 </Table.Body>
             </Table>
-            <Heading level={2}>Step {step}.2 - View Owners</Heading>
+            <Heading level={2}>View Owners</Heading>
             <Table stripedRows>
                 <Table.Head>
                     <Table.HeadCell>App</Table.HeadCell>

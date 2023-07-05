@@ -11,7 +11,7 @@ import Tooltip from "@splunk/react-ui/Tooltip";
 import WaitSpinner from "@splunk/react-ui/WaitSpinner";
 import { splunkdPath } from "@splunk/splunk-utils/config";
 import { defaultFetchInit } from "@splunk/splunk-utils/fetch";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import React, { useContext, useEffect, useReducer, useState } from "react";
 import Header from "../components/Header";
 import MutateButton from "../components/MutateButton";
@@ -49,7 +49,7 @@ const dropHTTPS = (prev, stack) => stack.replace("https://", "");
 
 const e = (query) => (query.isError ? query.error : false);
 
-const Auth = () => {
+const Root = () => {
     const config = useContext(Config);
 
     const [src_api, setSrcApi] = useReducer(dropHTTPS, "");
@@ -203,4 +203,4 @@ const Auth = () => {
     );
 };
 
-Page(<Auth />);
+Page(<Root />);

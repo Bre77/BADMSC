@@ -5,11 +5,12 @@ import P from "@splunk/react-ui/Paragraph";
 import Table from "@splunk/react-ui/Table";
 import { Typography } from "@splunk/react-ui/Typography";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import React, { useMemo } from "react";
+import React, { useContext, useMemo } from "react";
+import Header from "../components/Header";
 import MutateButton from "../components/MutateButton";
 import { makeBody, request } from "../shared/fetch";
-import { dedup } from "../shared/helpers";
-import { handle, keyContent, nameContent, useAcs, useApi, useApps, useConfig, useMaps } from "../shared/hooks";
+import { handle, keyContent, nameContent, useApi, useConfig, useMaps } from "../shared/hooks";
+import { Config, Page } from "../shared/page";
 
 const CreateButton = ({ data }) => {
     const queryClient = useQueryClient();
@@ -22,7 +23,8 @@ const CreateButton = ({ data }) => {
             ["restart_background_jobs", data.restart_background_jobs],
             ["password", "changeme"],
             ["force-change-pass", true],
-            ["tz", data.tz],["defaultApp", data.defaultApp],
+            ["tz", data.tz],
+            ["defaultApp", data.defaultApp],
             ...data.roles.map((x) => x[1]),
         ];
         return request({
@@ -40,7 +42,8 @@ const CreateButton = ({ data }) => {
     return <MutateButton mutation={mutation} label="Create" />;
 };
 
-export default ({ step, config }) => {
+const Root = () => {
+    const config = useContext(Config);
     const src = useApi(config.src, "services/authentication/users", nameContent);
     const dst = useApi(config.dst, "services/authentication/users", nameContent);
     const { roles } = useMaps();
@@ -63,8 +66,9 @@ export default ({ step, config }) => {
     console.log(users);
 
     return (
-        <div>
-            <Heading level={2}>Step {step}.1 - Create Users</Heading>
+        <>
+            <Header title="Users" prev="rolemap" next="usersmap" />
+            <Heading level={2}>Create Users</Heading>
             <P>Ideally customers would use SAML, however if they want to use local accounts, we can copy them over.</P>
             <Table stripeRows>
                 <Table.Head>
@@ -92,6 +96,8 @@ export default ({ step, config }) => {
                     ))}
                 </Table.Body>
             </Table>
-        </div>
+        </>
     );
 };
+
+Page(<Root />);

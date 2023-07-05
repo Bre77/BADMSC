@@ -14,8 +14,8 @@
     <view name="config"/>
     <view name="nav"/>
     <view name="views"/>
-    <view name="lookupscsv"/>
-    <view name="lookupskv"/>
+    <view name="csv"/>
+    <view name="kv"/>
     <view name="data"/>
     <view name="asbuilt"/>
 </nav>

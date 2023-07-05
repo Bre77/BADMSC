@@ -56,7 +56,8 @@ const StatusCheck = ({ host, disabled, method = "GET" }) => {
 const dropHTTPS = (prev, stack) => stack.replace("https://", "");
 
 const e = (query) => (query.isError ? query.error : false);
-export default ({ step, config }) => {
+export default () => {
+    const config = useContext(Config);
     const [src_api, setSrcApi] = useReducer(dropHTTPS, "");
     const handleSrcApi = wrapSetValue(setSrcApi);
     const [src_token, setSrcToken] = useState("");
@@ -157,7 +158,7 @@ export default ({ step, config }) => {
             <Message appearance="fill" type="info">
                 Do not include https:// in any inputs. HTTPS is mandatory for all communication and will be automatically enforced.
             </Message>
-            <Heading level={2}>Step {step}.1 - Source System</Heading>
+            <Heading level={2}>Source System</Heading>
             <P>Please enter the REST API endpoint and authentication token for the source Splunk system. Leave blank to use the current system.</P>
             <ControlGroup label="REST API" labelWidth={90} help="Exclude Protocol, include port. Leave blank to use this server">
                 <Text value={src_api} onChange={handleSrcApi} placeholder="localhost:8089" />
@@ -166,7 +167,7 @@ export default ({ step, config }) => {
                 <Text value={src_token} error={src_api !== "" && src_token.length < 100} onChange={handleSrcToken} passwordVisibilityToggle />
                 <MutateButton mutation={src_test} label="Test" />
             </ControlGroup>
-            <Heading level={2}>Step {step}.2 - Splunk Cloud</Heading>
+            <Heading level={2}>Splunk Cloud</Heading>
             <P>
                 Please enter the domain name of the Splunk Cloud search head you want to migrate configuration to. This will be forced to use HTTPS and port
                 8089.
@@ -187,10 +188,10 @@ export default ({ step, config }) => {
                 <Text inline value={dst_token} onChange={handleDstToken} error={dst_token.length < 100} disabled={dst_sh == ""} passwordVisibilityToggle />
                 <MutateButton mutation={dst_test} label="Test" />
             </ControlGroup>
-            <Heading level={2}>Step {step}.3 - Save</Heading>
+            <Heading level={2}>Save</Heading>
             <P>Save all the details above into an encyrpted passwords.conf entry.</P>
             <MutateButton mutation={mutatePassword} label="Save" />
-            <Heading level={2}>Step {step}.4 - External Access Check</Heading>
+            <Heading level={2}>External Access Check</Heading>
             <P>
                 To perform the migration, this Search Head will also access the following domains using HTTPS. If these checks fail, either the stack name is
                 incorrect or your proxy/firewall rules are preventing access.

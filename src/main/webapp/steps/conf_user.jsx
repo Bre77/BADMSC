@@ -12,7 +12,8 @@ import Ui from "../components/Ui";
 import { CONF_FILES } from "../shared/const";
 import { keyContent, useApi, useMaps } from "../shared/hooks";
 
-export default ({ step, config }) => {
+export default () => {
+    const config = useContext(Config);
     const src_users = useApi(config.src, "services/authentication/users", keyContent);
     const users = useMaps()?.users;
 
@@ -33,7 +34,7 @@ export default ({ step, config }) => {
                 User (private) knowledge objects can be transferred as long as the user exists in Splunk Cloud. If you are using SSO then this requires them to
                 have logged in once.
             </P>
-            <Heading level={2}>Step {step}.1 - Select User</Heading>
+            <Heading level={2}>Select User</Heading>
             <ControlGroup label="Source User" style={{ width: "30em" }}>
                 <Select inline value={src_user} onChange={handleSrcUser} options={src_users.data} disabled={src_users.isLoading}>
                     {src_users.data?.map((user) => (
@@ -46,13 +47,13 @@ export default ({ step, config }) => {
             </ControlGroup>
             {users && src_user && dst_user && (
                 <>
-                    <Heading level={2}>Step {step}.2 - Copy Private Knowledge Objects</Heading>
+                    <Heading level={2}>Copy Private Knowledge Objects</Heading>
                     <Conf config={config} scope="user" src_user={src_user} dst_user={dst_user} files={[...CONF_FILES, "collections"]} />
-                    <Heading level={2}>Step {step}.3 - Copy Private Dashboards</Heading>
+                    <Heading level={2}>Copy Private Dashboards</Heading>
                     <Ui config={config} scope="user" folder="views" src_user={src_user} dst_user={dst_user} />
-                    <Heading level={2}>Step {step}.4 - Copy Private Nav</Heading>
+                    <Heading level={2}>Copy Private Nav</Heading>
                     <Ui config={config} scope="user" folder="nav" src_user={src_user} dst_user={dst_user} />
-                    <Heading level={2}>Step {step}.5 - Copy Private CSV Lookups</Heading>
+                    <Heading level={2}>Copy Private CSV Lookups</Heading>
                     <Lookup config={config} scope="user" type="csv" src_user={src_user} dst_user={dst_user} />
                 </>
             )}

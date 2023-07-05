@@ -9,13 +9,16 @@ import Text from "@splunk/react-ui/Text";
 import { splunkdPath } from "@splunk/splunk-utils/config";
 import { useMutation } from "@tanstack/react-query";
 import moment from "moment";
-import React, { useEffect, useState } from "react";
+import React, { useContext, useEffect, useState } from "react";
+import Header from "../components/Header";
 import MutateButton from "../components/MutateButton";
 import { FETCH_INIT, request } from "../shared/fetch";
 import { wrapSetValue, wrapSetValues } from "../shared/helpers";
 import { handle, useApi, useLocal } from "../shared/hooks";
+import { Config, Page } from "../shared/page";
 
-export default ({ step, config }) => {
+const Root = () => {
+    const config = useContext(Config);
     const [indexes, setIndexes] = useState([]);
     const handleIndexes = wrapSetValues(setIndexes);
     const [earliest, setEarliest] = useState(moment().add(-90, "day").format("YYYY-MM-DD"));
@@ -100,7 +103,8 @@ export default ({ step, config }) => {
     });
 
     return (
-        <div>
+        <>
+            <Header title="Data" prev="kv" next="asbuilt" />
             <P>
                 User (private) knowledge objects can be transferred as long as the user exists in Splunk Cloud. If you are using SSO then this requires them to
                 have logged in once.
@@ -147,6 +151,8 @@ export default ({ step, config }) => {
                     ))}
                 </Table.Body>
             </Table>
-        </div>
+        </>
     );
 };
+
+Page(<Root />);

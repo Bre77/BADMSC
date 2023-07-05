@@ -13,12 +13,15 @@ import Switch from "@splunk/react-ui/Switch";
 import Table from "@splunk/react-ui/Table";
 import WaitSpinner from "@splunk/react-ui/WaitSpinner";
 import { useCallback, useQuery, useQueryClient } from "@tanstack/react-query";
-import React, { useMemo, useState } from "react";
+import React, { useContext, useMemo, useState } from "react";
+import Header from "../components/Header";
 import { request } from "../shared/fetch";
 import { isort0, wrapSetValue } from "../shared/helpers";
 import { handle, useAcs, useDebounce } from "../shared/hooks";
+import { Config, Page } from "../shared/page";
 
-export default ({ step, config }) => {
+const Root = () => {
+    const config = useContext(Config);
     const queryClient = useQueryClient();
 
     // Refresh critical data for this step
@@ -151,9 +154,10 @@ export default ({ step, config }) => {
     const type = { event: <Events />, metric: <Metrics /> };
 
     return (
-        <div>
+        <>
+            <Header title="Indexes" prev="ipallow" next="apps" />
             <P>All indexes that are in use locally should be created in Splunk Cloud.</P>
-            <Heading level={2}>Step {step}.1 - Review Indexes</Heading>
+            <Heading level={2}>Review Indexes</Heading>
             <ControlGroup label="Historical Search Days" labelWidth={150}>
                 <Number value={history} onChange={handleHistory} min={1} max={3650} />
             </ControlGroup>
@@ -187,7 +191,7 @@ export default ({ step, config }) => {
                     </Table.Body>
                 </Table>
             )}
-            <Heading level={2}>Step {step}.2 - Create Indexes</Heading>
+            <Heading level={2}>Create Indexes</Heading>
             <P>
                 By default, Splunk Cloud comes with 90 days of searchable storage. If you have purchased additional storage you can adjust the searchable and
                 archive retention days that will be used when creating the missing indexes. When you are ready, click the button to create all missing indexes.
@@ -211,6 +215,8 @@ export default ({ step, config }) => {
                     {create < 100 ? `${create}% Done` : "Create Missing Indexes"}
                 </Button>
             </ControlGroup>
-        </div>
+        </>
     );
 };
+
+Page(<Root />);

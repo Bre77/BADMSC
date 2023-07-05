@@ -15,7 +15,8 @@ import { FETCH_INIT, request } from "../shared/fetch";
 import { wrapSetValue, wrapSetValues } from "../shared/helpers";
 import { handle, useApi, useLocal } from "../shared/hooks";
 
-export default ({ step, config }) => {
+export default () => {
+    const config = useContext(Config);
     const [earliest, setEarliest] = useState(360);
     const handleEarliest = wrapSetValue(setEarliest);
 
@@ -69,7 +70,7 @@ export default ({ step, config }) => {
                 User (private) knowledge objects can be transferred as long as the user exists in Splunk Cloud. If you are using SSO then this requires them to
                 have logged in once.
             </P>
-            <Heading level={2}>Step {step}.1 - Modular Input</Heading>
+            <Heading level={2}>Modular Input</Heading>
             <ControlGroup label="Backfill days">
                 <Number value={earliest} onChange={handleEarliest} />
             </ControlGroup>

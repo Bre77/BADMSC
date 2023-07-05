@@ -4,11 +4,13 @@ import Table from "@splunk/react-ui/Table";
 import Typography from "@splunk/react-ui/Typography";
 import { normalizeBoolean } from "@splunk/splunk-utils/boolean";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import React, { Fragment, useMemo } from "react";
+import React, { Fragment, useContext, useMemo } from "react";
+import Header from "../components/Header";
 import MutateButton from "../components/MutateButton";
 import { ATTR_BLACKLIST } from "../shared/const";
 import { request } from "../shared/fetch";
 import { handle, processConfs, useConfs, useDefaults } from "../shared/hooks";
+import { Config, Page } from "../shared/page";
 
 const PARSING = [
     "priority",
@@ -103,7 +105,8 @@ const merge = (data) =>
             return x;
         }, {});
 
-export default ({ step, config }) => {
+const Root = () => {
+    const config = useContext(Config);
     const [src_props, src_transforms] = useConfs(config.src, ["props", "transforms"]);
     const [dst_props, dst_transforms] = useConfs(config.dst, ["props", "transforms"]);
     const [def_props, def_transforms] = useDefaults(config.src, ["props", "transforms"]);
@@ -156,13 +159,15 @@ export default ({ step, config }) => {
     }, [src_transforms.data, dst_transforms.data, def_transforms.data]);
 
     return (
-        <div>
+        <>
+            <Header title="Parsing" prev="usermap" next="hec" />
             <P>
                 Splunk Cloud Victoria does not sync parsing configuration to the indexers, so we need to explicity put parsing configration in the
                 000-self-service app (Noah Bundle) using a specific API endpoint, or uploaded as a private app. Transforms need to be uploaded as private apps.
+                (Currently not implemented)
             </P>
-            <P>If there will be no parsing in Splunk Cloud (using Heavy Forwarders) you can skip this step.</P>
-            <Heading level={2}>Step {step}.1 - Copy/Select Sourcetypes</Heading>
+            <P>If there will be no parsing in Splunk Cloud (using Heavy Forwarders instead) you can skip this step.</P>
+            <Heading level={2}>Copy/Select Sourcetypes</Heading>
             <Table stripeRows>
                 <Table.Head>
                     <Table.HeadCell>Local Differences</Table.HeadCell>
@@ -219,7 +224,7 @@ export default ({ step, config }) => {
                     ))}
                 </Table.Body>
             </Table>
-            <Heading level={2}>Step {step}.2 - Select Transforms</Heading>
+            <Heading level={2}>Select Transforms</Heading>
             <Table stripeRows>
                 <Table.Head>
                     <Table.HeadCell>Local</Table.HeadCell>
@@ -258,7 +263,9 @@ export default ({ step, config }) => {
                     ))}
                 </Table.Body>
             </Table>
-            <Heading level={2}>Step {step}.3 - Upload Private App</Heading>
-        </div>
+            <Heading level={2}>Upload Private App</Heading>
+        </>
     );
 };
+
+Page(<Root />);

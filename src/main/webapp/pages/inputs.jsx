@@ -4,24 +4,28 @@ import P from "@splunk/react-ui/Paragraph";
 import Table from "@splunk/react-ui/Table";
 import WaitSpinner from "@splunk/react-ui/WaitSpinner";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import React, { useEffect, useMemo } from "react";
+import React, { useContext, useEffect, useMemo } from "react";
 import Conf from "../components/Conf";
+import Header from "../components/Header";
 import MutateButton from "../components/MutateButton";
 import { request } from "../shared/fetch";
 import { handle, processConfs, useApi, useApps, useLocal } from "../shared/hooks";
+import { Config, Page } from "../shared/page";
 
 const trunc = (str, len = 256) => (str && str.length > len ? `${str.slice(0, len - 3)}...` : str);
 
-export default ({ step, config }) => {
+const Root = () => {
+    const config = useContext(Config);
     return (
         <>
-            <P>Modular Inputs</P>
-            <Heading level={2}>Step {step}.1 - Copy App Specific Account Configuration</Heading>
+            <Header title="Inputs" prev="hec" next="config" />
+            <P>Modular Inputs use many different files, so this page will attempt to migrate them all before migrating the inputs.conf</P>
+            <Heading level={2}>Copy App Specific Account Configuration</Heading>
             <P>Select any modular input configuration files that need to be migrated</P>
             <ModInputs config={config} />
-            <Heading level={2}>Step {step}.2 - Copy Passwords</Heading>
+            <Heading level={2}>Copy Passwords</Heading>
             <Passwords config={config} />
-            <Heading level={2}>Step {step}.3 - Copy Inputs</Heading>
+            <Heading level={2}>Copy Inputs</Heading>
             <P>Be sure to ignore and SplunkTCP or HTTP inputs here, only modular inputs should be migrated.</P>
             <Conf config={config} files={["inputs"]} />
         </>
@@ -289,3 +293,5 @@ const MODINPUT_CONF_FILES = [
     "ta_zscaler_cim_settings",
     "virustotal",
 ];
+
+Page(<Root />);

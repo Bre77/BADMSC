@@ -1,0 +1,4 @@
+<?xml version="1.0"?>
+<view template="badmsc:/templates/kv.html" type="html">
+	<label>KV Tables</label>
+</view>

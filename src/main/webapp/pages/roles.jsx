@@ -7,11 +7,13 @@ import P from "@splunk/react-ui/Paragraph";
 import Table from "@splunk/react-ui/Table";
 import { Typography } from "@splunk/react-ui/Typography";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import React, { useMemo } from "react";
+import React, { useContext, useMemo } from "react";
+import Header from "../components/Header";
 import MutateButton from "../components/MutateButton";
 import { request } from "../shared/fetch";
 import { dedup } from "../shared/helpers";
 import { handle, nameContent, useAcs, useApi, useApps } from "../shared/hooks";
+import { Config, Page } from "../shared/page";
 
 const ENDPOINT = "services/authorization/roles";
 const SYMBOLS = ["!", "+", "~", " "];
@@ -59,7 +61,8 @@ const CreateButton = ({ config, role, data, exists }) => {
     return <MutateButton mutation={mutation} label={exists ? "Modify" : "Create"} />;
 };
 
-export default ({ step, config }) => {
+const Root = () => {
+    const config = useContext(Config);
     const queryClient = useQueryClient();
     const src = useApi(config.src, ENDPOINT, nameContent);
     const dst = useApi(config.dst, ENDPOINT, nameContent);
@@ -159,12 +162,13 @@ export default ({ step, config }) => {
     });
 
     return (
-        <div>
-            <P>
+        <>
+            <Header title="Create Roles" prev="apps" next="rolesmap" appearance="fill" />
+            <Message type="warning">
                 KNOWN ISSUES: If a inherited role doesnt exist, you will need to migrate it first. If a capability still has a plus sign after migration, its
                 inherited.
-            </P>
-            <Heading level={2}>Step {step}.1 - Create Roles</Heading>
+            </Message>
+            <Heading level={2}>Create Roles</Heading>
             <P>
                 If a roles dont exist, then we cannot set it as inherited. So we can create all new roles first to avoid this issue. If this fails, you may not
                 have permission to create certain roles in Splunk Cloud.
@@ -176,15 +180,12 @@ export default ({ step, config }) => {
                     All roles exist
                 </Message>
             )}
-            <Heading level={2}>Step {step}.2 - Modify Roles</Heading>
+            <Heading level={2}>Modify Roles</Heading>
             <P>
                 Items marked with a plus (+) only exist on the source, while items marked with a tilde (~) only exist in Splunk Cloud. Nothing will be remove
                 from Splunk Cloud to avoid breaking functionality, so this section will merge the two together.
             </P>
             <P>Items marked with an exclamation mark (!) have an issue and will fail. For example an inherited roled or a default app doesnt exist.</P>
-            <Message appearance="fill" type="warning">
-                If you did not migrate all apps and indexes, they will be filtered out on this page. See console for a list of ignored items.
-            </Message>
             <Table stripeRows>
                 <Table.Head>
                     <Table.HeadCell>Role</Table.HeadCell>
@@ -242,11 +243,13 @@ export default ({ step, config }) => {
                     ))}
                 </Table.Body>
             </Table>
-            <Heading level={2}>Step {step}.3 - Modify Roles</Heading>
+            <Heading level={2}>Modify Roles</Heading>
             <P>
                 Items marked with a plus (+) only exist on the source, while items marked with a tilde (~) only exist in Splunk Cloud. Nothing will be remove
                 from Splunk Cloud to avoid breaking functionality, so this section will merge the two together.
             </P>
-        </div>
+        </>
     );
 };
+
+Page(<Root />);

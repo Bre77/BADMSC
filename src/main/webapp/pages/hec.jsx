@@ -1,72 +1,22 @@
-import Heading from "@splunk/react-ui/Heading";
 import Message from "@splunk/react-ui/Message";
 import P from "@splunk/react-ui/Paragraph";
 import Table from "@splunk/react-ui/Table";
 import Typography from "@splunk/react-ui/Typography";
 import WaitSpinner from "@splunk/react-ui/WaitSpinner";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import React, { useMemo, useReducer } from "react";
+import React, { useContext, useMemo } from "react";
+import Header from "../components/Header";
 import MutateButton from "../components/MutateButton";
 import { request } from "../shared/fetch";
 import { handle, useApi, useLock } from "../shared/hooks";
+import { Config, Page } from "../shared/page";
 
-const PATH = "servicesNS/nobody/-/data/inputs/http";
 const IDX_LIMIT = 8;
 
-const processApiHec = (data) =>
-    Object.fromEntries(
-        data.entry
-            .filter(({ name }) => name != "http")
-            .map(({ name, content }) => [
-                name.replace("http://", ""),
-                Object.fromEntries(
-                    Object.entries(content).filter(([key]) => !key.startsWith("_") && !key.startsWith("eai:") && key != "run_only_one" && key != "host")
-                ),
-            ])
-    );
-/*const processAcsHec = (data) =>
-    Object.fromEntries(
-        data["http-event-collectors"].map(({ token, spec }) => [
-            spec.name,
-            {
-                ...spec,
-                token,
-            },
-        ])
-    );*/
-
-const CopyHec = ({ config, name, content, exists, lock }) => {
-    const queryClient = useQueryClient();
-    const mutation = useMutation(async () => {
-        let data = { ...content };
-        console.log(content);
-        if (data.indexes) {
-            data.indexes = data.indexes.join(",");
-        }
-        let url = `${config.dst.api}/services/data/inputs/http/`;
-        exists ? (url += name) : (data["name"] = name);
-        return lock().then((unlock) =>
-            request({
-                url,
-                method: "POST",
-                data,
-                params: { output_mode: "json" },
-                headers: {
-                    Authorization: `Bearer ${config.dst.token}`,
-                },
-            })
-                .then(handle)
-                .then(processApiHec)
-                .then((newdata) => queryClient.invalidateQueries(["dst", PATH])) // , (olddata) => ({ ...olddata, ...newdata })
-                .finally(unlock)
-        );
-    });
-    return <MutateButton mutation={mutation} label={exists ? "Overwrite" : "Create"} />;
-};
-
-export default ({ step, config }) => {
-    const src = useApi(config.src, PATH, processApiHec);
-    const dst = useApi(config.dst, PATH, processApiHec);
+const Root = () => {
+    const config = useContext(Config);
+    const src = useApi(config.src, "servicesNS/nobody/-/data/inputs/http", processApiHec);
+    const dst = useApi(config.dst, "servicesNS/nobody/-/data/inputs/http", processApiHec);
     //const dst = useAcs(config.dst, "inputs/http-event-collectors", processAcsHec);
     const loading = src.isLoading || dst.isLoading;
 
@@ -95,9 +45,9 @@ export default ({ step, config }) => {
     }, [src.data, dst.data]);
 
     return (
-        <div>
+        <>
+            <Header title="HTTP Event Collector" prev="parsing" next="inputs" />
             <P>HEC Inputs cannot be created from inputs.conf as they need to be pushed to the indexers.</P>
-            <Heading level={2}>Step {step}.1 - Migrate HEC Inputs</Heading>
             {loading ? (
                 <WaitSpinner size="medium" />
             ) : hec.length ? (
@@ -123,7 +73,7 @@ export default ({ step, config }) => {
                                     </Typography>
                                 </Table.Cell>
                                 <Table.Cell>
-                                    <CopyHec config={config} name={name} content={src.data[name]} exists={!!dstContent.length} lock={lock} />
+                                    <CopyHec name={name} content={src.data[name]} exists={!!dstContent.length} lock={lock} />
                                 </Table.Cell>
                             </Table.Row>
                         ))}
@@ -132,6 +82,60 @@ export default ({ step, config }) => {
             ) : (
                 <Message>No HEC Tokens found</Message>
             )}
-        </div>
+        </>
     );
 };
+
+const processApiHec = (data) =>
+    Object.fromEntries(
+        data.entry
+            .filter(({ name }) => name != "http")
+            .map(({ name, content }) => [
+                name.replace("http://", ""),
+                Object.fromEntries(
+                    Object.entries(content).filter(([key]) => !key.startsWith("_") && !key.startsWith("eai:") && key != "run_only_one" && key != "host")
+                ),
+            ])
+    );
+/*const processAcsHec = (data) =>
+    Object.fromEntries(
+        data["http-event-collectors"].map(({ token, spec }) => [
+            spec.name,
+            {
+                ...spec,
+                token,
+            },
+        ])
+    );*/
+
+const CopyHec = ({ name, content, exists, lock }) => {
+    const config = useContext(Config);
+    const queryClient = useQueryClient();
+    const mutation = useMutation(async () => {
+        let data = { ...content };
+        console.log(content);
+        if (data.indexes) {
+            data.indexes = data.indexes.join(",");
+        }
+        let url = `${config.dst.api}/services/data/inputs/http/`;
+        exists ? (url += name) : (data["name"] = name);
+        return lock().then((unlock) =>
+            request({
+                url,
+                method: "POST",
+                data,
+                params: { output_mode: "json" },
+                headers: {
+                    Authorization: `Bearer ${config.dst.token}`,
+                },
+            })
+                .then(handle)
+                .then(processApiHec)
+                .then((newdata) => queryClient.invalidateQueries(["dst", "servicesNS/nobody/-/data/inputs/http"])) // , (olddata) => ({ ...olddata, ...newdata })
+                .finally(unlock)
+        );
+    });
+    return <MutateButton mutation={mutation} label={exists ? "Overwrite" : "Create"} />;
+};
+
+Page(<Root />);

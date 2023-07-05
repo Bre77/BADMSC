@@ -9,7 +9,8 @@ import { request } from "../shared/fetch";
 import { isort0, latest } from "../shared/helpers";
 import { handle, processConfs, useApi } from "../shared/hooks";
 
-export default ({ step, config }) => {
+export default () => {
+    const config = useContext(Config);
     const src = useApi(config.src, "servicesNS/nobody/-/saved/searches", processConfs);
     const dst = useApi(config.dst, "servicesNS/nobody/-/saved/searches", processConfs);
 
@@ -46,7 +47,7 @@ export default ({ step, config }) => {
 
     return (
         <div>
-            <Heading level={2}>Step {step}.1 - Saved Searches</Heading>
+            <Heading level={2}>Saved Searches</Heading>
             <Table stripedRows>
                 <Table.Head>
                     <Table.HeadCell>App</Table.HeadCell>

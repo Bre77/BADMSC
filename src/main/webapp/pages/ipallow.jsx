@@ -1,8 +1,3 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import React, { useEffect, useState } from "react";
-import { useAcs, useApi, useConfig } from "../shared/hooks";
-
-// Splunk UI
 import Button from "@splunk/react-ui/Button";
 import ControlGroup from "@splunk/react-ui/ControlGroup";
 import Heading from "@splunk/react-ui/Heading";
@@ -12,12 +7,16 @@ import Message from "@splunk/react-ui/Message";
 import P from "@splunk/react-ui/Paragraph";
 import Text from "@splunk/react-ui/Text";
 import WaitSpinner from "@splunk/react-ui/WaitSpinner";
-import { splunkdPath } from "@splunk/splunk-utils/config";
-import { defaultFetchInit } from "@splunk/splunk-utils/fetch";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import React, { useContext, useEffect, useState } from "react";
+import Header from "../components/Header";
 import { request } from "../shared/fetch";
 import { wrapSetValue } from "../shared/helpers";
+import { useAcs, useApi } from "../shared/hooks";
+import { Config, Page } from "../shared/page";
 
-const Allowlist = ({ feature, config }) => {
+const Allowlist = ({ feature }) => {
+    const config = useContext(Config);
     const query = useAcs(config.dst, `access/${feature}/ipallowlists`);
     return query.isLoading ? (
         <WaitSpinner />
@@ -34,7 +33,8 @@ const Allowlist = ({ feature, config }) => {
     );
 };
 
-const AddAllow = ({ suggestion, feature, config }) => {
+const AddAllow = ({ suggestion, feature }) => {
+    const config = useContext(Config);
     const queryClient = useQueryClient();
 
     const [subnet, setSubnet] = useState("");
@@ -74,7 +74,8 @@ const AddAllow = ({ suggestion, feature, config }) => {
     );
 };
 
-export default ({ step, config }) => {
+const Root = () => {
+    const config = useContext(Config);
     const test = useApi(config.dst, "services/admin/server-info", () => true);
 
     const sh_ip = useQuery({
@@ -88,34 +89,35 @@ export default ({ step, config }) => {
     });
 
     return (
-        <div>
+        <>
+            <Header title="IP Allow Lists" prev="auth" next="indexes" />
             <P>
                 To enable access to the Splunk Rest API in Splunk Cloud, the internet facing IP address of this search head, or of the network path it uses,
                 must be added to the allow list. These can all be modified on your Splunk Cloud Search Head under
                 <b> Settings > Server Settings > IP allow list</b>.
             </P>
 
-            <Heading level={2}>Step {step}.1 - Review Search Head API Allowlist</Heading>
+            <Heading level={2}>Review Search Head API Allowlist</Heading>
             <P>This is the list of IP subnets currently allowed to access the Search Head API</P>
             <Allowlist feature="search-api" config={config} />
             <P>
                 The internet facing IP address of this Search Head is <b>{(sh_ip.isSuccess && sh_ip.data) || "unknown"}</b>.
             </P>
             <AddAllow suggestion={sh_ip.data} feature="search-api" config={config} />
-            <Heading level={2}>Step {step}.2 - Review Search Head UI Allowlist</Heading>
+            <Heading level={2}>Review Search Head UI Allowlist</Heading>
             <P>This is the list of IP subnets currently allowed to access the Search Head Web UI</P>
             <Allowlist feature="search-ui" config={config} />
             <P>
                 The internet facing IP address of your computer is <b>{(user_ip.isSuccess && user_ip.data) || "unknown"}</b>.
             </P>
             <AddAllow suggestion={user_ip.data} feature="search-ui" config={config} />
-            <Heading level={2}>Step {step}.3 - Review Splunk to Splunk (data forwarding) Allowlist</Heading>
+            <Heading level={2}>Review Splunk to Splunk (data forwarding) Allowlist</Heading>
             <P>This is the full list of IP subnets allowed to send data to Splunk Cloud</P>
 
             <Allowlist feature="s2s" config={config} />
             <P>If you know the internet facing IP addresses required for Splunk data forwarding, you can add them below.</P>
             <AddAllow feature="s2s" config={config} />
-            <Heading level={2}>Step {step}.4 - Required Access</Heading>
+            <Heading level={2}>Required Access</Heading>
             <P>
                 This App will need access to the Splunk Cloud Search Head API. If this following test fails you will need to modify the Search Head API allow
                 list and wait a few minutes.
@@ -134,6 +136,8 @@ export default ({ step, config }) => {
                     Failed to connect to the Splunk Cloud Search Head REST API. <Link onClick={() => test.refetch()}>Click here to try again.</Link>
                 </Message>
             )}
-        </div>
+        </>
     );
 };
+
+Page(<Root />);
