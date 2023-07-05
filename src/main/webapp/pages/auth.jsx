@@ -17,7 +17,7 @@ import Header from "../components/Header";
 import MutateButton from "../components/MutateButton";
 import { makeBody, request } from "../shared/fetch";
 import { wrapSetValue } from "../shared/helpers";
-import { handle } from "../shared/hooks";
+import { handle, useConfig } from "../shared/hooks";
 import { Config, Page } from "../shared/page";
 
 const StatusCheck = ({ host, disabled, method = "GET" }) => {

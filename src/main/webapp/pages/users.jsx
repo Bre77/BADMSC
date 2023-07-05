@@ -1,16 +1,13 @@
-import Button from "@splunk/react-ui/Button";
 import Heading from "@splunk/react-ui/Heading";
-import Message from "@splunk/react-ui/Message";
 import P from "@splunk/react-ui/Paragraph";
 import Table from "@splunk/react-ui/Table";
-import { Typography } from "@splunk/react-ui/Typography";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import React, { useContext, useMemo } from "react";
+import React, { useMemo } from "react";
 import Header from "../components/Header";
 import MutateButton from "../components/MutateButton";
-import { makeBody, request } from "../shared/fetch";
+import { request } from "../shared/fetch";
 import { handle, keyContent, nameContent, useApi, useConfig, useMaps } from "../shared/hooks";
-import { Config, Page } from "../shared/page";
+import { Page } from "../shared/page";
 
 const CreateButton = ({ data }) => {
     const queryClient = useQueryClient();
@@ -43,7 +40,7 @@ const CreateButton = ({ data }) => {
 };
 
 const Root = () => {
-    const config = useContext(Config);
+    const config = useConfig();
     const src = useApi(config.src, "services/authentication/users", nameContent);
     const dst = useApi(config.dst, "services/authentication/users", nameContent);
     const { roles } = useMaps();

@@ -1,10 +1,12 @@
 import { splunkdPath, username } from "@splunk/splunk-utils/config";
 import { defaultFetchInit } from "@splunk/splunk-utils/fetch";
-import { useMutation, useQueries, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useReducer, useState } from "react";
+import { useQueries, useQuery } from "@tanstack/react-query";
+import { useContext, useEffect, useReducer, useState } from "react";
+import { Config } from "../shared/page";
 import { MAP_BLACKLIST } from "./const";
-import { makeBody, request } from "./fetch";
+import { request } from "./fetch";
 import { dedup, localLoad } from "./helpers";
+
 export const LOCAL_URL = `${splunkdPath}/servicesNS/${username}/badmsc`;
 
 export const handle = (res) =>
@@ -94,30 +96,11 @@ export const handleAcl = (config, url, src, queryClient) => async (dst_data) => 
         );
 };
 
-export const useConfig = () =>
-    useQuery({
-        queryKey: ["config"],
-        queryFn: ({ signal }) =>
-            fetch(`${LOCAL_URL}/storage/passwords/badmsc%3Aauth%3A?output_mode=json&count=1`, { ...defaultFetchInit, signal }).then((res) => {
-                if (res.status === 404) {
-                    return false;
-                }
-                if (res.status === 200) {
-                    return res
-                        .json()
-                        .then((data) => JSON.parse(data.entry[0].content.clear_password))
-                        .then((config) => {
-                            config.src.key = "src";
-                            config.dst.key = "dst";
-                            return config;
-                        })
-                        .catch(() => Promise.reject());
-                }
-                return Promise.reject();
-            }),
-
-        notifyOnChangeProps: ["data"],
-    }).data;
+export const useConfig = () => {
+    const config = useContext(Config);
+    if (!config) window.location.href = "auth";
+    return config;
+};
 
 export const useApi = (target, path, postprocess) => useQuery(makeQuery(target, path, postprocess));
 

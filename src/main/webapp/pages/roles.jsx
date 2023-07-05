@@ -12,7 +12,7 @@ import Header from "../components/Header";
 import MutateButton from "../components/MutateButton";
 import { request } from "../shared/fetch";
 import { dedup } from "../shared/helpers";
-import { handle, nameContent, useAcs, useApi, useApps } from "../shared/hooks";
+import { handle, nameContent, useAcs, useApi, useApps, useConfig } from "../shared/hooks";
 import { Config, Page } from "../shared/page";
 
 const ENDPOINT = "services/authorization/roles";
@@ -62,7 +62,7 @@ const CreateButton = ({ config, role, data, exists }) => {
 };
 
 const Root = () => {
-    const config = useContext(Config);
+    const config = useConfig();
     const queryClient = useQueryClient();
     const src = useApi(config.src, ENDPOINT, nameContent);
     const dst = useApi(config.dst, ENDPOINT, nameContent);

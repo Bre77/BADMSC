@@ -7,7 +7,7 @@ import MutateButton from "../components/MutateButton";
 import { ATTR_BLACKLIST, CONF_FILES } from "../shared/const";
 import { request } from "../shared/fetch";
 import { isort0, latest } from "../shared/helpers";
-import { handle, useApi, useConfs } from "../shared/hooks";
+import { handle, useApi, useConfig, useConfs } from "../shared/hooks";
 
 const MAPPING = {
     "tbegnell@deloitte.com.au": "brett.adams@digihealthni.onmicrosoft.com",
@@ -31,7 +31,7 @@ const handleUi = (data) =>
     }, {});
 
 export default () => {
-    const config = useContext(Config);
+    const config = useConfig();
     const files = CONF_FILES;
     const src_conf = useConfs(config.src, files);
     const dst_conf = useConfs(config.dst, files);

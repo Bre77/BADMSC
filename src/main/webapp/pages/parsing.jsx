@@ -9,7 +9,7 @@ import Header from "../components/Header";
 import MutateButton from "../components/MutateButton";
 import { ATTR_BLACKLIST } from "../shared/const";
 import { request } from "../shared/fetch";
-import { handle, processConfs, useConfs, useDefaults } from "../shared/hooks";
+import { handle, processConfs, useConfig, useConfs, useDefaults } from "../shared/hooks";
 import { Config, Page } from "../shared/page";
 
 const PARSING = [
@@ -106,7 +106,7 @@ const merge = (data) =>
         }, {});
 
 const Root = () => {
-    const config = useContext(Config);
+    const config = useConfig();
     const [src_props, src_transforms] = useConfs(config.src, ["props", "transforms"]);
     const [dst_props, dst_transforms] = useConfs(config.dst, ["props", "transforms"]);
     const [def_props, def_transforms] = useDefaults(config.src, ["props", "transforms"]);

@@ -3,13 +3,13 @@ import WaitSpinner from "@splunk/react-ui/WaitSpinner";
 import React, { useContext, useMemo } from "react";
 import Header from "../components/Header";
 import Mapper from "../components/Mapper";
-import { keyContent, useApi } from "../shared/hooks";
+import { keyContent, useApi, useConfig } from "../shared/hooks";
 import { Config, Page } from "../shared/page";
 
 const FILTER = ["splunk-system-role"];
 
 const Root = () => {
-    const config = useContext(Config);
+    const config = useConfig();
     const src = useApi(config.src, "services/authorization/roles", keyContent).data ?? [];
     const dst = useApi(config.dst, "services/authorization/roles", keyContent).data ?? [];
 

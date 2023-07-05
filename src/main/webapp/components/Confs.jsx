@@ -4,7 +4,7 @@ import Typography from "@splunk/react-ui/Typography";
 import WaitSpinner from "@splunk/react-ui/WaitSpinner";
 import { normalizeBoolean } from "@splunk/splunk-utils/boolean";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import React, { useContext, useMemo } from "react";
+import React, { useMemo } from "react";
 import styled from "styled-components";
 import { ATTR_BLACKLIST, CONF_FILES } from "../shared/const";
 import { request } from "../shared/fetch";
@@ -25,12 +25,17 @@ const ENDPOINTS = {
 };
 const endpoint = (file) => ENDPOINTS[file] ?? `configs/conf-${file}`;
 
-export default ({ file, scope = false, src_user = "nobody", dst_user = "nobody" }) => {
-    const config = useConfig();
+export default ({ config, scope = false, files = CONF_FILES, src_user = "nobody", dst_user = "nobody" }) => {
     const def = useDefaults(config.src, files);
     const src = useConfs(config.src, files, src_user);
     const dst = useConfs(config.dst, files, dst_user);
     const dst_apps = useApps(config.dst);
+
+    /* Prefetching for ACLs, however this can be wasteful
+    const queryClient = useQueryClient();
+    queryClient.prefetchQuery(makeQuery(config.dst, "services/authentication/users", nameContent));
+    queryClient.prefetchQuery(makeQuery(config.dst, "services/authorization/roles", nameContent));
+    */
 
     const isLoading =
         def.some((query) => query.isLoading) || src.some((query) => query.isLoading) || dst.some((query) => query.isLoading) || dst_apps.isLoading;

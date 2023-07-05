@@ -14,11 +14,11 @@ import Header from "../components/Header";
 import MutateButton from "../components/MutateButton";
 import { FETCH_INIT, request } from "../shared/fetch";
 import { wrapSetValue, wrapSetValues } from "../shared/helpers";
-import { handle, useApi, useLocal } from "../shared/hooks";
+import { handle, useApi, useConfig, useLocal } from "../shared/hooks";
 import { Config, Page } from "../shared/page";
 
 const Root = () => {
-    const config = useContext(Config);
+    const config = useConfig();
     const [indexes, setIndexes] = useState([]);
     const handleIndexes = wrapSetValues(setIndexes);
     const [earliest, setEarliest] = useState(moment().add(-90, "day").format("YYYY-MM-DD"));

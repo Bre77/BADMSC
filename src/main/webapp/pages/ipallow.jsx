@@ -12,11 +12,11 @@ import React, { useContext, useEffect, useState } from "react";
 import Header from "../components/Header";
 import { request } from "../shared/fetch";
 import { wrapSetValue } from "../shared/helpers";
-import { useAcs, useApi } from "../shared/hooks";
+import { useAcs, useApi, useConfig } from "../shared/hooks";
 import { Config, Page } from "../shared/page";
 
 const Allowlist = ({ feature }) => {
-    const config = useContext(Config);
+    const config = useConfig();
     const query = useAcs(config.dst, `access/${feature}/ipallowlists`);
     return query.isLoading ? (
         <WaitSpinner />
@@ -34,7 +34,7 @@ const Allowlist = ({ feature }) => {
 };
 
 const AddAllow = ({ suggestion, feature }) => {
-    const config = useContext(Config);
+    const config = useConfig();
     const queryClient = useQueryClient();
 
     const [subnet, setSubnet] = useState("");
@@ -75,7 +75,7 @@ const AddAllow = ({ suggestion, feature }) => {
 };
 
 const Root = () => {
-    const config = useContext(Config);
+    const config = useConfig();
     const test = useApi(config.dst, "services/admin/server-info", () => true);
 
     const sh_ip = useQuery({

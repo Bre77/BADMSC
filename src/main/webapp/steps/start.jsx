@@ -8,7 +8,7 @@ import Message from "@splunk/react-ui/Message";
 import P from "@splunk/react-ui/Paragraph";
 
 export default () => {
-    const config = useContext(Config);
+    const config = useConfig();
     return (
         <div>
             <P>

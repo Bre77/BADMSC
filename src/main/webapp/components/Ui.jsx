@@ -6,7 +6,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import React, { useContext, useMemo } from "react";
 import { request } from "../shared/fetch";
 import { isort0 } from "../shared/helpers";
-import { handle, handleAcl, useApi, useApps } from "../shared/hooks";
+import { handle, handleAcl, useApi, useApps, useConfig } from "../shared/hooks";
 import { Config } from "../shared/page";
 import MutateButton from "./MutateButton";
 
@@ -23,7 +23,7 @@ const handleUi = (data) =>
     }, {});
 
 const CopyUi = ({ app, folder, file, content, exists, acl }) => {
-    const config = useContext(Config);
+    const config = useConfig();
     const queryClient = useQueryClient();
     const mutation = useMutation(async () => {
         let data = { "eai:data": content };
@@ -52,7 +52,7 @@ const CopyUi = ({ app, folder, file, content, exists, acl }) => {
 };
 
 export default ({ folder, scope = false, src_user = "nobody", dst_user = "nobody" }) => {
-    const config = useContext(Config);
+    const config = useConfig();
     const src = useApi(config.src, `servicesNS/${src_user}/-/data/ui/${folder}`, handleUi);
     const dst = useApi(config.dst, `servicesNS/${dst_user}/-/data/ui/${folder}`, handleUi);
     const dst_apps = useApps(config.dst);

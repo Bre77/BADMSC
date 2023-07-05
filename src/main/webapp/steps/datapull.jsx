@@ -13,10 +13,10 @@ import React, { useEffect, useState } from "react";
 import MutateButton from "../components/MutateButton";
 import { FETCH_INIT, request } from "../shared/fetch";
 import { wrapSetValue, wrapSetValues } from "../shared/helpers";
-import { handle, useApi, useLocal } from "../shared/hooks";
+import { handle, useApi, useConfig, useLocal } from "../shared/hooks";
 
 export default () => {
-    const config = useContext(Config);
+    const config = useConfig();
     const [earliest, setEarliest] = useState(360);
     const handleEarliest = wrapSetValue(setEarliest);
 

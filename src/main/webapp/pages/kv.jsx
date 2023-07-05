@@ -1,13 +1,13 @@
 import Heading from "@splunk/react-ui/Heading";
 import P from "@splunk/react-ui/Paragraph";
 import React from "react";
-import Conf from "../components/Conf";
+import Conf from "../components/Confs";
 import Header from "../components/Header";
 import Lookup from "../components/Lookup";
 import { Page } from "../shared/page";
 
 const Root = () => {
-    const config = useContext(Config);
+    const config = useConfig();
     return (
         <>
             <Header title="KV Lookups" prev="csv" next="data" />

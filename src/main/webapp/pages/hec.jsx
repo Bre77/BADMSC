@@ -8,13 +8,13 @@ import React, { useContext, useMemo } from "react";
 import Header from "../components/Header";
 import MutateButton from "../components/MutateButton";
 import { request } from "../shared/fetch";
-import { handle, useApi, useLock } from "../shared/hooks";
+import { handle, useApi, useConfig, useLock } from "../shared/hooks";
 import { Config, Page } from "../shared/page";
 
 const IDX_LIMIT = 8;
 
 const Root = () => {
-    const config = useContext(Config);
+    const config = useConfig();
     const src = useApi(config.src, "servicesNS/nobody/-/data/inputs/http", processApiHec);
     const dst = useApi(config.dst, "servicesNS/nobody/-/data/inputs/http", processApiHec);
     //const dst = useAcs(config.dst, "inputs/http-event-collectors", processAcsHec);
@@ -109,7 +109,7 @@ const processApiHec = (data) =>
     );*/
 
 const CopyHec = ({ name, content, exists, lock }) => {
-    const config = useContext(Config);
+    const config = useConfig();
     const queryClient = useQueryClient();
     const mutation = useMutation(async () => {
         let data = { ...content };

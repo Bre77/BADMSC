@@ -15,7 +15,7 @@ import MutateButton from "../components/MutateButton";
 import { APP_ID } from "../shared/const";
 import { request } from "../shared/fetch";
 import { wrapSetValue } from "../shared/helpers";
-import { useApps } from "../shared/hooks";
+import { useApps, useConfig } from "../shared/hooks";
 import { Config, Page } from "../shared/page";
 
 const IGNORED_APPS = [
@@ -62,7 +62,7 @@ const IGNORED_APPS = [
 const extractSplunkbaseToken = /<id>([^<]+)/;
 
 const Root = () => {
-    const config = useContext(Config);
+    const config = useConfig();
     const queryClient = useQueryClient();
 
     // Refresh critical data for this step on mount and unmount

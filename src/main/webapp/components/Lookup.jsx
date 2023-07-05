@@ -8,7 +8,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import React, { useContext, useMemo, useRef, useState } from "react";
 import { request } from "../shared/fetch";
 import { isort0 } from "../shared/helpers";
-import { handle, handleAcl, useApi, useApps } from "../shared/hooks";
+import { handle, handleAcl, useApi, useApps, useConfig } from "../shared/hooks";
 import { Config } from "../shared/page";
 import MutateButton from "./MutateButton";
 
@@ -109,7 +109,7 @@ export const OpenLookup = ({ target, app, file, type, user }) => {
 };
 
 export const LookupCompare = ({ app, file, type, src_user, dst_user }) => {
-    const config = useContext(Config);
+    const config = useConfig();
     const [enabled, setEnabled] = useState(false);
     const src = useQuery(getLookupQuery(config.src, app, file, type, src_user, enabled));
     const dst = useQuery(getLookupQuery(config.dst, app, file, type, dst_user, enabled));
@@ -130,7 +130,7 @@ export const LookupCompare = ({ app, file, type, src_user, dst_user }) => {
 };
 
 const LookupCopy = ({ app, file, type, label, src, dst, dst_user }) => {
-    const config = useContext(Config);
+    const config = useConfig();
     const QueryClient = useQueryClient();
     const dst_path = `${config.dst.api}/servicesNS/${dst_user}/${app}/${PATHS[type]}/${file}`;
     const copy = useMutation(async () =>

@@ -10,10 +10,10 @@ import Conf from "../components/Conf";
 import Lookup from "../components/Lookup";
 import Ui from "../components/Ui";
 import { CONF_FILES } from "../shared/const";
-import { keyContent, useApi, useMaps } from "../shared/hooks";
+import { keyContent, useApi, useConfig, useMaps } from "../shared/hooks";
 
 export default () => {
-    const config = useContext(Config);
+    const config = useConfig();
     const src_users = useApi(config.src, "services/authentication/users", keyContent);
     const users = useMaps()?.users;
 

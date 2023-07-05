@@ -17,11 +17,11 @@ import React, { useContext, useMemo, useState } from "react";
 import Header from "../components/Header";
 import { request } from "../shared/fetch";
 import { isort0, wrapSetValue } from "../shared/helpers";
-import { handle, useAcs, useDebounce } from "../shared/hooks";
+import { handle, useAcs, useConfig, useDebounce } from "../shared/hooks";
 import { Config, Page } from "../shared/page";
 
 const Root = () => {
-    const config = useContext(Config);
+    const config = useConfig();
     const queryClient = useQueryClient();
 
     // Refresh critical data for this step

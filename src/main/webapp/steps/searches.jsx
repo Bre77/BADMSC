@@ -7,10 +7,10 @@ import React, { useMemo } from "react";
 import MutateButton from "../components/MutateButton";
 import { request } from "../shared/fetch";
 import { isort0, latest } from "../shared/helpers";
-import { handle, processConfs, useApi } from "../shared/hooks";
+import { handle, processConfs, useApi, useConfig } from "../shared/hooks";
 
 export default () => {
-    const config = useContext(Config);
+    const config = useConfig();
     const src = useApi(config.src, "servicesNS/nobody/-/saved/searches", processConfs);
     const dst = useApi(config.dst, "servicesNS/nobody/-/saved/searches", processConfs);
 

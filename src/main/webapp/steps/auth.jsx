@@ -26,7 +26,7 @@ import { defaultFetchInit } from "@splunk/splunk-utils/fetch";
 import { wrapSetValue } from "../shared/helpers";
 
 import { makeBody, request } from "../shared/fetch";
-import { handle } from "../shared/hooks";
+import { handle, useConfig } from "../shared/hooks";
 
 const StatusCheck = ({ host, disabled, method = "GET" }) => {
     const { data, isLoading } = useQuery({
@@ -57,7 +57,7 @@ const dropHTTPS = (prev, stack) => stack.replace("https://", "");
 
 const e = (query) => (query.isError ? query.error : false);
 export default () => {
-    const config = useContext(Config);
+    const config = useConfig();
     const [src_api, setSrcApi] = useReducer(dropHTTPS, "");
     const handleSrcApi = wrapSetValue(setSrcApi);
     const [src_token, setSrcToken] = useState("");
