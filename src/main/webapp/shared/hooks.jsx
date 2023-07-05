@@ -18,18 +18,39 @@ export const handle = (res) =>
           });
 
 export const nameContent = (data) => Object.fromEntries(data.entry.map(({ name, content }) => [name, content]));
+export const nameContentAcl = (data) => Object.fromEntries(data.entry.map(({ name, content, acl }) => [name, { acl, content }]));
 export const keyContent = (data) => data.entry.map(({ name }) => name);
-export const entryNames = (data) => data.entry.map(({ name }) => name);
+export const appNameConfs = (data) =>
+    data.entry.reduce((x, { name, acl, content }) => {
+        let app = acl.app;
+        x[app] ??= {};
+        x[app][name] = { acl, content };
+        return x;
+    }, {});
+export const processConfs = (data) =>
+    data.entry.reduce((x, { name, acl, content }) => {
+        // Figure out how to decode URI values here
+        let app = acl.app;
+        x[app] ??= {};
+        x[app][name] = {
+            sharing: acl.sharing,
+            perms: acl.perms,
+            owner: acl.owner,
+            content,
+        };
+        return x;
+    }, {});
+
 const entry = (data) => data.entry;
 
-export const makeQuery = (target, path, postprocess = entry) => ({
+export const makeQuery = (target, path, postprocess = entry, params = {}) => ({
     queryKey: [target.key, path],
     queryFn: ({ signal }) =>
         request(
             {
                 url: `${target.api}/${path}`,
                 method: "GET",
-                params: { output_mode: "json", count: -1 },
+                params: { output_mode: "json", count: -1, ...params },
                 headers: {
                     Authorization: `Bearer ${target.token}`,
                 },
@@ -128,30 +149,14 @@ export const useAcs = (target, endpoint, postprocess = (x) => x) =>
         enabled: !!target,
     });
 
-export const processConfs = (data) =>
-    data.entry.reduce((x, { name, acl, content }) => {
-        // Figure out how to decode URI values here
-        let app = acl.app;
-        x[app] ??= {};
-        x[app][name] = {
-            sharing: acl.sharing,
-            perms: acl.perms,
-            owner: acl.owner,
-            content,
-        };
-        return x;
-    }, {});
-
 export const useConfs = (target, files, user = "nobody") =>
     useQueries({
         queries: files.map((file) => makeQuery(target, `servicesNS/${encodeURIComponent(user)}/-/configs/conf-${file}`, processConfs)),
     });
 
-const handleDefaults = (data) => Object.fromEntries(data.entry.map(({ name, content }) => [name, content]));
-
 export const useDefaults = (target, files) =>
     useQueries({
-        queries: files.map((file) => makeQuery(target, `services/properties/${file}/default`, handleDefaults)),
+        queries: files.map((file) => makeQuery(target, `services/properties/${file}/default`, nameContent)),
     });
 
 export const useLocal = (key, fallback) => {

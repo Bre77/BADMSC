@@ -3,13 +3,13 @@ import Table from "@splunk/react-ui/Table";
 import Typography from "@splunk/react-ui/Typography";
 import WaitSpinner from "@splunk/react-ui/WaitSpinner";
 import { normalizeBoolean } from "@splunk/splunk-utils/boolean";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
-import React, { useContext, useMemo } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import React, { useMemo } from "react";
 import styled from "styled-components";
-import { ATTR_BLACKLIST, CONF_FILES } from "../shared/const";
+import { ATTR_BLACKLIST } from "../shared/const";
 import { request } from "../shared/fetch";
 import { isort0, latest } from "../shared/helpers";
-import { handle, handleAcl, processConfs, useApps, useConfig, useConfs, useDefaults } from "../shared/hooks";
+import { appNameConfs, handle, handleAcl, keyContent, makeQuery, nameContent, nameContentAcl, processConfs, useConfig } from "../shared/hooks";
 import MutateButton from "./MutateButton";
 
 const CodeCell = styled(Table.Cell)`
@@ -25,89 +25,74 @@ const ENDPOINTS = {
 };
 const endpoint = (file) => ENDPOINTS[file] ?? `configs/conf-${file}`;
 
-export default ({ file, scope = false, src_user = "nobody", dst_user = "nobody" }) => {
+export const GlobalConf = ({ file, src_user = "nobody", dst_user = "nobody" }) => {
     const config = useConfig();
-    const def = useDefaults(config.src, files);
-    const src = useConfs(config.src, files, src_user);
-    const dst = useConfs(config.dst, files, dst_user);
-    const dst_apps = useApps(config.dst);
+    const src_def = useQuery(makeQuery(config.src, `services/properties/${file}/default`, nameContent)).data;
+    const src_conf_global = useQuery(makeQuery(config.src, `servicesNS/${src_user}/system/${endpoint(file)}`, nameContentAcl)).data;
+    const dst_conf_global = useQuery(makeQuery(config.dst, `servicesNS/${src_user}/system/${endpoint(file)}`, nameContentAcl)).data;
+    const dst_apps = useQuery(makeQuery(config.dst, "services/apps/local", keyContent)).data;
 
-    const isLoading =
-        def.some((query) => query.isLoading) || src.some((query) => query.isLoading) || dst.some((query) => query.isLoading) || dst_apps.isLoading;
+    const isLoading = !!src_def && !!src_conf_global && !!dst_conf_global && !!dst_apps;
 
-    //? This doesnt change when the data is changed
     const conf = useMemo(() => {
-        if (isLoading) return [];
+        if (isLoading || src_user !== "nobody") return false;
 
         const change = {};
-        //const scopes = {};
-        files.forEach((file, f) => {
-            if (dst[f].data && src[f].data) {
-                // Grab all the global content so we dont write it in an app scope
-                const dst_global = dst[f].data?.system || {};
-                //console.log(dst_global);
-                Object.entries(dst[f].data)
-                    .sort(([appA], [appB]) => (appA < appB ? 1 : -1)) // Emulated Splunks lexographic sorting
-                    .forEach(([app, stanzas]) => {
-                        Object.entries(stanzas).forEach(([stanza, content]) => {
-                            if (content.sharing == "global") {
-                                dst_global[stanza] = content;
-                            }
-                        });
-                    });
-
-                Object.entries(src[f].data || {}).forEach(([app, stanzas]) => {
-                    if (app === "learned" || app === "000-self-service") return;
-                    if (scope === "system" || app in dst_apps.data) {
-                        Object.entries(stanzas).forEach(([stanza, { sharing, perms, content, owner }]) => {
-                            if (scope && sharing != scope) return;
-                            const dst_sharing = dst[f].data?.[app]?.[stanza]?.sharing !== scope && dst[f].data?.[app]?.[stanza]?.sharing;
-
-                            /*if (dst_sharing === "app") {
-                                scopes[app] ??= {};
-                                scopes[app][file] ??= {};
-                                scopes[app][file][stanza] ??= content;
-                            }*/
-
-                            //perms && Object.keys(perms).forEach((rw) => perms[rw].map((group) => (group === "admin" ? "sc_admin" : group)));
-
-                            Object.entries(content).forEach(([attr, src_value]) => {
-                                if (!ATTR_BLACKLIST.includes(attr)) {
-                                    const dst_value = dst[f].data?.[app]?.[stanza]?.content?.[attr];
-                                    const src_norm = normalizeBoolean(src_value);
-                                    const exists = !!dst[f].data?.[app]?.[stanza];
-
-                                    if (
-                                        src_norm !== normalizeBoolean(def[f].data?.[attr]) && // Default
-                                        src_value !== dst_value && //normalizeBoolean(dst_value) && // Destination (Maybe these should be identical, not equal)
-                                        src_norm !== normalizeBoolean(dst_global?.[stanza]?.content?.[attr]) // Destination Global
-                                    ) {
-                                        change[app] ??= {};
-                                        change[app][file] ??= {};
-                                        change[app][file][stanza] ??= {
-                                            attr: {},
-                                            acl: { perms, sharing, owner },
-                                            exists,
-                                            dst_sharing,
-                                        };
-                                        change[app][file][stanza].attr[attr] = {
-                                            src: src_value,
-                                            dst: dst_value,
-                                        };
-                                    }
-                                }
-                            });
-                        });
-                    }
-                });
-            }
+        Object.entries(src_conf_global).forEach(([stanza, { acl, content }]) => {
+            if (acl.app === "learned" || acl.app === "000-self-service" || !(dst_apps.data[acl.app] || acl.app == "system")) return;
         });
+    }, [src_def, src_conf_global, dst_conf_global, dst_apps]);
+
+    return <p>WIP</p>;
+};
+
+export const AppConf = ({ file, src_user = "nobody", dst_user = "nobody" }) => {
+    const config = useConfig();
+
+    const src_def = useQuery(makeQuery(config.src, `services/properties/${file}/default`, nameContent)).data;
+    const src_conf_global = useQuery(makeQuery(config.src, `servicesNS/${src_user}/system/${endpoint(file)}`, nameContentAcl)).data;
+    const src_conf_app = useQuery(makeQuery(config.src, `servicesNS/${src_user}/-/${endpoint(file)}`, appNameConfs, { search: "eai:acl.sharing=app" })).data;
+    const dst_conf_global = useQuery(makeQuery(config.dst, `servicesNS/${src_user}/system/${endpoint(file)}`, nameContentAcl)).data;
+    const dst_conf_app = useQuery(makeQuery(config.dst, `servicesNS/${src_user}/-/${endpoint(file)}`, appNameConfs, { search: "eai:acl.sharing=app" })).data;
+    const dst_apps = useQuery(makeQuery(config.dst, "services/apps/local", keyContent)).data;
+
+    const isLoading = !!src_def && !!src_conf_global && !!src_conf_app && !!dst_conf_global && !!dst_conf_app && !!dst_apps;
+
+    const conf = useMemo(() => {
+        if (isLoading) return false;
+
+        const change = {};
+        Object.entries(src_conf_global).forEach(([app, stanzas]) => {
+            if (acl.app === "learned" || acl.app === "000-self-service" || !dst_apps.data[app]) return;
+
+            Object.entries(stanzas).forEach(([stanza, { acl, content }]) => {
+                Object.entries(content).forEach(([attr, src_value]) => {
+                    if (ATTR_BLACKLIST.includes(attr)) return;
+                    const src_norm = normalizeBoolean(src_value);
+                    const src_def = normalizeBoolean(src_def[f].data?.[attr]);
+                    const src_global = normalizeBoolean(src_conf_global?.[stanza]?.content?.[attr]);
+                    const dst_global = normalizeBoolean(dst_conf_global?.[stanza]?.content?.[attr]);
+                    const dst_value = dst_conf_app?.[app]?.[stanza]?.content?.[attr];
+
+                    if (src_norm == src_def || src_norm == src_global || src_norm == dst_global || src_value === dst_value) return;
+
+                    change[app] ??= {};
+                    change[app][file] ??= {};
+                    change[app][file][stanza] ??= {
+                        attr: {},
+                        acl,
+                        dst_acl: dst_conf_app?.[app]?.[stanza]?.acl ?? false,
+                    };
+                    change[app][file][stanza].attr[attr] = [src_value, dst_value];
+                });
+            });
+        });
+
         return Object.entries(change)
             .sort(isort0)
             .map(([app, files]) => [
                 app,
                 Object.entries(files).map(([file, stanzas]) => [
-                    file,
                     Object.entries(stanzas)
                         .sort(isort0)
                         .map(([stanza, content]) => [
@@ -119,14 +104,14 @@ export default ({ file, scope = false, src_user = "nobody", dst_user = "nobody" 
                         ]),
                 ]),
             ]);
-    }, [latest(def), latest(src), latest(dst), dst_apps.data]);
+    }, [src_def, src_global, src_app, dst_global, dst_app, dst_apps]);
 
     return isLoading ? (
         <WaitSpinner size="large" />
     ) : conf.length ? (
         <Table stripeRows>
             <Table.Head>
-                <Table.HeadCell>File</Table.HeadCell>
+                <Table.HeadCell>App</Table.HeadCell>
                 <Table.HeadCell>Local</Table.HeadCell>
                 <Table.HeadCell>Cloud</Table.HeadCell>
                 <Table.HeadCell>Action</Table.HeadCell>
