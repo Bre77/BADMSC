@@ -13,7 +13,7 @@ import { Page } from "../shared/page";
 const Root = () => {
     const config = useConfig();
     const files = useApi(config.src, "services/properties", keyContent, ["data"]).data ?? [];
-    const [file, setFile] = useState("props");
+    const [file, setFile] = useState(window.location.href.split("-").pop());
     const handleFile = wrapSetValue(setFile);
 
     return (

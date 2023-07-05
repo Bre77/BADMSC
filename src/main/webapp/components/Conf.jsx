@@ -158,18 +158,25 @@ const TableConfig = ({ conf, file, dst_user = "nobody" }) =>
                                     <Typography as="pre" variant="monoSmallBody">
                                         {[
                                             `[${stanza}]`,
-                                            ...attr.map((a) => (src?.content?.[a] !== undefined ? `${a} = ${src}` : "")),
-                                            /*`(owner = ${acl.owner})`,
-                                        `(sharing = ${acl.sharing})`,
-                                        `(read = ${acl.perms.read})`,
-                                        `(write = ${acl.perms.write})`,*/
+                                            ...attr.map((a) => (src.content?.[a] !== undefined ? `${a} = ${src.content[a]}` : "")),
+                                            /*`(owner = ${src.acl.owner})`,
+                                            `(sharing = ${src.acl.sharing})`,
+                                            `(read = ${src.acl.perms.read})`,
+                                            `(write = ${src.acl.perms.write})`,*/
                                         ].join("\n")}
                                     </Typography>
                                 </CodeCell>
                                 <CodeCell>
                                     {!!dst && (
                                         <Typography as="pre" variant="monoSmallBody">
-                                            {[`[${stanza}]`, ...attr.map((a) => (dst?.content?.[a] !== undefined ? `${a} = ${dst}` : ""))].join("\n")}
+                                            {[
+                                                `[${stanza}]`,
+                                                ...attr.map((a) => (dst.content?.[a] !== undefined ? `${a} = ${dst.content[a]}` : "")),
+                                                /*`(owner = ${dst.acl.owner})`,
+                                                `(sharing = ${dst.acl.sharing})`,
+                                                `(read = ${dst.acl.perms.read})`,
+                                                `(write = ${dst.acl.perms.write})`,*/
+                                            ].join("\n")}
                                         </Typography>
                                     )}
                                 </CodeCell>
