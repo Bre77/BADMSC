@@ -2,7 +2,7 @@ import P from "@splunk/react-ui/Paragraph";
 import Select from "@splunk/react-ui/Select";
 import WaitSpinner from "@splunk/react-ui/WaitSpinner";
 import React, { useContext, useMemo, useState } from "react";
-import { AppConf, GlobalConf } from "../components/Conf";
+import { GlobalConf, ScopedConf } from "../components/Conf";
 import Header from "../components/Header";
 import { CONF_FILES } from "../shared/const";
 import { wrapSetValue } from "../shared/helpers";
@@ -32,7 +32,12 @@ const Root = () => {
             </Select>
             <br />
             <br />
-            {file && <Conf file={file} />}
+            {file && (
+                <>
+                    <GlobalConf file={file} />
+                    <ScopedConf file={file} />
+                </>
+            )}
         </>
     );
 };

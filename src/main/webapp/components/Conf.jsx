@@ -25,11 +25,27 @@ const ENDPOINTS = {
 };
 const endpoint = (file) => ENDPOINTS[file] ?? `configs/conf-${file}`;
 
-export const GlobalConf = ({ file, src_user = "nobody", dst_user = "nobody" }) => {
+const sortConf = (change) =>
+    Object.entries(change)
+        .sort(isort0)
+        .map(([app, stanzas]) => [
+            app,
+            Object.entries(stanzas)
+                .sort(isort0)
+                .map(([stanza, content]) => [
+                    stanza,
+                    {
+                        ...content,
+                        attr: Object.entries(content.attr).sort(isort0),
+                    },
+                ]),
+        ]);
+
+export const GlobalConf = ({ file }) => {
     const config = useConfig();
     const src_def = useQuery(makeQuery(config.src, `services/properties/${file}/default`, nameContent)).data;
-    const src_conf_global = useQuery(makeQuery(config.src, `servicesNS/${src_user}/system/${endpoint(file)}`, nameContentAcl)).data;
-    const dst_conf_global = useQuery(makeQuery(config.dst, `servicesNS/${src_user}/system/${endpoint(file)}`, nameContentAcl)).data;
+    const src_conf_global = useQuery(makeQuery(config.src, `servicesNS/nobody/system/${endpoint(file)}`, nameContentAcl)).data;
+    const dst_conf_global = useQuery(makeQuery(config.dst, `servicesNS/nobody/system/${endpoint(file)}`, nameContentAcl)).data;
     const dst_apps = useQuery(makeQuery(config.dst, "services/apps/local", keyContent)).data;
 
     const isLoading = !!src_def && !!src_conf_global && !!dst_conf_global && !!dst_apps;
@@ -40,13 +56,31 @@ export const GlobalConf = ({ file, src_user = "nobody", dst_user = "nobody" }) =
         const change = {};
         Object.entries(src_conf_global).forEach(([stanza, { acl, content }]) => {
             if (acl.app === "learned" || acl.app === "000-self-service" || !(dst_apps.data[acl.app] || acl.app == "system")) return;
+            Object.entries(content).forEach(([attr, src_value]) => {
+                if (ATTR_BLACKLIST.includes(attr)) return;
+                const src_norm = normalizeBoolean(src_value);
+                const src_def = normalizeBoolean(dst_conf_global.data?.[attr]);
+                const dst_value = dst_conf_global?.[stanza]?.content?.[attr];
+
+                if (src_norm == src_def || src_value === dst_value) return;
+
+                change[acl.app] ??= {};
+                change[acl.app][file] ??= {};
+                change[acl.app][file][stanza] ??= {
+                    attr: {},
+                    acl,
+                    dst_acl: dst_conf_app?.[app]?.[stanza]?.acl ?? false,
+                };
+                change[app][file][stanza].attr[attr] = [src_value, dst_value];
+            });
         });
+        return sortConf(change);
     }, [src_def, src_conf_global, dst_conf_global, dst_apps]);
 
-    return <p>WIP</p>;
+    return <TableConfig conf={conf} />;
 };
 
-export const AppConf = ({ file, src_user = "nobody", dst_user = "nobody" }) => {
+export const ScopedConf = ({ file, src_user = "nobody", dst_user = "nobody" }) => {
     const config = useConfig();
 
     const src_def = useQuery(makeQuery(config.src, `services/properties/${file}/default`, nameContent)).data;
@@ -69,7 +103,7 @@ export const AppConf = ({ file, src_user = "nobody", dst_user = "nobody" }) => {
                 Object.entries(content).forEach(([attr, src_value]) => {
                     if (ATTR_BLACKLIST.includes(attr)) return;
                     const src_norm = normalizeBoolean(src_value);
-                    const src_def = normalizeBoolean(src_def[f].data?.[attr]);
+                    const src_def = normalizeBoolean(src_def?.[attr]);
                     const src_global = normalizeBoolean(src_conf_global?.[stanza]?.content?.[attr]);
                     const dst_global = normalizeBoolean(dst_conf_global?.[stanza]?.content?.[attr]);
                     const dst_value = dst_conf_app?.[app]?.[stanza]?.content?.[attr];
@@ -88,65 +122,41 @@ export const AppConf = ({ file, src_user = "nobody", dst_user = "nobody" }) => {
             });
         });
 
-        return Object.entries(change)
-            .sort(isort0)
-            .map(([app, files]) => [
-                app,
-                Object.entries(files).map(([file, stanzas]) => [
-                    Object.entries(stanzas)
-                        .sort(isort0)
-                        .map(([stanza, content]) => [
-                            stanza,
-                            {
-                                ...content,
-                                attr: Object.entries(content.attr).sort(isort0),
-                            },
-                        ]),
-                ]),
-            ]);
+        return sortConf(change);
     }, [src_def, src_global, src_app, dst_global, dst_app, dst_apps]);
 
-    return isLoading ? (
-        <WaitSpinner size="large" />
-    ) : conf.length ? (
-        <Table stripeRows>
-            <Table.Head>
-                <Table.HeadCell>App</Table.HeadCell>
-                <Table.HeadCell>Local</Table.HeadCell>
-                <Table.HeadCell>Cloud</Table.HeadCell>
-                <Table.HeadCell>Action</Table.HeadCell>
-            </Table.Head>
-            <Table.Body>
-                {conf.flatMap(([app, files], i) => [
-                    <Table.Row key={app}>
-                        <Table.Cell>
-                            <b>{app}</b>
-                        </Table.Cell>
-                        <Table.Cell></Table.Cell>
-                        <Table.Cell></Table.Cell>
-                        <Table.Cell></Table.Cell>
-                    </Table.Row>,
-                    ...files.flatMap(([file, stanzas]) =>
-                        stanzas.map(([stanza, { attr, acl, exists, dst_sharing }]) => (
-                            <Table.Row key={app + file + stanza}>
-                                <Table.Cell>
-                                    {app} / {file}.conf
-                                    {dst_sharing && (
-                                        <b>
-                                            <br />
-                                            Sharing is {dst_sharing}
-                                        </b>
-                                    )}
-                                </Table.Cell>
+    return <TableConfig conf={conf} />;
+};
+
+const TableConfig = (conf) =>
+    conf ? (
+        conf.length ? (
+            <Table stripeRows>
+                <Table.Head>
+                    <Table.HeadCell>Local</Table.HeadCell>
+                    <Table.HeadCell>Cloud</Table.HeadCell>
+                    <Table.HeadCell>Action</Table.HeadCell>
+                </Table.Head>
+                <Table.Body>
+                    {conf.flatMap(([app, stanzas], i) => [
+                        <Table.Row key={app}>
+                            <Table.Cell>
+                                <b>{app}</b>
+                            </Table.Cell>
+                            <Table.Cell></Table.Cell>
+                            <Table.Cell></Table.Cell>
+                        </Table.Row>,
+                        ...stanzas.map(([stanza, { attr, acl, dst_acl }]) => (
+                            <Table.Row key={`${app}/${stanza}`}>
                                 <CodeCell>
                                     <Typography as="pre" variant="monoSmallBody">
                                         {[
                                             `[${stanza}]`,
                                             ...attr.map(([a, { src }]) => (src !== undefined ? `${a} = ${src}` : "")),
                                             /*`(owner = ${acl.owner})`,
-                                            `(sharing = ${acl.sharing})`,
-                                            `(read = ${acl.perms.read})`,
-                                            `(write = ${acl.perms.write})`,*/
+                                        `(sharing = ${acl.sharing})`,
+                                        `(read = ${acl.perms.read})`,
+                                        `(write = ${acl.perms.write})`,*/
                                         ].join("\n")}
                                     </Typography>
                                 </CodeCell>
@@ -158,31 +168,22 @@ export const AppConf = ({ file, src_user = "nobody", dst_user = "nobody" }) => {
                                     )}
                                 </CodeCell>
                                 <Table.Cell>
-                                    <CopyConfig
-                                        {...{
-                                            config,
-                                            acl,
-                                            file,
-                                            app,
-                                            stanza,
-                                            attr,
-                                            exists,
-                                            dst_user,
-                                        }}
-                                    />
+                                    <CopyConfig acl={acl} file={file} app={app} stanza={stanza} exists={!!dst_acl} dst_user={dst_user} />
                                 </Table.Cell>
                             </Table.Row>
-                        ))
-                    ),
-                ])}
-            </Table.Body>
-        </Table>
+                        )),
+                    ])}
+                </Table.Body>
+            </Table>
+        ) : (
+            <Message>No modified conf files found</Message>
+        )
     ) : (
-        <Message>No modified conf files found</Message>
+        <WaitSpinner size="large" />
     );
-};
 
-const CopyConfig = ({ config, acl, file, app, stanza, attr, exists, dst_user }) => {
+const CopyConfig = ({ acl, file, app, stanza, attr, exists, dst_user }) => {
+    const config = useConfig();
     const queryClient = useQueryClient();
     const copy = useMutation(() => {
         let data = Object.fromEntries(attr.map(([a, { src }]) => [a, src]));
