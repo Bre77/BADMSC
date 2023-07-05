@@ -11,11 +11,22 @@
     <view name="parsing"/>
     <view name="hec"/>
     <view name="inputs"/>
-    <view name="config"/>
+    <collection label="Config">
+        <view name="conf-props"/>
+        <view name="conf-transforms"/>
+        <view name="conf-macros"/>
+        <view name="conf-tags"/>
+        <view name="conf-eventtypes"/>
+        <view name="conf-savedsearches"/>
+        <view name="conf-savedsearches"/>
+        <view name="config"/>
+    </collection>
+    <view name="private"/>
     <view name="nav"/>
     <view name="views"/>
     <view name="csv"/>
     <view name="kv"/>
     <view name="data"/>
     <view name="asbuilt"/>
+    <a href="mailto:bretadams@deloitte.com.au"/>Support</a>
 </nav>

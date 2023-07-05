@@ -1,4 +1,4 @@
 <?xml version="1.0"?>
 <view template="badmsc:/templates/config.html" type="html">
-	<label>Other</label>
+	<label>Tags</label>
 </view>
