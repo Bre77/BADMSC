@@ -72,7 +72,6 @@ export const GlobalConf = ({ file }) => {
                 change[app][stanza].attr.push(attr);
             });
         });
-        console.log(change);
         return sortConf(change);
     }, [src_def, src_conf_global, dst_conf_global, dst_apps]);
 
@@ -102,7 +101,6 @@ export const ScopedConf = ({ file, src_user = "nobody", dst_user = "nobody" }) =
 
         const change = {};
         Object.entries(src_conf_app).forEach(([app, stanzas]) => {
-            console.log(app);
             if (app === "learned" || app === "000-self-service" || !dst_apps[app]) return;
 
             Object.entries(stanzas).forEach(([stanza, src]) => {
