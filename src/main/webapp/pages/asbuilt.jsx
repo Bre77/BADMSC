@@ -1,9 +1,9 @@
 import P from "@splunk/react-ui/Paragraph";
 import React from "react";
 import Header from "../components/Header";
-import { Config, Page } from "../shared/page";
+import { Page } from "../shared/page";
 
-export default () => {
+const Root = () => {
     return (
         <>
             <Header title="As Built" prev="data" />
@@ -11,3 +11,5 @@ export default () => {
         </>
     );
 };
+
+Page(<Root />);
