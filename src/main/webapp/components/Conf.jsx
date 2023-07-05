@@ -48,14 +48,14 @@ export const GlobalConf = ({ file }) => {
     const dst_conf_global = useQuery(makeQuery(config.dst, `servicesNS/nobody/system/${endpoint(file)}`, nameContentAcl)).data;
     const dst_apps = useQuery(makeQuery(config.dst, "services/apps/local", keyContent)).data;
 
-    const isLoading = !!src_def && !!src_conf_global && !!dst_conf_global && !!dst_apps;
+    const isLoading = !src_def || !src_conf_global || !dst_conf_global || !dst_apps;
 
     const conf = useMemo(() => {
-        if (isLoading || src_user !== "nobody") return false;
+        if (isLoading) return false;
 
         const change = {};
         Object.entries(src_conf_global).forEach(([stanza, { acl, content }]) => {
-            if (acl.app === "learned" || acl.app === "000-self-service" || !(dst_apps.data[acl.app] || acl.app == "system")) return;
+            if (acl.app === "learned" || acl.app === "000-self-service" || !(dst_apps[acl.app] || acl.app == "system")) return;
             Object.entries(content).forEach(([attr, src_value]) => {
                 if (ATTR_BLACKLIST.includes(attr)) return;
                 const src_norm = normalizeBoolean(src_value);
@@ -69,7 +69,7 @@ export const GlobalConf = ({ file }) => {
                 change[acl.app][file][stanza] ??= {
                     attr: {},
                     acl,
-                    dst_acl: dst_conf_app?.[app]?.[stanza]?.acl ?? false,
+                    dst_acl: dst_conf_global?.[stanza]?.acl ?? false,
                 };
                 change[app][file][stanza].attr[attr] = [src_value, dst_value];
             });
@@ -83,14 +83,20 @@ export const GlobalConf = ({ file }) => {
 export const ScopedConf = ({ file, src_user = "nobody", dst_user = "nobody" }) => {
     const config = useConfig();
 
-    const src_def = useQuery(makeQuery(config.src, `services/properties/${file}/default`, nameContent)).data;
-    const src_conf_global = useQuery(makeQuery(config.src, `servicesNS/${src_user}/system/${endpoint(file)}`, nameContentAcl)).data;
-    const src_conf_app = useQuery(makeQuery(config.src, `servicesNS/${src_user}/-/${endpoint(file)}`, appNameConfs, { search: "eai:acl.sharing=app" })).data;
-    const dst_conf_global = useQuery(makeQuery(config.dst, `servicesNS/${src_user}/system/${endpoint(file)}`, nameContentAcl)).data;
-    const dst_conf_app = useQuery(makeQuery(config.dst, `servicesNS/${src_user}/-/${endpoint(file)}`, appNameConfs, { search: "eai:acl.sharing=app" })).data;
+    const src_def = useQuery({ ...makeQuery(config.src, `services/properties/${file}/default`, nameContent), cacheTime: 0 }).data;
+    const src_conf_global = useQuery({ ...makeQuery(config.src, `servicesNS/${src_user}/system/${endpoint(file)}`, nameContentAcl), cacheTime: 0 }).data;
+    const src_conf_app = useQuery({
+        ...makeQuery(config.src, `servicesNS/${src_user}/-/${endpoint(file)}`, appNameConfs, { search: "eai:acl.sharing=app" }),
+        cacheTime: 0,
+    }).data;
+    const dst_conf_global = useQuery({ ...makeQuery(config.dst, `servicesNS/${dst_user}/system/${endpoint(file)}`, nameContentAcl), cacheTime: 0 }).data;
+    const dst_conf_app = useQuery({
+        ...makeQuery(config.dst, `servicesNS/${dst_user}/-/${endpoint(file)}`, appNameConfs, { search: "eai:acl.sharing=app" }),
+        cacheTime: 0,
+    }).data;
     const dst_apps = useQuery(makeQuery(config.dst, "services/apps/local", keyContent)).data;
 
-    const isLoading = !!src_def && !!src_conf_global && !!src_conf_app && !!dst_conf_global && !!dst_conf_app && !!dst_apps;
+    const isLoading = !src_def || !src_conf_global || !src_conf_app || !dst_conf_global || !dst_conf_app || !dst_apps;
 
     const conf = useMemo(() => {
         if (isLoading) return false;
@@ -123,12 +129,12 @@ export const ScopedConf = ({ file, src_user = "nobody", dst_user = "nobody" }) =
         });
 
         return sortConf(change);
-    }, [src_def, src_global, src_app, dst_global, dst_app, dst_apps]);
+    }, [src_def, src_conf_global, src_conf_app, dst_conf_global, dst_conf_app, dst_apps]);
 
-    return <TableConfig conf={conf} />;
+    return <TableConfig conf={conf} dst_user={dst_user} />;
 };
 
-const TableConfig = (conf) =>
+const TableConfig = ({ conf, dst_user = "nobody" }) =>
     conf ? (
         conf.length ? (
             <Table stripeRows>
