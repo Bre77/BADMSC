@@ -1,3 +1,4 @@
+import Heading from "@splunk/react-ui/Heading";
 import P from "@splunk/react-ui/Paragraph";
 import Select from "@splunk/react-ui/Select";
 import WaitSpinner from "@splunk/react-ui/WaitSpinner";
@@ -34,7 +35,9 @@ const Root = () => {
             <br />
             {file && (
                 <>
+                    <Heading level={2}>Global Scope Config</Heading>
                     <GlobalConf file={file} />
+                    <Heading level={2}>App Scope Config</Heading>
                     <ScopedConf file={file} />
                 </>
             )}

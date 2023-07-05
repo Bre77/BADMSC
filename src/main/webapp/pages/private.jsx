@@ -3,7 +3,7 @@ import Heading from "@splunk/react-ui/Heading";
 import P from "@splunk/react-ui/Paragraph";
 import Select from "@splunk/react-ui/Select";
 import React, { useState } from "react";
-import Conf from "../components/Conf";
+import { ScopedConf } from "../components/Conf";
 import Lookup from "../components/Lookup";
 import Ui from "../components/Ui";
 import { CONF_FILES } from "../shared/const";
@@ -46,7 +46,7 @@ const Root = () => {
             {users && src_user && dst_user && (
                 <>
                     <Heading level={2}>Copy Private Knowledge Objects</Heading>
-                    <Conf config={config} scope="user" src_user={src_user} dst_user={dst_user} files={[...CONF_FILES, "collections"]} />
+                    {CONF_FILES.map((file) => <ScopedConf src_user={src_user} dst_user={dst_user} file={file} />}
                     <Heading level={2}>Copy Private Dashboards</Heading>
                     <Ui config={config} scope="user" folder="views" src_user={src_user} dst_user={dst_user} />
                     <Heading level={2}>Copy Private Nav</Heading>

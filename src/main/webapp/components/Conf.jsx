@@ -8,7 +8,7 @@ import React, { useMemo } from "react";
 import styled from "styled-components";
 import { ATTR_BLACKLIST } from "../shared/const";
 import { request } from "../shared/fetch";
-import { isort0, latest } from "../shared/helpers";
+import { isort, isort0, latest } from "../shared/helpers";
 import { appNameConfs, handle, handleAcl, keyContent, makeQuery, nameContent, nameContentAcl, processConfs, useConfig } from "../shared/hooks";
 import MutateButton from "./MutateButton";
 
@@ -32,13 +32,10 @@ const sortConf = (change) =>
             app,
             Object.entries(stanzas)
                 .sort(isort0)
-                .map(([stanza, content]) => [
-                    stanza,
-                    {
-                        ...content,
-                        attr: Object.entries(content.attr).sort(isort0),
-                    },
-                ]),
+                .map((x) => {
+                    x[1].attr = x[1].attr.sort(isort);
+                    return x;
+                }),
         ]);
 
 export const GlobalConf = ({ file }) => {
@@ -54,30 +51,32 @@ export const GlobalConf = ({ file }) => {
         if (isLoading) return false;
 
         const change = {};
-        Object.entries(src_conf_global).forEach(([stanza, { acl, content }]) => {
-            if (acl.app === "learned" || acl.app === "000-self-service" || !(dst_apps[acl.app] || acl.app == "system")) return;
-            Object.entries(content).forEach(([attr, src_value]) => {
+        Object.entries(src_conf_global).forEach(([stanza, src]) => {
+            const app = src.acl.app;
+            if (app === "learned" || app === "000-self-service" || !(dst_apps[app] || app == "system")) return;
+            const dst = dst_conf_global?.[stanza];
+            Object.entries(src.content).forEach(([attr, src_value]) => {
                 if (ATTR_BLACKLIST.includes(attr)) return;
                 const src_norm = normalizeBoolean(src_value);
-                const src_def = normalizeBoolean(dst_conf_global.data?.[attr]);
-                const dst_value = dst_conf_global?.[stanza]?.content?.[attr];
+                const src_def = normalizeBoolean(src_def?.[stanza]?.[attr]);
+                const dst_value = dst?.content?.[attr];
 
                 if (src_norm == src_def || src_value === dst_value) return;
 
-                change[acl.app] ??= {};
-                change[acl.app][file] ??= {};
-                change[acl.app][file][stanza] ??= {
-                    attr: {},
-                    acl,
-                    dst_acl: dst_conf_global?.[stanza]?.acl ?? false,
+                change[app] ??= {};
+                change[app][stanza] ??= {
+                    attr: [],
+                    src,
+                    dst,
                 };
-                change[app][file][stanza].attr[attr] = [src_value, dst_value];
+                change[app][stanza].attr.push(attr);
             });
         });
+        console.log(change);
         return sortConf(change);
     }, [src_def, src_conf_global, dst_conf_global, dst_apps]);
 
-    return <TableConfig conf={conf} />;
+    return <TableConfig conf={conf} file={file} />;
 };
 
 export const ScopedConf = ({ file, src_user = "nobody", dst_user = "nobody" }) => {
@@ -102,28 +101,29 @@ export const ScopedConf = ({ file, src_user = "nobody", dst_user = "nobody" }) =
         if (isLoading) return false;
 
         const change = {};
-        Object.entries(src_conf_global).forEach(([app, stanzas]) => {
-            if (acl.app === "learned" || acl.app === "000-self-service" || !dst_apps.data[app]) return;
+        Object.entries(src_conf_app).forEach(([app, stanzas]) => {
+            console.log(app);
+            if (app === "learned" || app === "000-self-service" || !dst_apps[app]) return;
 
-            Object.entries(stanzas).forEach(([stanza, { acl, content }]) => {
-                Object.entries(content).forEach(([attr, src_value]) => {
+            Object.entries(stanzas).forEach(([stanza, src]) => {
+                const dst = dst_conf_app?.[app]?.[stanza];
+                Object.entries(src.content).forEach(([attr, src_value]) => {
                     if (ATTR_BLACKLIST.includes(attr)) return;
                     const src_norm = normalizeBoolean(src_value);
                     const src_def = normalizeBoolean(src_def?.[attr]);
                     const src_global = normalizeBoolean(src_conf_global?.[stanza]?.content?.[attr]);
                     const dst_global = normalizeBoolean(dst_conf_global?.[stanza]?.content?.[attr]);
-                    const dst_value = dst_conf_app?.[app]?.[stanza]?.content?.[attr];
+                    const dst_value = dst?.content?.[attr];
 
                     if (src_norm == src_def || src_norm == src_global || src_norm == dst_global || src_value === dst_value) return;
 
                     change[app] ??= {};
-                    change[app][file] ??= {};
-                    change[app][file][stanza] ??= {
-                        attr: {},
-                        acl,
-                        dst_acl: dst_conf_app?.[app]?.[stanza]?.acl ?? false,
+                    change[app][stanza] ??= {
+                        attr: [],
+                        src,
+                        dst,
                     };
-                    change[app][file][stanza].attr[attr] = [src_value, dst_value];
+                    change[app][stanza].attr.push(attr);
                 });
             });
         });
@@ -131,10 +131,10 @@ export const ScopedConf = ({ file, src_user = "nobody", dst_user = "nobody" }) =
         return sortConf(change);
     }, [src_def, src_conf_global, src_conf_app, dst_conf_global, dst_conf_app, dst_apps]);
 
-    return <TableConfig conf={conf} dst_user={dst_user} />;
+    return <TableConfig conf={conf} file={file} dst_user={dst_user} />;
 };
 
-const TableConfig = ({ conf, dst_user = "nobody" }) =>
+const TableConfig = ({ conf, file, dst_user = "nobody" }) =>
     conf ? (
         conf.length ? (
             <Table stripeRows>
@@ -152,13 +152,13 @@ const TableConfig = ({ conf, dst_user = "nobody" }) =>
                             <Table.Cell></Table.Cell>
                             <Table.Cell></Table.Cell>
                         </Table.Row>,
-                        ...stanzas.map(([stanza, { attr, acl, dst_acl }]) => (
+                        ...stanzas.map(([stanza, { attr, src, dst }]) => (
                             <Table.Row key={`${app}/${stanza}`}>
                                 <CodeCell>
                                     <Typography as="pre" variant="monoSmallBody">
                                         {[
                                             `[${stanza}]`,
-                                            ...attr.map(([a, { src }]) => (src !== undefined ? `${a} = ${src}` : "")),
+                                            ...attr.map((a) => (src?.content?.[a] !== undefined ? `${a} = ${src}` : "")),
                                             /*`(owner = ${acl.owner})`,
                                         `(sharing = ${acl.sharing})`,
                                         `(read = ${acl.perms.read})`,
@@ -167,14 +167,14 @@ const TableConfig = ({ conf, dst_user = "nobody" }) =>
                                     </Typography>
                                 </CodeCell>
                                 <CodeCell>
-                                    {exists && (
+                                    {!!dst && (
                                         <Typography as="pre" variant="monoSmallBody">
-                                            {[`[${stanza}]`, ...attr.map(([a, { dst }]) => (dst !== undefined ? `${a} = ${dst}` : ""))].join("\n")}
+                                            {[`[${stanza}]`, ...attr.map((a) => (dst?.content?.[a] !== undefined ? `${a} = ${dst}` : ""))].join("\n")}
                                         </Typography>
                                     )}
                                 </CodeCell>
                                 <Table.Cell>
-                                    <CopyConfig acl={acl} file={file} app={app} stanza={stanza} exists={!!dst_acl} dst_user={dst_user} />
+                                    <CopyConfig file={file} app={app} stanza={stanza} src={src} dst={dst} dst_user={dst_user} />
                                 </Table.Cell>
                             </Table.Row>
                         )),
@@ -182,19 +182,19 @@ const TableConfig = ({ conf, dst_user = "nobody" }) =>
                 </Table.Body>
             </Table>
         ) : (
-            <Message>No modified conf files found</Message>
+            <Message>No modified {file}.conf found</Message>
         )
     ) : (
         <WaitSpinner size="large" />
     );
 
-const CopyConfig = ({ acl, file, app, stanza, attr, exists, dst_user }) => {
+const CopyConfig = ({ file, app, stanza, src, dst, dst_user }) => {
     const config = useConfig();
     const queryClient = useQueryClient();
     const copy = useMutation(() => {
-        let data = Object.fromEntries(attr.map(([a, { src }]) => [a, src]));
+        let data = src.content;
         let url = `${config.dst.api}/servicesNS/${encodeURIComponent(dst_user)}/${encodeURIComponent(app)}/-/${endpoint(file)}`;
-        exists ? (url = `${url}/${encodeURIComponent(stanza)}`) : (data["name"] = stanza);
+        !!dst ? (url = `${url}/${encodeURIComponent(stanza)}`) : (data = { ...data, name: stanza });
         return request({
             url,
             method: "POST",
@@ -205,7 +205,7 @@ const CopyConfig = ({ acl, file, app, stanza, attr, exists, dst_user }) => {
             },
         })
             .then(handle)
-            .then(handleAcl(config, exists ? url : `${url}/${stanza}`, acl, queryClient))
+            .then(handleAcl(config, !!dst ? url : `${url}/${stanza}`, src, queryClient))
             .then(processConfs)
             .then((newdata) => {
                 let newapp = Object.keys(newdata)[0];
@@ -214,12 +214,12 @@ const CopyConfig = ({ acl, file, app, stanza, attr, exists, dst_user }) => {
                         `The new configuration for '${stanza}' was returned in the app '${newapp}' instead of '${app}'. This means it may not show up where you expect it to.`
                     );
                 }
-                queryClient.setQueryData(["dst", `servicesNS/${encodeURIComponent(dst_user)}/-/${endpoint(file)}`], (olddata) => ({
+                /*queryClient.setQueryData(["dst", `servicesNS/${encodeURIComponent(dst_user)}/-/${endpoint(file)}`], (olddata) => ({
                     ...olddata,
                     [newapp]: { ...olddata?.[newapp], [stanza]: newdata[newapp][stanza] },
-                }));
+                }));*/
             });
     });
 
-    return <MutateButton mutation={copy} label={exists ? "Update" : "Create"} />;
+    return <MutateButton mutation={copy} label={!!dst ? "Update" : "Create"} />;
 };
