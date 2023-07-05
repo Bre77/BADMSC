@@ -1,0 +1,4 @@
+<?xml version="1.0"?>
+<view template="badmsc:/templates/private.html" type="html">
+	<label>Private Config</label>
+</view>
