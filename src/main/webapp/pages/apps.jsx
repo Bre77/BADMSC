@@ -63,18 +63,6 @@ const extractSplunkbaseToken = /<id>([^<]+)/;
 
 const Root = () => {
     const config = useConfig();
-    const queryClient = useQueryClient();
-
-    // Refresh critical data for this step on mount and unmount
-    useEffect(() => {
-        queryClient.invalidateQueries({
-            queryKey: ["dst", "services/apps/local"],
-        });
-        return () =>
-            queryClient.invalidateQueries({
-                queryKey: ["dst", "services/apps/local"],
-            });
-    }, []);
 
     const [username, setUsername] = useState("");
     const handleUsername = wrapSetValue(setUsername);
@@ -274,11 +262,7 @@ const Root = () => {
                                 <Table.Cell>{name}</Table.Cell>
                                 <Table.Cell>{local.version || "N/A"}</Table.Cell>
                                 <Table.Cell>
-                                    {ENABLE_PRIVATE ? (
-                                        <InstallPrivate config={config} token={token.splunkToken} app={name} />
-                                    ) : (
-                                        <Button disabled>Disabled</Button>
-                                    )}
+                                    {ENABLE_PRIVATE ? <InstallPrivate token={token.splunkToken} app={name} /> : <Button disabled>Disabled</Button>}
                                 </Table.Cell>
                             </Table.Row>
                         ))}
@@ -307,7 +291,8 @@ const Root = () => {
     );
 };
 
-const InstallSplunkbase = ({ config, token, splunkbase }) => {
+const InstallSplunkbase = ({ token, splunkbase }) => {
+    const config = useConfig();
     const install = useMutation({
         mutationFn: () =>
             request({
@@ -322,18 +307,11 @@ const InstallSplunkbase = ({ config, token, splunkbase }) => {
                 data: { splunkbaseID: splunkbase.uid },
             }).then((res) => (res.status === 202 ? Promise.resolve() : Promise.reject(res.status))),
     });
-    return (
-        <Button
-            appearance={(install.isSuccess && "primary") || (install.isLoading && "pill") || (install.isError && "destructive") || "default"}
-            onClick={install.mutate}
-            disabled={!token || install.isLoading || install.isSuccess || !config}
-        >
-            {(install.isSuccess && "Installed") || (install.isLoading && <WaitSpinner />) || (install.isError && "Error") || "Install"}
-        </Button>
-    );
+    return <MutateButton mutation={install} label="Install" disabled={!token || install.isSuccess} />;
 };
 
-const InstallPrivate = ({ config, token, app }) => {
+const InstallPrivate = ({ token, app }) => {
+    const config = useConfig();
     const [status, setStatus] = useState("Install");
     const install = useMutation({
         mutationFn: () => {
