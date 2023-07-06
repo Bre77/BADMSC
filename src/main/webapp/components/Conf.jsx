@@ -57,11 +57,11 @@ export const GlobalConf = ({ file }) => {
             const dst = dst_conf_global?.[stanza];
             Object.entries(src.content).forEach(([attr, src_value]) => {
                 if (ATTR_BLACKLIST.includes(attr)) return;
-                const src_norm = normalizeBoolean(src_value);
-                const src_def = normalizeBoolean(src_def?.[stanza]?.[attr]);
+                const nrm_value = normalizeBoolean(src_value);
+                const def_value = normalizeBoolean(src_def?.[attr]);
                 const dst_value = dst?.content?.[attr];
 
-                if (src_norm == src_def || src_value === dst_value) return;
+                if (nrm_value == def_value || src_value === dst_value) return;
 
                 change[app] ??= {};
                 change[app][stanza] ??= {
@@ -107,13 +107,13 @@ export const ScopedConf = ({ file, src_user = "nobody", dst_user = "nobody" }) =
                 const dst = dst_conf_app?.[app]?.[stanza];
                 Object.entries(src.content).forEach(([attr, src_value]) => {
                     if (ATTR_BLACKLIST.includes(attr)) return;
-                    const src_norm = normalizeBoolean(src_value);
-                    const src_def = normalizeBoolean(src_def?.[attr]);
-                    const src_global = normalizeBoolean(src_conf_global?.[stanza]?.content?.[attr]);
-                    const dst_global = normalizeBoolean(dst_conf_global?.[stanza]?.content?.[attr]);
+                    const nrm_value = normalizeBoolean(src_value);
+                    const def_value = normalizeBoolean(src_def?.[attr]);
+                    const src_value_global = normalizeBoolean(src_conf_global?.[stanza]?.content?.[attr]);
+                    const dst_value_global = normalizeBoolean(dst_conf_global?.[stanza]?.content?.[attr]);
                     const dst_value = dst?.content?.[attr];
 
-                    if (src_norm == src_def || src_norm == src_global || src_norm == dst_global || src_value === dst_value) return;
+                    if (nrm_value == def_value || nrm_value == src_value_global || nrm_value == dst_value_global || nrm_value === dst_value) return;
 
                     change[app] ??= {};
                     change[app][stanza] ??= {
@@ -179,7 +179,7 @@ const TableConfig = ({ conf, file, dst_user = "nobody" }) =>
                                     )}
                                 </CodeCell>
                                 <Table.Cell>
-                                    <CopyConfig file={file} app={app} stanza={stanza} src={src} dst={dst} dst_user={dst_user} />
+                                    <CopyConfig file={file} app={app} stanza={stanza} attr={attr} src={src} dst={dst} dst_user={dst_user} />
                                 </Table.Cell>
                             </Table.Row>
                         )),
@@ -193,13 +193,13 @@ const TableConfig = ({ conf, file, dst_user = "nobody" }) =>
         <WaitSpinner size="large" />
     );
 
-const CopyConfig = ({ file, app, stanza, src, dst, dst_user }) => {
+const CopyConfig = ({ file, app, stanza, attr, src, dst, dst_user }) => {
     const config = useConfig();
     const queryClient = useQueryClient();
     const copy = useMutation(() => {
-        let data = src.content;
-        let url = `${config.dst.api}/servicesNS/${encodeURIComponent(dst_user)}/${encodeURIComponent(app)}/-/${endpoint(file)}`;
-        !!dst ? (url = `${url}/${encodeURIComponent(stanza)}`) : (data = { ...data, name: stanza });
+        let data = attr.map((a) => [a, src.content[a]]);
+        let url = `${config.dst.api}/servicesNS/${encodeURIComponent(dst_user)}/${encodeURIComponent(app)}/${endpoint(file)}`;
+        !!dst ? (url += `/${encodeURIComponent(stanza)}`) : data.push(["name", stanza]);
         return request({
             url,
             method: "POST",
@@ -210,7 +210,7 @@ const CopyConfig = ({ file, app, stanza, src, dst, dst_user }) => {
             },
         })
             .then(handle)
-            .then(handleAcl(config, !!dst ? url : `${url}/${stanza}`, src, queryClient))
+            .then(handleAcl(config, !!dst ? url : `${url}/${stanza}`, src.acl, queryClient))
             .then(processConfs)
             .then((newdata) => {
                 let newapp = Object.keys(newdata)[0];
