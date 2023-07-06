@@ -211,18 +211,20 @@ const CopyConfig = ({ file, app, stanza, attr, src, dst, dst_user }) => {
         })
             .then(handle)
             .then(handleAcl(config, !!dst ? url : `${url}/${stanza}`, src.acl, queryClient))
-            .then(processConfs)
-            .then((newdata) => {
-                let newapp = Object.keys(newdata)[0];
-                if (newapp !== app) {
-                    console.warn(
-                        `The new configuration for '${stanza}' was returned in the app '${newapp}' instead of '${app}'. This means it may not show up where you expect it to.`
-                    );
+            .then((data) => data.entry[0])
+            .then(({ name, content, acl }) => {
+                if (acl.sharing === "system" || acl.sharing === "global") {
+                    return queryClient.setQueryData(["dst", `servicesNS/nobody/system/${endpoint(file)}`], (prev) => ({
+                        ...prev,
+                        [name]: { content, acl },
+                    }));
                 }
-                /*queryClient.setQueryData(["dst", `servicesNS/${encodeURIComponent(dst_user)}/-/${endpoint(file)}`], (olddata) => ({
-                    ...olddata,
-                    [newapp]: { ...olddata?.[newapp], [stanza]: newdata[newapp][stanza] },
-                }));*/
+                if (acl.sharing === "app" || acl.sharing === "user") {
+                    return queryClient.setQueryData(["dst", `servicesNS/${encodeURIComponent(dst_user)}/-/${endpoint(file)}`], (prev) => ({
+                        ...prev,
+                        [acl.app]: { ...prev?.[acl.app], [name]: { content, acl } },
+                    }));
+                }
             });
     });
 
