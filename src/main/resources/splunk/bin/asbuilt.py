@@ -1,35 +1,38 @@
 from splunk.persistconn.application import PersistentServerConnectionApplication
 import json
-import requests
-import logging
+import os
+
+DATA_PATH = os.path.join(os.environ["SPLUNK_HOME"],"etc","apps","badmsc","local","asbuilt.json",)
 
 
-class request(PersistentServerConnectionApplication):
+class asbuilt(PersistentServerConnectionApplication):
     def __init__(self, command_line, command_arg, logger=None):
         super(PersistentServerConnectionApplication, self).__init__()
-        self.logger = logger
-        if self.logger == None:
-            self.logger = logging.getLogger(f"splunk.appserver.badmsc")
+
 
     def handle(self, in_string):
         args = json.loads(in_string)
 
         if args["method"] == "POST":
-            with open("asbuilt.data", "a") as f:
-                f.write(args["payload"])
+            with open(DATA_PATH, "a") as f:
+                f.write(args["payload"]+"\n")
+            return {"payload": "", "status": 201}
             
         if args["method"] == "GET":
             output = []
-            with open("asbuilt.data", "r") as f:
-                for line in f:
-                    try:
-                        output.append(JSON.parse(line))
-                    except:
-                        pass
+            try:
+                with open(DATA_PATH, "r") as f:
+                    for line in f:
+                        try:
+                            output.append(json.parse(line))
+                        except:
+                            pass
+            except:
+                return {"payload": [], "status": 204}
             return {"payload": output, "status": 200}
 
         return {
             "payload": "Method Not Allowed",
             "status": 405,
-            "headers": {"Allow": "POST"},
+            "headers": {"Allow": "GET,POST"},
         }

@@ -28,9 +28,8 @@ export const request = (body, signal) =>
         signal,
     })
 
-export const asbuilt = (body, signal) =>
+export const asbuilt = async (body) =>
     fetch(`${splunkdPath}/services/badmsc/asbuilt`, {
         ...FETCH_INIT,
-        body: JSON.stringify(body),
-        signal,
+        body: JSON.stringify(body)
     })

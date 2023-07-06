@@ -7,7 +7,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import React, { useMemo } from "react";
 import styled from "styled-components";
 import { ATTR_BLACKLIST } from "../shared/const";
-import { request } from "../shared/fetch";
+import { asbuilt, request } from "../shared/fetch";
 import { isort, isort0, latest } from "../shared/helpers";
 import { appNameConfs, handle, handleAcl, keyContent, makeQuery, nameContent, nameContentAcl, processConfs, useConfig } from "../shared/hooks";
 import MutateButton from "./MutateButton";
@@ -225,7 +225,8 @@ const CopyConfig = ({ file, app, stanza, attr, src, dst, dst_user }) => {
                         [acl.app]: { ...prev?.[acl.app], [name]: { content, acl } },
                     }));
                 }
-            });
+            })
+            .then(() => asbuilt({ action: "config", file, app, stanza, attr, src: config.src.api, dst: config.dst.api, dst_user }));
     });
 
     return <MutateButton mutation={copy} label={!!dst ? "Update" : "Create"} />;

@@ -6,7 +6,6 @@ import tarfile
 from io import BytesIO
 import os
 from pathlib import Path
-import time
 
 SPLUNK_HOME = os.environ["SPLUNK_HOME"]
 APP_NAME = "badmsc"
