@@ -6,7 +6,7 @@ import Table from "@splunk/react-ui/Table";
 import WaitSpinner from "@splunk/react-ui/WaitSpinner";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import React, { useMemo, useRef, useState } from "react";
-import { request } from "../shared/fetch";
+import { asbuilt, request } from "../shared/fetch";
 import { isort0 } from "../shared/helpers";
 import { handle, handleAcl, useApi, useApps, useConfig } from "../shared/hooks";
 import MutateButton from "./MutateButton";

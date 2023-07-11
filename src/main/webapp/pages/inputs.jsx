@@ -8,7 +8,7 @@ import React, { useEffect, useMemo } from "react";
 import Conf from "../components/Confs";
 import Header from "../components/Header";
 import MutateButton from "../components/MutateButton";
-import { request } from "../shared/fetch";
+import { asbuilt, request } from "../shared/fetch";
 import { handle, processConfs, useApi, useApps, useConfig, useLocal } from "../shared/hooks";
 import { Page } from "../shared/page";
 
@@ -116,7 +116,8 @@ const Passwords = ({ config }) => {
     );
 };
 
-const PasswordButton = ({ config, app, name, realm, password, exists }) => {
+const PasswordButton = ({ app, name, realm, password, exists }) => {
+    const config = useConfig();
     let queryClient = useQueryClient();
     let data = [["password", password]];
     let url = `${config.dst.api}/servicesNS/nobody/${app}/storage/passwords/`;
@@ -133,6 +134,7 @@ const PasswordButton = ({ config, app, name, realm, password, exists }) => {
         })
             .then(handle)
             .then(queryClient.invalidateQueries(PASSWORD_PATH))
+            .then(() => asbuilt({ action: "password", new: !exists, app, name, realm, src: config.src.api, dst: config.dst.api }))
     );
     return <MutateButton mutation={mutation} label={exists ? "Update" : "Create"} />;
 };

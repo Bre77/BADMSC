@@ -15,7 +15,7 @@ import WaitSpinner from "@splunk/react-ui/WaitSpinner";
 import { useCallback, useQuery, useQueryClient } from "@tanstack/react-query";
 import React, { useMemo, useState } from "react";
 import Header from "../components/Header";
-import { request } from "../shared/fetch";
+import { asbuilt, request } from "../shared/fetch";
 import { isort0, wrapSetValue } from "../shared/helpers";
 import { handle, useAcs, useConfig, useDebounce } from "../shared/hooks";
 import { Page } from "../shared/page";
@@ -112,11 +112,13 @@ const Root = () => {
                             Authorization: `Bearer ${config.dst.token}`,
                         },
                         json,
-                    }).then((res) => {
-                        count++;
-                        if (!res.ok) console.warn(res.json());
-                        setCreate(Math.round((count / list.length) * 100));
                     })
+                        .then((res) => {
+                            count++;
+                            if (!res.ok) console.warn(res.json());
+                            setCreate(Math.round((count / list.length) * 100));
+                        })
+                        .then(() => asbuilt({ action: "index", ...base, src: config.src.api, dst: config.dst.api }))
                 ),
             Promise.resolve()
         ).then(() => {

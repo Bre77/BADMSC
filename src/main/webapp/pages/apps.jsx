@@ -8,12 +8,12 @@ import P from "@splunk/react-ui/Paragraph";
 import Table from "@splunk/react-ui/Table";
 import Text from "@splunk/react-ui/Text";
 import WaitSpinner from "@splunk/react-ui/WaitSpinner";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import React, { useEffect, useMemo, useState } from "react";
+import { useMutation, useQuery } from "@tanstack/react-query";
+import React, { useMemo, useState } from "react";
 import Header from "../components/Header";
 import MutateButton from "../components/MutateButton";
 import { APP_ID } from "../shared/const";
-import { request } from "../shared/fetch";
+import { asbuilt, request } from "../shared/fetch";
 import { wrapSetValue } from "../shared/helpers";
 import { useApps, useConfig } from "../shared/hooks";
 import { Page } from "../shared/page";
@@ -305,7 +305,9 @@ const InstallSplunkbase = ({ token, splunkbase }) => {
                     "ACS-Licensing-Ack": splunkbase.license_url,
                 },
                 data: { splunkbaseID: splunkbase.uid },
-            }).then((res) => (res.status === 202 ? Promise.resolve() : Promise.reject(res.status))),
+            })
+                .then((res) => (res.status === 202 ? Promise.resolve() : Promise.reject(res.status)))
+                .then(() => asbuilt({ action: "splunkbaseapp", splunkbase, src: config.src.api, dst: config.dst.api })),
     });
     return <MutateButton mutation={install} label="Install" disabled={!token || install.isSuccess} />;
 };
@@ -410,6 +412,7 @@ const InstallPrivate = ({ token, app }) => {
                     setStatus("Success");
                     return Promise.resolve();
                 })
+                .then(() => asbuilt({ action: "privateapp", app, src: config.src.api, dst: config.dst.api }))
                 .catch((err) => {
                     console.error(err);
                     if (err) {

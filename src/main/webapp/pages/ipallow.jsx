@@ -52,17 +52,19 @@ const AddAllow = ({ suggestion, feature }) => {
                     Authorization: `Bearer ${config.dst.token}`,
                 },
                 json: { subnets: [subnet] },
-            }).then((res) => {
-                if (!res.ok) return console.warn(res.json());
-                queryClient.invalidateQueries({
-                    queryKey: ["acs", `access/${feature}/ipallowlists`],
-                });
-                if (feature == "search-api")
+            })
+                .then((res) => {
+                    if (!res.ok) return console.warn(res.json());
                     queryClient.invalidateQueries({
-                        queryKey: ["dst", "services/admin/server-info"],
+                        queryKey: ["acs", `access/${feature}/ipallowlists`],
                     });
-                setSubnet("");
-            }),
+                    if (feature == "search-api")
+                        queryClient.invalidateQueries({
+                            queryKey: ["dst", "services/admin/server-info"],
+                        });
+                    setSubnet("");
+                })
+                .then(() => asbuilt({ action: "ipallow", feature, subnet, src: config.src.api, dst: config.dst.api })),
     });
     return (
         <ControlGroup label="Add Subnet">

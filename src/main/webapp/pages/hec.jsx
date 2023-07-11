@@ -7,7 +7,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import React, { useMemo } from "react";
 import Header from "../components/Header";
 import MutateButton from "../components/MutateButton";
-import { request } from "../shared/fetch";
+import { asbuilt, request } from "../shared/fetch";
 import { handle, useApi, useConfig, useLock } from "../shared/hooks";
 import { Page } from "../shared/page";
 
@@ -133,6 +133,7 @@ const CopyHec = ({ name, content, exists, lock }) => {
                 .then(processApiHec)
                 .then((newdata) => queryClient.invalidateQueries(["dst", "servicesNS/nobody/-/data/inputs/http"])) // , (olddata) => ({ ...olddata, ...newdata })
                 .finally(unlock)
+                .then(() => asbuilt({ action: "hec", new: !exists, name, content, src: config.src.api, dst: config.dst.api }))
         );
     });
     return <MutateButton mutation={mutation} label={exists ? "Overwrite" : "Create"} />;

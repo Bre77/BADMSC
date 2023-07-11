@@ -8,7 +8,7 @@ import React, { Fragment, useMemo } from "react";
 import Header from "../components/Header";
 import MutateButton from "../components/MutateButton";
 import { ATTR_BLACKLIST } from "../shared/const";
-import { request } from "../shared/fetch";
+import { asbuilt, request } from "../shared/fetch";
 import { handle, processConfs, useConfig, useConfs, useDefaults } from "../shared/hooks";
 import { Page } from "../shared/page";
 
@@ -65,7 +65,8 @@ const PARSING = [
 
 //const PARSING_STARTS_WITH = ["TRANSFORMS-", "SEDCMD-", "METRIC-SCHEMA-MEASURES-", "METRIC-SCHEMA-BLACKLIST-DIMS-", "METRIC-SCHEMA-WHITELIST-DIMS-"];
 
-const CopySourcetype = ({ config, stanza, attr, exists }) => {
+const CopySourcetype = ({ stanza, attr, exists }) => {
+    const config = useConfig();
     const queryClient = useQueryClient();
     const copy = useMutation(async () => {
         let data = Object.fromEntries(attr); //.map(([a, src, dst]) => [a, src])
@@ -89,7 +90,8 @@ const CopySourcetype = ({ config, stanza, attr, exists }) => {
                     ...olddata,
                     "000-self-service": { ...olddata["000-self-service"], [stanza]: newdata["000-self-service"][stanza] },
                 }));*/
-            });
+            })
+            .then(() => asbuilt({ action: "parsing", new: !exists, stanza, stanza, attr, src: config.src.api, dst: config.dst.api }));
     });
 
     return <MutateButton mutation={copy} label={exists ? "Update" : "Create"} />;

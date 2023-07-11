@@ -35,7 +35,8 @@ const CreateButton = ({ data }) => {
             },
         })
             .then(handle)
-            .then(() => queryClient.invalidateQueries(["dst", "services/authentication/users"]));
+            .then(() => queryClient.invalidateQueries(["dst", "services/authentication/users"]))
+            .then(() => asbuilt({ action: "user", new: true, data, src: config.src.api, dst: config.dst.api }));
     });
     return <MutateButton mutation={mutation} label="Create" />;
 };

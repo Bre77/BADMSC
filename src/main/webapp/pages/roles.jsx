@@ -31,13 +31,14 @@ const FIELDS = [
 
 //const nameContent = (data) => Object.fromEntries(data.entry.map(({ name, content }) => [name, content]));
 
-const CreateButton = ({ config, role, data, exists }) => {
+const CreateButton = ({ role, data, exists }) => {
+    const config = useConfig()
     if (exists && !data.length) {
         return <Button label="Empty" disabled />;
     }
     const queryClient = useQueryClient();
     let url = `${config.dst.api}/${ENDPOINT}/`;
-    exists ? (url += role) : data.push(["name", role]);
+    exists ? (url += role) : data = [...data,["name", role]]);
     const mutation = useMutation(() =>
         request({
             url,
@@ -56,6 +57,7 @@ const CreateButton = ({ config, role, data, exists }) => {
                     [role]: newdata[role],
                 }))
             )
+            .then(() => asbuilt({ action: "role", new: !exists, role, src: config.src.api, dst: config.dst.api }))
     );
 
     return <MutateButton mutation={mutation} label={exists ? "Modify" : "Create"} />;

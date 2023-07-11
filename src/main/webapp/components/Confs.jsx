@@ -7,7 +7,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import React, { useMemo } from "react";
 import styled from "styled-components";
 import { ATTR_BLACKLIST, CONF_FILES } from "../shared/const";
-import { request } from "../shared/fetch";
+import { asbuilt, request } from "../shared/fetch";
 import { isort0, latest } from "../shared/helpers";
 import { handle, handleAcl, processConfs, useApps, useConfig, useConfs, useDefaults } from "../shared/hooks";
 import MutateButton from "./MutateButton";
