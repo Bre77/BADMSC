@@ -10,7 +10,7 @@ import WaitSpinner from "@splunk/react-ui/WaitSpinner";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import React, { useEffect, useState } from "react";
 import Header from "../components/Header";
-import { request } from "../shared/fetch";
+import { asbuilt, request } from "../shared/fetch";
 import { wrapSetValue } from "../shared/helpers";
 import { useAcs, useApi, useConfig } from "../shared/hooks";
 import { Page } from "../shared/page";
