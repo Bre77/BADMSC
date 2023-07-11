@@ -132,7 +132,7 @@ const LookupCopy = ({ app, file, type, label, src, dst, dst_user }) => {
     const config = useConfig();
     const QueryClient = useQueryClient();
     const dst_path = `${config.dst.api}/servicesNS/${dst_user}/${app}/${PATHS[type]}/${file}`;
-    const copy = useMutation(async () =>
+    const copy = useMutation(() =>
         QueryClient.fetchQuery(getLookupQuery(config.src, app, file, type, src.owner)).then((contents) =>
             MUTATIONS[type](config.dst, contents, app, file)
                 .then(() =>
@@ -179,7 +179,8 @@ const lookupHandle = (data) =>
         return x;
     }, {});
 
-export default ({ config, type, scope = false, src_user = "nobody", dst_user = "nobody" }) => {
+export default ({ type, scope = false, src_user = "nobody", dst_user = "nobody" }) => {
+    const config = useConfig();
     const src = useApi(config.src, `servicesNS/${src_user}/-/${PATHS[type]}`, lookupHandle);
     const dst = useApi(config.dst, `servicesNS/${dst_user}/-/${PATHS[type]}`, lookupHandle);
     const src_apps = useApps(config.src);
