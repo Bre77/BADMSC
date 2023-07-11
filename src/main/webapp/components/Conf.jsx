@@ -132,6 +132,56 @@ export const ScopedConf = ({ file, src_user = "nobody", dst_user = "nobody" }) =
     return <TableConfig conf={conf} file={file} dst_user={dst_user} />;
 };
 
+export const AllConf = ({ file, src_user = "nobody", dst_user = "nobody" }) => {
+    const config = useConfig();
+
+    const src_def = useQuery({ ...makeQuery(config.src, `services/properties/${file}/default`, nameContent), cacheTime: 0 }).data;
+    const src_conf_app = useQuery({
+        ...makeQuery(config.src, `servicesNS/${src_user}/-/${endpoint(file)}`, appNameConfs),
+        cacheTime: 0,
+    }).data;
+    const dst_conf_app = useQuery({
+        ...makeQuery(config.dst, `servicesNS/${dst_user}/-/${endpoint(file)}`, appNameConfs),
+        cacheTime: 0,
+    }).data;
+    const dst_apps = useQuery(makeQuery(config.dst, "services/apps/local", keyContent)).data;
+
+    const isLoading = !src_def || !src_conf_app || !dst_conf_app || !dst_apps;
+
+    const conf = useMemo(() => {
+        if (isLoading) return false;
+
+        const change = {};
+        Object.entries(src_conf_app).forEach(([app, stanzas]) => {
+            if (app === "learned" || app === "000-self-service" || !dst_apps[app]) return;
+
+            Object.entries(stanzas).forEach(([stanza, src]) => {
+                const dst = dst_conf_app?.[app]?.[stanza];
+                Object.entries(src.content).forEach(([attr, src_value]) => {
+                    if (ATTR_BLACKLIST.includes(attr)) return;
+                    const nrm_value = normalizeBoolean(src_value);
+                    const def_value = normalizeBoolean(src_def?.[attr]);
+                    const dst_value = dst?.content?.[attr];
+
+                    if (nrm_value == def_value || nrm_value === dst_value) return;
+
+                    change[app] ??= {};
+                    change[app][stanza] ??= {
+                        attr: [],
+                        src,
+                        dst,
+                    };
+                    change[app][stanza].attr.push(attr);
+                });
+            });
+        });
+
+        return sortConf(change);
+    }, [src_def, src_conf_app, dst_conf_app, dst_apps]);
+
+    return <TableConfig conf={conf} file={file} dst_user={dst_user} />;
+};
+
 const TableConfig = ({ conf, file, dst_user = "nobody" }) =>
     conf ? (
         conf.length ? (
