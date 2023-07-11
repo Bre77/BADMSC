@@ -118,7 +118,7 @@ const Root = () => {
                             if (!res.ok) console.warn(res.json());
                             setCreate(Math.round((count / list.length) * 100));
                         })
-                        .then(() => asbuilt({ action: "index", ...base, src: config.src.api, dst: config.dst.api }))
+                        .then(() => asbuilt({ action: "index", data: json, src: config.src.api, dst: config.dst.api }))
                 ),
             Promise.resolve()
         ).then(() => {

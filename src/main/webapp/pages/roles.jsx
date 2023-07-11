@@ -10,7 +10,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import React, { useMemo } from "react";
 import Header from "../components/Header";
 import MutateButton from "../components/MutateButton";
-import { request } from "../shared/fetch";
+import { asbuilt, request } from "../shared/fetch";
 import { dedup } from "../shared/helpers";
 import { handle, nameContent, useAcs, useApi, useApps, useConfig } from "../shared/hooks";
 import { Page } from "../shared/page";
@@ -36,9 +36,10 @@ const CreateButton = ({ role, data, exists }) => {
     if (exists && !data.length) {
         return <Button label="Empty" disabled />;
     }
+    let payload = [...data];
     const queryClient = useQueryClient();
     let url = `${config.dst.api}/${ENDPOINT}/`;
-    exists ? (url += role) : (data = [...data, ["name", role]]);
+    exists ? (url += role) : payload.push(["name", role]);
     const mutation = useMutation(() =>
         request({
             url,
@@ -57,7 +58,7 @@ const CreateButton = ({ role, data, exists }) => {
                     [role]: newdata[role],
                 }))
             )
-            .then(() => asbuilt({ action: "role", new: !exists, role, src: config.src.api, dst: config.dst.api }))
+            .then(() => asbuilt({ action: "role", new: !exists, role, data: Object.fromEntries(data), src: config.src.api, dst: config.dst.api }))
     );
 
     return <MutateButton mutation={mutation} label={exists ? "Modify" : "Create"} />;
@@ -157,6 +158,7 @@ const Root = () => {
                                 [role]: newdata[role],
                             }))
                         )
+                        .then(() => asbuilt({ action: "role", new: true, data: {}, role, src: config.src.api, dst: config.dst.api }))
                         .catch()
                 ),
             Promise.resolve()

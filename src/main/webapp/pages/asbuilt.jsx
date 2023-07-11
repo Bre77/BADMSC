@@ -4,18 +4,22 @@ import { defaultFetchInit } from "@splunk/splunk-utils/fetch";
 import { useQuery } from "@tanstack/react-query";
 import React from "react";
 import Header from "../components/Header";
+import { handle } from "../shared/hooks";
 import { Page } from "../shared/page";
 
 const Root = () => {
     const asBuilt = useQuery({
         queryKey: ["asBuilt"],
-        queryFn: ({ signal }) => fetch(`${splunkdPath}/services/badmsc/asbuilt?output_mode=json`, { ...defaultFetchInit, signal }),
+        queryFn: ({ signal }) => fetch(`${splunkdPath}/services/badmsc/asbuilt?output_mode=json`, { ...defaultFetchInit, signal }).then(handle),
+        placeholderData: [],
     }).data;
     return (
         <>
             <Header title="As Built" prev="data" />
             <P>Your Done!</P>
-            <P>{JSON.stringify(asBuilt)}</P>
+            {asBuilt.map((action, x) => (
+                <P key={x}>{JSON.stringify(action)}</P>
+            ))}
         </>
     );
 };
