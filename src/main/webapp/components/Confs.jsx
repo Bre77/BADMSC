@@ -25,7 +25,8 @@ const ENDPOINTS = {
 };
 const endpoint = (file) => ENDPOINTS[file] ?? `configs/conf-${file}`;
 
-export default ({ config, scope = false, files = CONF_FILES, src_user = "nobody", dst_user = "nobody" }) => {
+export default ({ scope = false, files = CONF_FILES, src_user = "nobody", dst_user = "nobody" }) => {
+    const config = useConfig();
     const def = useDefaults(config.src, files);
     const src = useConfs(config.src, files, src_user);
     const dst = useConfs(config.dst, files, dst_user);

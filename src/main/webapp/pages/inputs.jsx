@@ -5,7 +5,7 @@ import Table from "@splunk/react-ui/Table";
 import WaitSpinner from "@splunk/react-ui/WaitSpinner";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import React, { useEffect, useMemo } from "react";
-import Conf from "../components/Confs";
+import { AllConf } from "../components/Conf";
 import Header from "../components/Header";
 import MutateButton from "../components/MutateButton";
 import { asbuilt, request } from "../shared/fetch";
@@ -15,24 +15,24 @@ import { Page } from "../shared/page";
 const trunc = (str, len = 256) => (str && str.length > len ? `${str.slice(0, len - 3)}...` : str);
 
 const Root = () => {
-    const config = useConfig();
     return (
         <>
             <Header title="Inputs" prev="hec" next="config" />
             <P>Modular Inputs use many different files, so this page will attempt to migrate them all before migrating the inputs.conf</P>
             <Heading level={2}>Copy App Specific Account Configuration</Heading>
             <P>Select any modular input configuration files that need to be migrated</P>
-            <ModInputs config={config} />
+            <ModInputs />
             <Heading level={2}>Copy Passwords</Heading>
-            <Passwords config={config} />
+            <Passwords />
             <Heading level={2}>Copy Inputs</Heading>
             <P>Be sure to ignore and SplunkTCP or HTTP inputs here, only modular inputs should be migrated.</P>
-            <Conf config={config} files={["inputs"]} />
+            <AllConf file="inputs" />
         </>
     );
 };
 
-const ModInputs = ({ config }) => {
+const ModInputs = () => {
+    const config = useConfig();
     const [files, setFiles] = useLocal(`badmsc_extra_files-${config.src.api}`, MODINPUT_CONF_FILES);
     const handleFiles = (e, { values }) => setFiles(values);
     const src_files = useApi(config.src, "services/properties", (data) => data.entry.map((e) => e.name).filter((f) => !STANDARD_CONF_FILES.includes(f)));
@@ -56,7 +56,8 @@ const ModInputs = ({ config }) => {
 
 const PASSWORD_PATH = "servicesNS/nobody/-/storage/passwords";
 
-const Passwords = ({ config }) => {
+const Passwords = () => {
+    const config = useConfig();
     const src_passwords = useApi(config.src, PASSWORD_PATH, processConfs);
     const dst_passwords = useApi(config.dst, PASSWORD_PATH, processConfs);
     const dst_apps = useApps(config.dst);
