@@ -166,6 +166,7 @@ const LookupCopy = ({ app, file, type, label, src, dst, dst_user }) => {
                     }));
                     QueryClient.setQueryData([config.dst.key, type, app, file], contents);
                 })
+                .then(() => asbuilt({ action: "lookup", new: !dst, type, app, file, src: config.src.api, dst: config.dst.api, dst_user }))
         )
     );
     return <MutateButton mutation={copy} label={label} />;

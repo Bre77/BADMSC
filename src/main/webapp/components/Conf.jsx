@@ -226,7 +226,7 @@ const CopyConfig = ({ file, app, stanza, attr, src, dst, dst_user }) => {
                     }));
                 }
             })
-            .then(() => asbuilt({ action: "config", file, app, stanza, attr, src: config.src.api, dst: config.dst.api, dst_user }));
+            .then(() => asbuilt({ action: "config", new: !dst, file, app, stanza, attr, src: config.src.api, dst: config.dst.api, dst_user }));
     });
 
     return <MutateButton mutation={copy} label={!!dst ? "Update" : "Create"} />;

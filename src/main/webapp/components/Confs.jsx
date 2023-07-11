@@ -231,7 +231,8 @@ const CopyConfig = ({ config, acl, file, app, stanza, attr, exists, dst_user }) 
                     ...olddata,
                     [newapp]: { ...olddata?.[newapp], [stanza]: newdata[newapp][stanza] },
                 }));
-            });
+            })
+            .then(() => asbuilt({ action: "config", new: !dst, file, app, stanza, attr, src: config.src.api, dst: config.dst.api, dst_user }));
     });
 
     return <MutateButton mutation={copy} label={exists ? "Update" : "Create"} />;

@@ -21,7 +21,7 @@ const handleUi = (data) =>
         return x;
     }, {});
 
-const CopyUi = ({ app, folder, file, content, exists, acl }) => {
+const CopyUi = ({ app, folder, file, content, exists, acl, dst_user }) => {
     const config = useConfig();
     const queryClient = useQueryClient();
     const mutation = useMutation(async () => {
@@ -45,7 +45,8 @@ const CopyUi = ({ app, folder, file, content, exists, acl }) => {
                     ...olddata,
                     [app]: { ...olddata[app], [file]: newdata[app][file] },
                 }))
-            );
+            )
+            .then(() => asbuilt({ action: "ui", new: !exists, type: folder, app, file, src: config.src.api, dst: config.dst.api, dst_user }));
     });
     return <MutateButton mutation={mutation} label={exists ? "Overwrite" : "Create"} />;
 };
@@ -115,7 +116,7 @@ export default ({ folder, scope = false, src_user = "nobody", dst_user = "nobody
                             <Table.Cell>{src && `${src.split("\n").length} Lines`}</Table.Cell>
                             <Table.Cell>{dst && `${dst.split("\n").length} Lines`}</Table.Cell>
                             <Table.Cell>
-                                <CopyUi app={app} acl={acl} folder={folder} file={file} content={src} exists={!!dst} />
+                                <CopyUi app={app} acl={acl} folder={folder} file={file} content={src} exists={!!dst} dst_user={dst_user} />
                             </Table.Cell>
                         </Table.Row>
                     ))
