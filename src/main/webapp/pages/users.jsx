@@ -23,7 +23,7 @@ const CreateButton = ({ data }) => {
             ["force-change-pass", true],
             ["tz", data.tz],
             ["defaultApp", data.defaultApp],
-            ...data.roles.map((x) => x[1]),
+            ...data.roles.map((x) => ["roles", x[1]]),
         ];
         return request({
             url: `${config.dst.api}/services/authentication/users`,
