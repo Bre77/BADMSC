@@ -11,7 +11,7 @@ const Root = () => {
             <Header title="CSV Lookups" prev="views" next="kv" />
             <P>Its difficult to know if a lookup is different, so you will need to use some disgression.</P>
             <Heading level={2}>Copy CSV Lookup Files</Heading>
-            <Lookup type="csv" mutationFn={mutation} />
+            <Lookup type="csv" />
         </>
     );
 };

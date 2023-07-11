@@ -7,7 +7,6 @@ import Lookup from "../components/Lookup";
 import { Page } from "../shared/page";
 
 const Root = () => {
-    const config = useConfig();
     return (
         <>
             <Header title="KV Lookups" prev="csv" next="data" />
@@ -16,9 +15,9 @@ const Root = () => {
                 defined in transforms.conf to be useful at search time, which you should have already copied at the appropriate scope.
             </P>
             <Heading level={2}>Copy Collections</Heading>
-            <Conf config={config} files={["collections"]} />
+            <Conf files={["collections"]} />
             <Heading level={2}>Copy KV Store data</Heading>
-            <Lookup config={config} type="kv" />
+            <Lookup type="kv" />
         </>
     );
 };
