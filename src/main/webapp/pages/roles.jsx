@@ -32,13 +32,13 @@ const FIELDS = [
 //const nameContent = (data) => Object.fromEntries(data.entry.map(({ name, content }) => [name, content]));
 
 const CreateButton = ({ role, data, exists }) => {
-    const config = useConfig()
+    const config = useConfig();
     if (exists && !data.length) {
         return <Button label="Empty" disabled />;
     }
     const queryClient = useQueryClient();
     let url = `${config.dst.api}/${ENDPOINT}/`;
-    exists ? (url += role) : data = [...data,["name", role]]);
+    exists ? (url += role) : (data = [...data, ["name", role]]);
     const mutation = useMutation(() =>
         request({
             url,
