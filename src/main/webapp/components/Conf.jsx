@@ -237,7 +237,7 @@ const TableConfig = ({ conf, file, dst_user = "nobody" }) =>
                 </Table.Body>
             </Table>
         ) : (
-            <Message>No modified {file}.conf found</Message>
+            <Message type="info">No modified {file}.conf found</Message>
         )
     ) : (
         <WaitSpinner size="large" />

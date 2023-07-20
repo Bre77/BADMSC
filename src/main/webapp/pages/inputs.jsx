@@ -1,4 +1,5 @@
 import Heading from "@splunk/react-ui/Heading";
+import Message from "@splunk/react-ui/Message";
 import Multiselect from "@splunk/react-ui/Multiselect";
 import P from "@splunk/react-ui/Paragraph";
 import Table from "@splunk/react-ui/Table";
@@ -6,6 +7,7 @@ import WaitSpinner from "@splunk/react-ui/WaitSpinner";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import React, { useEffect, useMemo } from "react";
 import { AllConf } from "../components/Conf";
+import Confs from "../components/Confs";
 import Header from "../components/Header";
 import MutateButton from "../components/MutateButton";
 import { asbuilt, request } from "../shared/fetch";
@@ -49,7 +51,7 @@ const ModInputs = () => {
                 ))}
             </Multiselect>
             <br />
-            {src_files.isLoading ? <WaitSpinner size="large" /> : <Conf config={config} files={files} />}
+            {src_files.isLoading ? <WaitSpinner size="large" /> : files.map((file) => <AllConf key={file} file={file} />)}
         </>
     );
 };
@@ -76,7 +78,7 @@ const Passwords = () => {
     }, [src_passwords.data, dst_passwords.data, dst_apps.data]);
     return src_passwords.isLoading || dst_passwords.isLoading ? (
         <WaitSpinner size="large" />
-    ) : (
+    ) : passwords.length ? (
         <Table stripeRows>
             <Table.Head>
                 <Table.HeadCell>File</Table.HeadCell>
@@ -114,6 +116,8 @@ const Passwords = () => {
                 ])}
             </Table.Body>
         </Table>
+    ) : (
+        <Message type="info">No modified passwords.conf found</Message>
     );
 };
 
