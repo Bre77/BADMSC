@@ -83,7 +83,7 @@ const Root = () => {
     const roles = useMemo(() => {
         if (isLoading) return [];
 
-        const allowedIndexes = dstIndexes.data.map((i) => i.name);
+        const allowedIndexes = dstIndexes.data?.map((i) => i.name) || [];
         allowedIndexes.push("*");
         const allowedApps = Object.keys(dstApps.data);
 
