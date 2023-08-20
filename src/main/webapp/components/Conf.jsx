@@ -53,7 +53,7 @@ export const GlobalConf = ({ file }) => {
         const change = {};
         Object.entries(src_conf_global).forEach(([stanza, src]) => {
             const app = src.acl.app;
-            if (app === "learned" || app === "000-self-service" || !(dst_apps[app] || app == "system")) return;
+            if (app === "learned" || app === "000-self-service" || !(dst_apps.includes(app) || app == "system")) return;
             const dst = dst_conf_global?.[stanza];
             Object.entries(src.content).forEach(([attr, src_value]) => {
                 if (ATTR_BLACKLIST.includes(attr)) return;
@@ -101,7 +101,8 @@ export const ScopedConf = ({ file, src_user = "nobody", dst_user = "nobody" }) =
 
         const change = {};
         Object.entries(src_conf_app).forEach(([app, stanzas]) => {
-            if (app === "learned" || app === "000-self-service" || !dst_apps[app]) return;
+            console.log(app);
+            if (app === "learned" || app === "000-self-service" || !dst_apps.includes(app)) return;
 
             Object.entries(stanzas).forEach(([stanza, src]) => {
                 const dst = dst_conf_app?.[app]?.[stanza];
