@@ -101,7 +101,6 @@ export const ScopedConf = ({ file, src_user = "nobody", dst_user = "nobody" }) =
 
         const change = {};
         Object.entries(src_conf_app).forEach(([app, stanzas]) => {
-            console.log(app);
             if (app === "learned" || app === "000-self-service" || !dst_apps.includes(app)) return;
 
             Object.entries(stanzas).forEach(([stanza, src]) => {
