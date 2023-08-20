@@ -6,15 +6,15 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import React, { useMemo } from "react";
 import Header from "../components/Header";
 import MutateButton from "../components/MutateButton";
-import { request } from "../shared/fetch";
+import { asbuilt, request } from "../shared/fetch";
 import { handle, keyContent, nameContent, useApi, useConfig, useMaps } from "../shared/hooks";
 import { Page } from "../shared/page";
 
-const CreateButton = ({ data }) => {
-    const queryClient = useQueryClient();
-    const config = useConfig();
-    const mutation = useMutation(async () => {
-        let x = [
+const CreateUser = (config, data) =>
+    request({
+        url: `${config.dst.api}/services/authentication/users`,
+        method: "POST",
+        data: [
             ["name", data.name],
             ["realname", data.realname],
             ["email", data.email],
@@ -24,21 +24,33 @@ const CreateButton = ({ data }) => {
             ["tz", data.tz],
             ["defaultApp", data.defaultApp],
             ...data.roles.map((x) => ["roles", x[1]]),
-        ];
-        return request({
-            url: `${config.dst.api}/services/authentication/users`,
-            method: "POST",
-            data: x,
-            params: { output_mode: "json" },
-            headers: {
-                Authorization: `Bearer ${config.dst.token}`,
-            },
-        })
-            .then(handle)
-            .then(() => queryClient.invalidateQueries(["dst", "services/authentication/users"]))
-            .then(() => asbuilt({ action: "user", new: true, data, src: config.src.api, dst: config.dst.api }));
-    });
+        ],
+        params: { output_mode: "json" },
+        headers: {
+            Authorization: `Bearer ${config.dst.token}`,
+        },
+    })
+        .then(handle)
+        .then(() => asbuilt({ action: "user", new: true, data, src: config.src.api, dst: config.dst.api }));
+
+const CreateButton = ({ data }) => {
+    const queryClient = useQueryClient();
+    const config = useConfig();
+    const mutation = useMutation(() => CreateUser(config, data).then(() => queryClient.invalidateQueries(["dst", "services/authentication/users"])));
+
     return <MutateButton mutation={mutation} label="Create" />;
+};
+
+const CreateAllButton = ({ users }) => {
+    const queryClient = useQueryClient();
+    const config = useConfig();
+    const mutation = useMutation(() =>
+        users
+            .reduce((promise, user) => promise.then(() => CreateUser(config, user)), Promise.resolve())
+            .then(() => queryClient.invalidateQueries(["dst", "services/authentication/users"]))
+    );
+
+    return <MutateButton mutation={mutation} label="Create All" />;
 };
 
 const Root = () => {
@@ -75,32 +87,37 @@ const Root = () => {
                 must be mapped on the next page.
             </P>
             {users.length ? (
-                <Table stripeRows>
-                    <Table.Head>
-                        <Table.HeadCell>User</Table.HeadCell>
-                        <Table.HeadCell>Name</Table.HeadCell>
-                        <Table.HeadCell>Email</Table.HeadCell>
-                        <Table.HeadCell>Default App</Table.HeadCell>
-                        <Table.HeadCell>Roles</Table.HeadCell>
-                        <Table.HeadCell>Timezone</Table.HeadCell>
-                        <Table.HeadCell>Create</Table.HeadCell>
-                    </Table.Head>
-                    <Table.Body>
-                        {users.map((user) => (
-                            <Table.Row key={user.name}>
-                                <Table.Cell>{user.name}</Table.Cell>
-                                <Table.Cell>{user.realname}</Table.Cell>
-                                <Table.Cell>{user.email}</Table.Cell>
-                                <Table.Cell>{user.defaultApp}</Table.Cell>
-                                <Table.Cell>{user.roles.map(([a, b]) => (a == b ? a : `${a} > ${b}`)).join(", ")}</Table.Cell>
-                                <Table.Cell>{user.tz}</Table.Cell>
-                                <Table.Cell>
-                                    <CreateButton data={user} />
-                                </Table.Cell>
-                            </Table.Row>
-                        ))}
-                    </Table.Body>
-                </Table>
+                <>
+                    <CreateAllButton users={users} />
+                    <br />
+                    <br />
+                    <Table stripeRows>
+                        <Table.Head>
+                            <Table.HeadCell>User</Table.HeadCell>
+                            <Table.HeadCell>Name</Table.HeadCell>
+                            <Table.HeadCell>Email</Table.HeadCell>
+                            <Table.HeadCell>Default App</Table.HeadCell>
+                            <Table.HeadCell>Roles</Table.HeadCell>
+                            <Table.HeadCell>Timezone</Table.HeadCell>
+                            <Table.HeadCell>Create</Table.HeadCell>
+                        </Table.Head>
+                        <Table.Body>
+                            {users.map((user) => (
+                                <Table.Row key={user.name}>
+                                    <Table.Cell>{user.name}</Table.Cell>
+                                    <Table.Cell>{user.realname}</Table.Cell>
+                                    <Table.Cell>{user.email}</Table.Cell>
+                                    <Table.Cell>{user.defaultApp}</Table.Cell>
+                                    <Table.Cell>{user.roles.map(([a, b]) => (a == b ? a : `${a} > ${b}`)).join(", ")}</Table.Cell>
+                                    <Table.Cell>{user.tz}</Table.Cell>
+                                    <Table.Cell>
+                                        <CreateButton data={user} />
+                                    </Table.Cell>
+                                </Table.Row>
+                            ))}
+                        </Table.Body>
+                    </Table>
+                </>
             ) : (
                 <Message type="success">All users have been created</Message>
             )}
