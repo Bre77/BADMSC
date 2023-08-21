@@ -113,7 +113,7 @@ export const ScopedConf = ({ file, src_user = "nobody", dst_user = "nobody" }) =
                     const dst_value_global = normalizeBoolean(dst_conf_global?.[stanza]?.content?.[attr]);
                     const dst_value = dst?.content?.[attr];
 
-                    if (nrm_value == def_value || nrm_value == src_value_global || nrm_value == dst_value_global || nrm_value === dst_value) return;
+                    if (nrm_value == def_value || nrm_value == src_value_global || nrm_value == dst_value_global || src_value === dst_value) return;
 
                     change[app] ??= {};
                     change[app][stanza] ??= {
