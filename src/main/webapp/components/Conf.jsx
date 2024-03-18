@@ -132,6 +132,72 @@ export const ScopedConf = ({ file, src_user = "nobody", dst_user = "nobody" }) =
     return <TableConfig conf={conf} file={file} dst_user={dst_user} />;
 };
 
+export const PrivateConf = ({ file, src_user = "nobody", dst_user = "nobody" }) => {
+    const config = useConfig();
+
+    const src_def = useQuery({ ...makeQuery(config.src, `services/properties/${file}/default`, nameContent), cacheTime: 0 }).data;
+    const src_conf_global = useQuery({ ...makeQuery(config.src, `servicesNS/${src_user}/system/${endpoint(file)}`, nameContentAcl), cacheTime: 0 }).data;
+    const src_conf_app = useQuery({
+        ...makeQuery(config.src, `servicesNS/${src_user}/-/${endpoint(file)}`, appNameConfs, { search: "eai:acl.sharing=app" }),
+        cacheTime: 0,
+    }).data;
+    const src_conf_user = useQuery({
+        ...makeQuery(config.src, `servicesNS/${src_user}/-/${endpoint(file)}#private`, appNameConfs, { search: "eai:acl.sharing=user" }),
+        cacheTime: 0,
+    }).data;
+    const dst_conf_global = useQuery({ ...makeQuery(config.dst, `servicesNS/${dst_user}/system/${endpoint(file)}`, nameContentAcl), cacheTime: 0 }).data;
+    const dst_conf_app = useQuery({
+        ...makeQuery(config.dst, `servicesNS/${dst_user}/-/${endpoint(file)}`, appNameConfs, { search: "eai:acl.sharing=app" }),
+        cacheTime: 0,
+    }).data; 
+    const dst_conf_user = useQuery({
+        ...makeQuery(config.dst, `servicesNS/${dst_user}/-/${endpoint(file)}#private`, appNameConfs, { search: "eai:acl.sharing=user" }),
+        cacheTime: 0,
+    }).data;
+    const dst_apps = useQuery(makeQuery(config.dst, "services/apps/local", keyContent)).data;
+
+    const isLoading = !src_def || !src_conf_global || !src_conf_app || !src_conf_user || !dst_conf_global || !dst_conf_app || !dst_conf_user || !dst_apps;
+
+    const conf = useMemo(() => {
+        if (isLoading) return false;
+
+        const change = {};
+        Object.entries(src_conf_user).forEach(([app, stanzas]) => {
+            if (app === "learned" || app === "000-self-service" || !dst_apps.includes(app)) return;
+
+            Object.entries(stanzas).forEach(([stanza, src]) => {
+                const dst = dst_conf_user?.[app]?.[stanza];
+                Object.entries(src.content).forEach(([attr, src_value]) => {
+                    if (ATTR_BLACKLIST.includes(attr)) return;
+                    const nrm_value = normalizeBoolean(src_value);
+                    const dst_value = dst?.content?.[attr];
+                    const def_value = normalizeBoolean(src_def?.[attr]);
+                    const src_value_global = normalizeBoolean(src_conf_global?.[stanza]?.content?.[attr]);
+                    const dst_value_global = normalizeBoolean(dst_conf_global?.[stanza]?.content?.[attr]);
+                    const src_value_app = normalizeBoolean(src_conf_app?.[app]?.[stanza]?.content?.[attr]);
+                    const dst_value_app = normalizeBoolean(dst_conf_app?.[app]?.[stanza]?.content?.[attr]);
+                    
+                    //console.log(src_user, dst_user, app, stanza, {def_value, src_value_global, src_value_app, nrm_value, dst_value_global, dst_value_app, dst_value})
+
+                    if (nrm_value == def_value || nrm_value == src_value_global || nrm_value == src_value_app || nrm_value == dst_value_app || nrm_value == dst_value_global || src_value === dst_value) return;
+
+                    change[app] ??= {};
+                    change[app][stanza] ??= {
+                        attr: [],
+                        src,
+                        dst,
+                    };
+                    change[app][stanza].attr.push(attr);
+                });
+            });
+        });
+
+        return sortConf(change);
+    }, [src_def, src_conf_global, src_conf_app, dst_conf_global, dst_conf_app, dst_apps]);
+
+    return <TableConfig conf={conf} file={file} dst_user={dst_user} />;
+};
+
 export const AllConf = ({ file, src_user = "nobody", dst_user = "nobody" }) => {
     const config = useConfig();
 

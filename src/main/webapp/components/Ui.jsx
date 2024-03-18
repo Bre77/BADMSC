@@ -66,7 +66,8 @@ export default ({ folder, scope = false, src_user = "nobody", dst_user = "nobody
         Object.entries(src.data).forEach(([app, files]) => {
             if (app in dst_apps.data) {
                 Object.entries(files).forEach(([file, { acl, data, digest }]) => {
-                    if (scope && !acl.sharing != scope) return;
+                    console.log(folder, scope, acl.sharing, digest, dst.data?.[app]?.[file]?.digest);
+                    if (scope && acl.sharing != scope) return;
                     if (digest !== dst.data?.[app]?.[file]?.digest) {
                         output[app] ??= {};
                         output[app][file] = {
