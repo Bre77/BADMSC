@@ -43,7 +43,7 @@ const CopyUi = ({ app, folder, file, content, exists, acl, dst_user }) => {
             .then((newdata) =>
                 queryClient.setQueryData(["dst", `servicesNS/nobody/-/data/ui/${folder}`], (olddata) => ({
                     ...olddata,
-                    [app]: { ...olddata[app], [file]: newdata[app][file] },
+                    [app]: { ...olddata?.[app], [file]: newdata[app][file] },
                 }))
             )
             .then(() => asbuilt({ action: "ui", new: !exists, type: folder, app, file, src: config.src.api, dst: config.dst.api, dst_user }));
@@ -125,6 +125,6 @@ export default ({ folder, scope = false, src_user = "nobody", dst_user = "nobody
             </Table.Body>
         </Table>
     ) : (
-        <Message>No modified {folder} found</Message>
+        <Message type="info">No modified {folder} found</Message>
     );
 };

@@ -9,7 +9,7 @@ import styled from "styled-components";
 import { ATTR_BLACKLIST } from "../shared/const";
 import { asbuilt, request } from "../shared/fetch";
 import { isort, isort0, latest } from "../shared/helpers";
-import { appNameConfs, handle, handleAcl, keyContent, makeQuery, nameContent, nameContentAcl, processConfs, useConfig } from "../shared/hooks";
+import { appNameConfs, handle, handleAcl, keyContent, makeQuery, nameContent, nameContentAcl, useApps, useConfig } from "../shared/hooks";
 import MutateButton from "./MutateButton";
 
 const CodeCell = styled(Table.Cell)`
@@ -43,9 +43,9 @@ export const GlobalConf = ({ file }) => {
     const src_def = useQuery(makeQuery(config.src, `services/properties/${file}/default`, nameContent)).data;
     const src_conf_global = useQuery(makeQuery(config.src, `servicesNS/nobody/system/${endpoint(file)}`, nameContentAcl)).data;
     const dst_conf_global = useQuery(makeQuery(config.dst, `servicesNS/nobody/system/${endpoint(file)}`, nameContentAcl)).data;
-    const dst_apps = useQuery(makeQuery(config.dst, "services/apps/local", keyContent)).data;
+    const dst_apps = useApps(config.dst).data;
 
-    const isLoading = !src_def || !src_conf_global || !dst_conf_global || !dst_apps;
+    const isLoading = src_def== null || src_conf_global== null || dst_conf_global== null || dst_apps== null;
 
     const conf = useMemo(() => {
         if (isLoading) return false;
@@ -53,7 +53,7 @@ export const GlobalConf = ({ file }) => {
         const change = {};
         Object.entries(src_conf_global).forEach(([stanza, src]) => {
             const app = src.acl.app;
-            if (app === "learned" || app === "000-self-service" || !(dst_apps.includes(app) || app == "system")) return;
+            if (app === "learned" || app === "000-self-service" || !(dst_apps.hasOwnProperty(app) || app == "system")) return;
             const dst = dst_conf_global?.[stanza];
             Object.entries(src.content).forEach(([attr, src_value]) => {
                 if (ATTR_BLACKLIST.includes(attr)) return;
@@ -92,16 +92,16 @@ export const ScopedConf = ({ file, src_user = "nobody", dst_user = "nobody" }) =
         ...makeQuery(config.dst, `servicesNS/${dst_user}/-/${endpoint(file)}`, appNameConfs, { search: "eai:acl.sharing=app" }),
         cacheTime: 0,
     }).data;
-    const dst_apps = useQuery(makeQuery(config.dst, "services/apps/local", keyContent)).data;
+    const dst_apps = useApps(config.dst).data;
 
-    const isLoading = !src_def || !src_conf_global || !src_conf_app || !dst_conf_global || !dst_conf_app || !dst_apps;
+    const isLoading = src_def == null|| src_conf_global== null || src_conf_app== null || dst_conf_global== null || dst_conf_app== null || dst_apps== null;
 
     const conf = useMemo(() => {
         if (isLoading) return false;
 
         const change = {};
         Object.entries(src_conf_app).forEach(([app, stanzas]) => {
-            if (app === "learned" || app === "000-self-service" || !dst_apps.includes(app)) return;
+            if (app === "learned" || app === "000-self-service" || !dst_apps.hasOwnProperty(app)) return;
 
             Object.entries(stanzas).forEach(([stanza, src]) => {
                 const dst = dst_conf_app?.[app]?.[stanza];
@@ -154,16 +154,17 @@ export const PrivateConf = ({ file, src_user = "nobody", dst_user = "nobody" }) 
         ...makeQuery(config.dst, `servicesNS/${dst_user}/-/${endpoint(file)}#private`, appNameConfs, { search: "eai:acl.sharing=user" }),
         cacheTime: 0,
     }).data;
-    const dst_apps = useQuery(makeQuery(config.dst, "services/apps/local", keyContent)).data;
+    const dst_apps = useApps(config.dst).data;
 
-    const isLoading = !src_def || !src_conf_global || !src_conf_app || !src_conf_user || !dst_conf_global || !dst_conf_app || !dst_conf_user || !dst_apps;
+    console.log(src_def)
+    const isLoading = src_def == null || src_conf_global == null || src_conf_app== null || src_conf_user== null || dst_conf_global== null || dst_conf_app== null || dst_conf_user== null || dst_apps== null;
 
     const conf = useMemo(() => {
         if (isLoading) return false;
 
         const change = {};
         Object.entries(src_conf_user).forEach(([app, stanzas]) => {
-            if (app === "learned" || app === "000-self-service" || !dst_apps.includes(app)) return;
+            if (app === "learned" || app === "000-self-service" || !dst_apps.hasOwnProperty(app)) return;
 
             Object.entries(stanzas).forEach(([stanza, src]) => {
                 const dst = dst_conf_user?.[app]?.[stanza];
@@ -193,7 +194,7 @@ export const PrivateConf = ({ file, src_user = "nobody", dst_user = "nobody" }) 
         });
 
         return sortConf(change);
-    }, [src_def, src_conf_global, src_conf_app, dst_conf_global, dst_conf_app, dst_apps]);
+    }, [src_def, src_conf_global, src_conf_app, src_conf_user, dst_conf_global, dst_conf_app, dst_conf_user, dst_apps]);
 
     return <TableConfig conf={conf} file={file} dst_user={dst_user} />;
 };

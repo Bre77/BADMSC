@@ -305,6 +305,6 @@ export default ({ type, scope = false, src_user = "nobody", dst_user = "nobody" 
             </Table>
         </>
     ) : (
-        <Message>No modified {type} lookups found</Message>
+        <Message type="info">No modified {type} lookups found</Message>
     );
 };
