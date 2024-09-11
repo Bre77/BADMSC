@@ -15,3 +15,4 @@ functional-temp
 splunktional-temp
 src/main/resources/splunk/lib
 dist/*.spl
+*.spl
